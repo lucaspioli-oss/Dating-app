@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    method.xml - Configuração do Input Method (Teclado)
+
+    Este arquivo define as características e comportamento do teclado customizado
+    Referenciado no AndroidManifest.xml via meta-data
+-->
+<input-method xmlns:android="http://schemas.android.com/apk/res/android"
+    android:settingsActivity="com.example.flirtkeyboard.SettingsActivity"
+    android:supportsSwitchingToNextInputMethod="true">
+    <!--
+        Propriedades:
+
+        android:settingsActivity
+        - Activity que abre quando usuário toca em "Configurações" do teclado
+        - Opcional: remova se não tiver tela de configurações
+
+        android:supportsSwitchingToNextInputMethod
+        - true: Permite alternar para próximo teclado (botão de globo)
+        - Recomendado: sempre true para melhor UX
+    -->
+</input-method>

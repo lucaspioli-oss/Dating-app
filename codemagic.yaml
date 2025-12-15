@@ -1,0 +1,190 @@
+# ============================================
+# CODEMAGIC CONFIGURATION
+# Dating App - Flutter Keyboard
+# ============================================
+
+workflows:
+  # Workflow para iOS (iPhone)
+  ios-workflow:
+    name: iOS Build & Deploy
+    max_build_duration: 60
+
+    # Ambiente de build
+    instance_type: mac_mini_m1
+
+    environment:
+      # Versões
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+
+      # Variáveis de ambiente
+      vars:
+        # URL do backend (ajuste conforme necessário)
+        BACKEND_URL: "http://localhost:3000"
+
+        # Bundle IDs (IMPORTANTE: Mude para seus IDs)
+        XCODE_PROJECT: "Runner.xcworkspace"
+        XCODE_SCHEME: "Runner"
+        BUNDLE_ID: "com.lucaspioli.flirtkeyboard"
+        KEYBOARD_BUNDLE_ID: "com.lucaspioli.flirtkeyboard.FlirtKeyboardExtension"
+
+      # Grupos (para configurar depois)
+      groups:
+        # Adicione grupo com:
+        # - CERTIFICATE_PRIVATE_KEY (certificado iOS)
+        # - APP_STORE_CONNECT_ISSUER_ID
+        # - APP_STORE_CONNECT_KEY_IDENTIFIER
+        # - APP_STORE_CONNECT_PRIVATE_KEY
+        - codemagic # grupo padrão
+
+    # Diretório do projeto Flutter
+    working_directory: flutter_keyboard
+
+    # Scripts de build
+    scripts:
+      # 1. Obter dependências
+      - name: Get Flutter packages
+        script: |
+          cd flutter_keyboard
+          flutter packages pub get
+
+      # 2. Instalar CocoaPods
+      - name: Install CocoaPods
+        script: |
+          cd flutter_keyboard/ios
+          pod install
+
+      # 3. Build do app Flutter iOS
+      - name: Flutter build iOS
+        script: |
+          cd flutter_keyboard
+          flutter build ios --release --no-codesign
+
+      # 4. Code signing (assinatura)
+      - name: iOS code signing
+        script: |
+          cd flutter_keyboard/ios
+          xcode-project use-profiles
+
+      # 5. Build do Xcode (app + keyboard extension)
+      - name: Build iOS app with Keyboard Extension
+        script: |
+          cd flutter_keyboard/ios
+          xcodebuild \
+            -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -sdk iphoneos \
+            -configuration Release \
+            -archivePath $FCI_BUILD_DIR/Runner.xcarchive \
+            archive
+
+      # 6. Exportar IPA
+      - name: Export IPA
+        script: |
+          cd flutter_keyboard/ios
+          xcodebuild \
+            -exportArchive \
+            -archivePath $FCI_BUILD_DIR/Runner.xcarchive \
+            -exportPath $FCI_BUILD_DIR/ipa \
+            -exportOptionsPlist $FCI_BUILD_DIR/flutter_keyboard/ios/ExportOptions.plist
+
+    # Artefatos gerados
+    artifacts:
+      - flutter_keyboard/build/ios/ipa/*.ipa
+      - flutter_keyboard/ios/Runner.xcarchive
+
+    # Publicação
+    publishing:
+      # Email de notificação
+      email:
+        recipients:
+          - lucas@exemplo.com # MUDE PARA SEU EMAIL
+        notify:
+          success: true
+          failure: true
+
+      # App Store Connect (TestFlight)
+      app_store_connect:
+        # Vai enviar automaticamente para TestFlight
+        # Você poderá instalar no iPhone via TestFlight app
+        auth: integration # ou use api_key
+
+        # Enviar para TestFlight
+        submit_to_testflight: true
+
+        # Beta App Review (opcional)
+        # submit_to_app_store: false
+
+  # ============================================
+  # Workflow de desenvolvimento (mais rápido)
+  # ============================================
+
+  ios-development:
+    name: iOS Development Build
+    max_build_duration: 30
+    instance_type: mac_mini_m1
+
+    environment:
+      flutter: stable
+      xcode: latest
+
+      vars:
+        BACKEND_URL: "http://localhost:3000"
+
+    working_directory: flutter_keyboard
+
+    scripts:
+      - name: Get dependencies
+        script: |
+          cd flutter_keyboard
+          flutter pub get
+
+      - name: Analyze code
+        script: |
+          cd flutter_keyboard
+          flutter analyze
+
+      - name: Run tests
+        script: |
+          cd flutter_keyboard
+          flutter test
+
+      - name: Build iOS (debug)
+        script: |
+          cd flutter_keyboard
+          flutter build ios --debug --no-codesign
+
+    artifacts:
+      - flutter_keyboard/build/ios/**/*.app
+
+    publishing:
+      email:
+        recipients:
+          - lucas@exemplo.com
+
+# ============================================
+# NOTAS DE CONFIGURAÇÃO
+# ============================================
+
+# 1. IMPORTANTE: Configure Code Signing
+#    - Vá em Codemagic > Your app > Settings > Code signing
+#    - Adicione certificado de desenvolvimento iOS
+#    - Adicione provisioning profiles
+#
+# 2. App Store Connect API Key
+#    - Necessário para enviar para TestFlight
+#    - Gere em: https://appstoreconnect.apple.com/access/api
+#    - Adicione no Codemagic como grupo de variáveis
+#
+# 3. Bundle IDs
+#    - Mude BUNDLE_ID e KEYBOARD_BUNDLE_ID
+#    - Devem corresponder aos IDs no Xcode
+#
+# 4. Backend URL
+#    - Para teste local: use ngrok ou similar
+#    - Para produção: use seu servidor real
+#
+# 5. Triggers
+#    - Por padrão, builda em todo push
+#    - Configure em: Settings > Triggers
