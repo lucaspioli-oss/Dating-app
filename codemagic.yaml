@@ -105,16 +105,10 @@ workflows:
           failure: true
 
       # App Store Connect (TestFlight)
-      app_store_connect:
-        # Vai enviar automaticamente para TestFlight
-        # Você poderá instalar no iPhone via TestFlight app
-        auth: integration # ou use api_key
-
-        # Enviar para TestFlight
-        submit_to_testflight: true
-
-        # Beta App Review (opcional)
-        # submit_to_app_store: false
+      # COMENTE esta seção até configurar a integração no Codemagic
+      # app_store_connect:
+      #   auth: integration
+      #   submit_to_testflight: true
 
   # ============================================
   # Workflow de desenvolvimento (mais rápido)
