@@ -18,8 +18,17 @@ import {
   GenerateSuggestionsRequest,
 } from './types/conversation';
 import { getSystemPromptForTone } from './prompts';
-import { createCheckoutSession } from './services/stripe';
+import {
+  createCheckoutSession,
+  constructWebhookEvent,
+  handleCheckoutCompleted,
+  handleSubscriptionUpdated,
+  handleSubscriptionDeleted,
+  handleInvoicePaid,
+  handlePaymentFailed,
+} from './services/stripe';
 import { verifyAuth, AuthenticatedRequest } from './middleware/auth';
+import Stripe from 'stripe';
 
 const fastify = Fastify({
   logger: true,
@@ -29,6 +38,22 @@ const fastify = Fastify({
 fastify.register(cors, {
   origin: true, // Aceita qualquer origem (para desenvolvimento)
 });
+
+// Raw body parser for Stripe webhooks
+fastify.addContentTypeParser(
+  'application/json',
+  { parseAs: 'buffer' },
+  (req, body, done) => {
+    // Store raw body for webhook verification
+    (req as any).rawBody = body;
+    try {
+      const json = JSON.parse(body.toString());
+      done(null, json);
+    } catch (err: any) {
+      done(err, undefined);
+    }
+  }
+);
 
 const analyzeSchema = {
   body: {
@@ -420,6 +445,64 @@ fastify.post('/create-checkout-session', {
     return reply.code(500).send({
       error: 'Failed to create checkout session',
       message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// Stripe Webhook Handler
+// URL: https://dating-app-production-ac43.up.railway.app/webhook/stripe
+fastify.post('/webhook/stripe', async (request, reply) => {
+  const sig = request.headers['stripe-signature'] as string;
+
+  if (!sig) {
+    console.error('❌ Missing stripe-signature header');
+    return reply.code(400).send({ error: 'Missing signature' });
+  }
+
+  let event: Stripe.Event;
+
+  try {
+    const rawBody = (request as any).rawBody as Buffer;
+    event = constructWebhookEvent(rawBody, sig);
+  } catch (err: any) {
+    console.error('❌ Webhook signature verification failed:', err.message);
+    return reply.code(400).send({ error: `Webhook Error: ${err.message}` });
+  }
+
+  console.log('📨 Stripe webhook received:', event.type);
+
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed':
+        await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+        break;
+
+      case 'customer.subscription.updated':
+        await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
+        break;
+
+      case 'customer.subscription.deleted':
+        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
+        break;
+
+      case 'invoice.paid':
+        await handleInvoicePaid(event.data.object as Stripe.Invoice);
+        break;
+
+      case 'invoice.payment_failed':
+        await handlePaymentFailed(event.data.object as Stripe.Invoice);
+        break;
+
+      default:
+        console.log(`⚠️ Unhandled event type: ${event.type}`);
+    }
+
+    return reply.code(200).send({ received: true });
+  } catch (error: any) {
+    console.error('❌ Error processing webhook:', error);
+    return reply.code(500).send({
+      error: 'Internal server error',
+      message: error.message,
     });
   }
 });
