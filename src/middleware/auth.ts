@@ -21,6 +21,8 @@ export interface AuthenticatedRequest extends FastifyRequest {
     uid: string;
     email?: string;
     hasActiveSubscription: boolean;
+    isAdmin?: boolean;
+    isDeveloper?: boolean;
   };
 }
 
@@ -61,22 +63,31 @@ export async function verifyAuth(
     const userData = userDoc.data();
     const subscription = userData?.subscription;
 
+    // Check for admin/developer status (stored in Firestore, not in code)
+    const isAdmin = userData?.isAdmin === true;
+    const isDeveloper = userData?.isDeveloper === true;
+
     const now = new Date();
     const expiresAt = subscription?.expiresAt?.toDate();
 
+    // Admins and developers always have access
     const hasActiveSubscription =
-      (subscription?.status === 'active' || subscription?.status === 'trial') &&
-      expiresAt &&
-      now < expiresAt;
+      isAdmin ||
+      isDeveloper ||
+      ((subscription?.status === 'active' || subscription?.status === 'trial') &&
+        expiresAt &&
+        now < expiresAt);
 
     // Attach user to request
     request.user = {
       uid: decodedToken.uid,
       email: decodedToken.email,
       hasActiveSubscription,
+      isAdmin,
+      isDeveloper,
     };
 
-    // If no active subscription, return error
+    // If no active subscription (and not admin/developer), return error
     if (!hasActiveSubscription) {
       reply.code(403).send({
         error: 'Subscription Required',
@@ -158,18 +169,26 @@ export async function optionalAuth(
       const userData = userDoc.data();
       const subscription = userData?.subscription;
 
+      // Check for admin/developer status
+      const isAdmin = userData?.isAdmin === true;
+      const isDeveloper = userData?.isDeveloper === true;
+
       const now = new Date();
       const expiresAt = subscription?.expiresAt?.toDate();
 
       const hasActiveSubscription =
-        (subscription?.status === 'active' || subscription?.status === 'trial') &&
-        expiresAt &&
-        now < expiresAt;
+        isAdmin ||
+        isDeveloper ||
+        ((subscription?.status === 'active' || subscription?.status === 'trial') &&
+          expiresAt &&
+          now < expiresAt);
 
       request.user = {
         uid: decodedToken.uid,
         email: decodedToken.email,
         hasActiveSubscription,
+        isAdmin,
+        isDeveloper,
       };
     }
   } catch (error) {

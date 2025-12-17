@@ -23,6 +23,15 @@ class SubscriptionService {
       }
 
       final data = snapshot.data();
+
+      // Check if user is admin/developer (stored in Firestore, not in code)
+      final isAdmin = data?['isAdmin'] as bool? ?? false;
+      final isDeveloper = data?['isDeveloper'] as bool? ?? false;
+
+      if (isAdmin || isDeveloper) {
+        return SubscriptionStatus.active; // Full access for admins/developers
+      }
+
       final subscription = data?['subscription'] as Map<String, dynamic>?;
 
       if (subscription == null) {
