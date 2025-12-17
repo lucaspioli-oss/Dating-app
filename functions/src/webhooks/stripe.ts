@@ -2,38 +2,23 @@ import { Request, Response } from 'express';
 import Stripe from 'stripe';
 import { UserManager } from '../services/user-manager';
 import * as admin from 'firebase-admin';
-import * as functions from 'firebase-functions';
 
-// Get Stripe config from Firebase Functions config or environment variables
-// Use: firebase functions:config:set stripe.secret_key="sk_..." stripe.webhook_secret="whsec_..."
-const getStripeConfig = () => {
-  // Try Firebase Functions config first
-  try {
-    const config = functions.config();
-    if (config.stripe?.secret_key && config.stripe?.webhook_secret) {
-      return {
-        secretKey: config.stripe.secret_key,
-        webhookSecret: config.stripe.webhook_secret,
-      };
-    }
-  } catch (e) {
-    // Config not available (local development)
+// Get Stripe config from environment variables
+// Set these in Firebase Console > Functions > Configuration
+// Or create a .env file in the functions directory
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY || '';
+const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
+
+// Initialize Stripe lazily to allow env vars to be set
+let stripe: Stripe;
+const getStripe = () => {
+  if (!stripe) {
+    stripe = new Stripe(stripeSecretKey, {
+      apiVersion: '2023-10-16',
+    });
   }
-
-  // Fallback to environment variables
-  return {
-    secretKey: process.env.STRIPE_SECRET_KEY || '',
-    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
-  };
+  return stripe;
 };
-
-const stripeConfig = getStripeConfig();
-
-const stripe = new Stripe(stripeConfig.secretKey, {
-  apiVersion: '2023-10-16',
-});
-
-const endpointSecret = stripeConfig.webhookSecret;
 
 /**
  * Stripe Webhook Handler
@@ -57,7 +42,7 @@ export async function handleStripeWebhook(req: Request, res: Response) {
 
   try {
     // Verify webhook signature
-    event = stripe.webhooks.constructEvent(
+    event = getStripe().webhooks.constructEvent(
       req.body,
       sig,
       endpointSecret
@@ -122,7 +107,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 
   // Get subscription details
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  const subscription = await getStripe().subscriptions.retrieve(subscriptionId);
   const priceId = subscription.items.data[0].price.id;
   const amount = subscription.items.data[0].price.unit_amount || 0;
   const currency = subscription.items.data[0].price.currency;
@@ -186,7 +171,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   console.log('🔄 Subscription updated:', subscription.id);
 
   const customerId = subscription.customer as string;
-  const customer = await stripe.customers.retrieve(customerId);
+  const customer = await getStripe().customers.retrieve(customerId);
 
   if (!customer || customer.deleted) {
     console.error('❌ Customer not found');
@@ -240,7 +225,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   console.log('❌ Subscription deleted:', subscription.id);
 
   const customerId = subscription.customer as string;
-  const customer = await stripe.customers.retrieve(customerId);
+  const customer = await getStripe().customers.retrieve(customerId);
 
   if (!customer || customer.deleted) return;
 
@@ -267,9 +252,9 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   const subscriptionId = invoice.subscription as string;
   if (!subscriptionId) return;
 
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  const subscription = await getStripe().subscriptions.retrieve(subscriptionId);
   const customerId = subscription.customer as string;
-  const customer = await stripe.customers.retrieve(customerId);
+  const customer = await getStripe().customers.retrieve(customerId);
 
   if (!customer || customer.deleted) return;
 
@@ -309,9 +294,9 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
   const subscriptionId = invoice.subscription as string;
   if (!subscriptionId) return;
 
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  const subscription = await getStripe().subscriptions.retrieve(subscriptionId);
   const customerId = subscription.customer as string;
-  const customer = await stripe.customers.retrieve(customerId);
+  const customer = await getStripe().customers.retrieve(customerId);
 
   if (!customer || customer.deleted) return;
 

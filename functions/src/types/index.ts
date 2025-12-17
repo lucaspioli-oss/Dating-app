@@ -4,9 +4,9 @@ export interface User {
   displayName: string;
   createdAt: Date;
   subscription: {
-    status: 'active' | 'cancelled' | 'expired' | 'trial';
-    plan: 'monthly' | 'yearly' | 'trial';
-    expiresAt: Date;
+    status: 'active' | 'cancelled' | 'expired' | 'inactive';
+    plan: 'monthly' | 'yearly' | 'none';
+    expiresAt?: Date;
     stripeSubscriptionId?: string;
     stripeCustomerId?: string;
   };
@@ -28,8 +28,8 @@ export interface User {
 export interface Subscription {
   id: string;
   userId: string;
-  status: 'active' | 'cancelled' | 'expired' | 'trial';
-  plan: 'monthly' | 'yearly' | 'trial';
+  status: 'active' | 'cancelled' | 'expired' | 'inactive';
+  plan: 'monthly' | 'yearly' | 'none';
   startDate: Date;
   expiresAt: Date;
   stripeSubscriptionId?: string;

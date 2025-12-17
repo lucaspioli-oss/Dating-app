@@ -43,10 +43,12 @@ service cloud.firestore {
                        resource.data.userId == request.auth.uid;
     }
 
-    // Analytics (read-only for users, write via Cloud Functions)
+    // Analytics
     match /analytics/{userId} {
       allow read: if isOwner(userId);
-      allow write: if false; // Only Cloud Functions can write
+      allow create: if isOwner(userId);
+      allow update: if false; // Only Cloud Functions can update
+      allow delete: if false;
     }
 
     // Subscriptions (managed by Cloud Functions via Hotmart webhook)

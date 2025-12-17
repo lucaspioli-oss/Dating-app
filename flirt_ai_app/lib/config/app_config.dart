@@ -28,7 +28,6 @@ class AppConfig {
   static const String appVersion = '1.0.0';
 
   // Subscription
-  static const int trialDays = 7;
   static const double monthlyPrice = 29.90;
   static const double yearlyPrice = 199.90;
 }

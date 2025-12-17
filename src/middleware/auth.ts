@@ -71,12 +71,12 @@ export async function verifyAuth(
     const expiresAt = subscription?.expiresAt?.toDate();
 
     // Admins and developers always have access
+    // Active subscription with valid expiration date
     const hasActiveSubscription =
       isAdmin ||
       isDeveloper ||
-      ((subscription?.status === 'active' || subscription?.status === 'trial') &&
-        expiresAt &&
-        now < expiresAt);
+      (subscription?.status === 'active' &&
+        (!expiresAt || now < expiresAt));
 
     // Attach user to request
     request.user = {
@@ -179,9 +179,8 @@ export async function optionalAuth(
       const hasActiveSubscription =
         isAdmin ||
         isDeveloper ||
-        ((subscription?.status === 'active' || subscription?.status === 'trial') &&
-          expiresAt &&
-          now < expiresAt);
+        (subscription?.status === 'active' &&
+          (!expiresAt || now < expiresAt));
 
       request.user = {
         uid: decodedToken.uid,

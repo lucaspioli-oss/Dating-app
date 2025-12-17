@@ -37,35 +37,64 @@ class AuthWrapper extends StatelessWidget {
   }
 }
 
-class SubscriptionWrapper extends StatelessWidget {
+class SubscriptionWrapper extends StatefulWidget {
   const SubscriptionWrapper({super.key});
 
   @override
+  State<SubscriptionWrapper> createState() => _SubscriptionWrapperState();
+}
+
+class _SubscriptionWrapperState extends State<SubscriptionWrapper> {
+  final SubscriptionService _subscriptionService = SubscriptionService();
+  bool _isLoading = true;
+  SubscriptionStatus _status = SubscriptionStatus.inactive;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSubscription();
+  }
+
+  Future<void> _checkSubscription() async {
+    try {
+      // Wait a moment to ensure Firestore is synced
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Get current status from stream
+      final status = await _subscriptionService.subscriptionStatusStream.first;
+
+      if (mounted) {
+        setState(() {
+          _status = status;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _status = SubscriptionStatus.inactive;
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final subscriptionService = SubscriptionService();
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
 
-    return StreamBuilder<SubscriptionStatus>(
-      stream: subscriptionService.subscriptionStatusStream,
-      builder: (context, snapshot) {
-        // Loading
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
-          );
-        }
+    // ONLY allow access if status is explicitly active
+    if (_status == SubscriptionStatus.active) {
+      return const MainScreen();
+    }
 
-        final status = snapshot.data ?? SubscriptionStatus.inactive;
-
-        // Check if subscription is active
-        if (status == SubscriptionStatus.active) {
-          return const MainScreen();
-        }
-
-        // No active subscription - show pricing page
-        return SubscriptionRequiredScreen(status: status);
-      },
-    );
+    // Any other status - show pricing page
+    return SubscriptionRequiredScreen(status: _status);
   }
 }

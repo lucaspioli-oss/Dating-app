@@ -25,7 +25,19 @@
       "Bash(npm install:*)",
       "Bash(npm run build:*)",
       "Bash(rm:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(powershell.exe -Command \"& ''C:\\src\\flutter\\bin\\flutter.bat'' build web --release\")",
+      "Bash(powershell.exe -Command \"& ''C:\\src\\flutter\\bin\\flutter.bat'' clean\")",
+      "Bash(powershell.exe -Command \"Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force .dart_tool -ErrorAction SilentlyContinue\")",
+      "Bash(powershell.exe -Command \"& ''C:\\src\\flutter\\bin\\flutter.bat'' pub get && & ''C:\\src\\flutter\\bin\\flutter.bat'' build web --release\")",
+      "Bash(powershell.exe -Command \"& ''C:\\src\\flutter\\bin\\flutter.bat'' build web --release --web-renderer html\")",
+      "Bash(powershell.exe -Command \"New-Item -ItemType Directory -Force -Path ''build\\web\\assets\\shaders''\")",
+      "Bash(powershell.exe -Command \"New-Item -ItemType Directory -Force -Path ''C:\\temp\\flutter_build''\")",
+      "Bash(powershell.exe -Command \"& ''C:\\src\\flutter\\bin\\flutter.bat'' build web --release --output ''C:\\temp\\flutter_build''\")",
+      "Bash(powershell.exe -Command \"Copy-Item -Path ''C:\\temp\\flutter_build\\*'' -Destination ''C:\\Users\\lucas\\OneDrive\\Área de Trabalho\\Dating App\\flirt_ai_app\\build\\web'' -Recurse -Force\")",
+      "Bash(powershell.exe -Command \"Get-ChildItem -Path ''C:\\Users\\lucas\\OneDrive\\Área de Trabalho\\Dating App\\flirt_ai_app\\build\\web'' | Select-Object Name\")",
+      "Bash(npx firebase deploy:*)",
+      "Bash(npx firebase functions:config:get)"
     ],
     "deny": [],
     "ask": []

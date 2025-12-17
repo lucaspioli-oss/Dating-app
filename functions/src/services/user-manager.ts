@@ -5,7 +5,7 @@ const db = admin.firestore();
 
 export class UserManager {
   /**
-   * Creates a new user document in Firestore with trial subscription
+   * Creates a new user document in Firestore without subscription
    */
   static async createUser(
     uid: string,
@@ -13,7 +13,6 @@ export class UserManager {
     displayName: string
   ): Promise<User> {
     const now = new Date();
-    const trialExpiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 dias
 
     const user: User = {
       id: uid,
@@ -21,9 +20,8 @@ export class UserManager {
       displayName,
       createdAt: now,
       subscription: {
-        status: 'trial',
-        plan: 'trial',
-        expiresAt: trialExpiresAt,
+        status: 'inactive',
+        plan: 'none',
       },
       stats: {
         totalConversations: 0,

@@ -71,14 +71,14 @@ export const onUserCreated = functions.auth.user().onCreate(async (user) => {
       return;
     }
 
-    // Criar documento do usuário com trial de 7 dias
+    // Criar documento do usuário sem assinatura
     await UserManager.createUser(
       user.uid,
       user.email || '',
       user.displayName || 'Usuário'
     );
 
-    console.log('✅ User document created with 7-day trial');
+    console.log('✅ User document created (no subscription)');
 
   } catch (error) {
     console.error('❌ Error creating user document:', error);
@@ -155,14 +155,15 @@ export const checkSubscription = functions.https.onCall(async (data, context) =>
     }
 
     const now = new Date();
+    const expiresAt = user.subscription.expiresAt;
     const isActive = user.subscription.status === 'active' &&
-                     user.subscription.expiresAt > now;
+                     (!expiresAt || expiresAt > now);
 
     return {
       isActive,
       status: user.subscription.status,
       plan: user.subscription.plan,
-      expiresAt: user.subscription.expiresAt,
+      expiresAt: expiresAt || null,
     };
 
   } catch (error: any) {
