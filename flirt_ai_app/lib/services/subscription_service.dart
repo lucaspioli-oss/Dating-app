@@ -41,15 +41,13 @@ class SubscriptionService {
       final status = subscription['status'] as String?;
       final expiresAt = (subscription['expiresAt'] as Timestamp?)?.toDate();
 
-      if (expiresAt != null && DateTime.now().isAfter(expiresAt)) {
+      if (status == 'active' && expiresAt != null && DateTime.now().isAfter(expiresAt)) {
         return SubscriptionStatus.expired;
       }
 
       switch (status) {
         case 'active':
           return SubscriptionStatus.active;
-        case 'trial':
-          return SubscriptionStatus.trial;
         case 'cancelled':
           return SubscriptionStatus.cancelled;
         case 'expired':
@@ -80,33 +78,15 @@ class SubscriptionService {
       status: subscription['status'] as String? ?? 'inactive',
       plan: subscription['plan'] as String? ?? 'none',
       expiresAt: (subscription['expiresAt'] as Timestamp?)?.toDate(),
-      hotmartTransactionId: subscription['hotmartTransactionId'] as String?,
-      hotmartSubscriberId: subscription['hotmartSubscriberId'] as String?,
+      stripeSubscriptionId: subscription['stripeSubscriptionId'] as String?,
+      stripeCustomerId: subscription['stripeCustomerId'] as String?,
     );
   }
 
   // Check if feature is accessible
   Future<bool> canAccessFeature(FeatureType feature) async {
     final status = await subscriptionStatusStream.first;
-
-    switch (feature) {
-      case FeatureType.basicConversations:
-        // Trial e Active podem usar
-        return status == SubscriptionStatus.trial ||
-               status == SubscriptionStatus.active;
-
-      case FeatureType.advancedPrompts:
-        // Apenas Active
-        return status == SubscriptionStatus.active;
-
-      case FeatureType.expertMode:
-        // Apenas Active
-        return status == SubscriptionStatus.active;
-
-      case FeatureType.unlimitedConversations:
-        // Apenas Active
-        return status == SubscriptionStatus.active;
-    }
+    return status == SubscriptionStatus.active;
   }
 
   // Get days remaining in subscription/trial
@@ -146,7 +126,6 @@ class SubscriptionService {
 
 enum SubscriptionStatus {
   active,
-  trial,
   cancelled,
   expired,
   inactive,
@@ -163,18 +142,16 @@ class SubscriptionDetails {
   final String status;
   final String plan;
   final DateTime? expiresAt;
-  final String? hotmartTransactionId;
-  final String? hotmartSubscriberId;
+  final String? stripeSubscriptionId;
+  final String? stripeCustomerId;
 
   SubscriptionDetails({
     required this.status,
     required this.plan,
     this.expiresAt,
-    this.hotmartTransactionId,
-    this.hotmartSubscriberId,
+    this.stripeSubscriptionId,
+    this.stripeCustomerId,
   });
 
-  bool get isActive => status == 'active' || status == 'trial';
-  bool get isTrial => status == 'trial';
-  bool get isPaid => status == 'active' && plan != 'trial';
+  bool get isActive => status == 'active';
 }

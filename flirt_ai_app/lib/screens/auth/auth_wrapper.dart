@@ -58,13 +58,12 @@ class SubscriptionWrapper extends StatelessWidget {
 
         final status = snapshot.data ?? SubscriptionStatus.inactive;
 
-        // Check if subscription is active or in trial
-        if (status == SubscriptionStatus.active ||
-            status == SubscriptionStatus.trial) {
+        // Check if subscription is active
+        if (status == SubscriptionStatus.active) {
           return const MainScreen();
         }
 
-        // No active subscription
+        // No active subscription - show pricing page
         return SubscriptionRequiredScreen(status: status);
       },
     );

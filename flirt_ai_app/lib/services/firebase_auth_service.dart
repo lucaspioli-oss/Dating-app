@@ -26,13 +26,30 @@ class FirebaseAuthService {
       // Update display name
       await userCredential.user?.updateDisplayName(displayName);
 
-      // O Cloud Function onUserCreated vai criar o documento automaticamente
-      // mas vamos verificar se precisamos criar manualmente
-      await _ensureUserDocument(userCredential.user!);
+      // Tenta criar documento no Firestore, mas não falha se der erro
+      // (o documento pode ser criado por Cloud Function ou na primeira verificação)
+      try {
+        await _ensureUserDocument(userCredential.user!);
+      } catch (firestoreError) {
+        // Ignora erro do Firestore - usuário foi criado com sucesso
+        print('Aviso: Erro ao criar documento Firestore: $firestoreError');
+      }
 
       return userCredential;
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
+    } catch (e) {
+      final message = e.toString().toLowerCase();
+      if (message.contains('email-already-in-use') || message.contains('already in use')) {
+        throw 'Este email já está cadastrado.';
+      }
+      if (message.contains('weak-password') || message.contains('weak password')) {
+        throw 'A senha deve ter no mínimo 6 caracteres.';
+      }
+      if (message.contains('invalid-email') || message.contains('invalid email')) {
+        throw 'Email inválido.';
+      }
+      throw 'Erro ao criar conta. Tente novamente.';
     }
   }
 
@@ -48,6 +65,17 @@ class FirebaseAuthService {
       );
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
+    } catch (e) {
+      // Captura outros tipos de exceção e trata a mensagem
+      final message = e.toString().toLowerCase();
+      if (message.contains('credential') ||
+          message.contains('password') ||
+          message.contains('user') ||
+          message.contains('malformed') ||
+          message.contains('expired')) {
+        throw 'Usuário ou senha incorretos.';
+      }
+      throw 'Erro ao fazer login. Tente novamente.';
     }
   }
 
@@ -90,9 +118,7 @@ class FirebaseAuthService {
     final docSnapshot = await userDoc.get();
 
     if (!docSnapshot.exists) {
-      // Criar documento com trial de 7 dias
       final now = DateTime.now();
-      final trialExpiresAt = now.add(const Duration(days: 7));
 
       await userDoc.set({
         'id': user.uid,
@@ -100,9 +126,8 @@ class FirebaseAuthService {
         'displayName': user.displayName ?? 'Usuário',
         'createdAt': now,
         'subscription': {
-          'status': 'trial',
-          'plan': 'trial',
-          'expiresAt': trialExpiresAt,
+          'status': 'inactive',
+          'plan': 'none',
         },
         'stats': {
           'totalConversations': 0,
@@ -131,9 +156,10 @@ class FirebaseAuthService {
       case 'invalid-email':
         return 'Email inválido.';
       case 'user-not-found':
-        return 'Usuário não encontrado. Verifique o email.';
       case 'wrong-password':
-        return 'Senha incorreta.';
+      case 'invalid-credential':
+      case 'INVALID_LOGIN_CREDENTIALS':
+        return 'Email ou senha incorretos.';
       case 'user-disabled':
         return 'Esta conta foi desativada.';
       case 'too-many-requests':
@@ -143,7 +169,11 @@ class FirebaseAuthService {
       case 'network-request-failed':
         return 'Erro de conexão. Verifique sua internet.';
       default:
-        return e.message ?? 'Erro desconhecido: ${e.code}';
+        // Para erros de login, mostrar mensagem genérica
+        if (e.code.contains('credential') || e.code.contains('password') || e.code.contains('user')) {
+          return 'Email ou senha incorretos.';
+        }
+        return 'Erro ao processar. Tente novamente.';
     }
   }
 
@@ -169,12 +199,8 @@ class FirebaseAuthService {
     final status = subscription['status'] as String?;
     final expiresAt = (subscription['expiresAt'] as Timestamp?)?.toDate();
 
-    if (status == 'active' && expiresAt != null) {
-      return DateTime.now().isBefore(expiresAt);
-    }
-
-    // Trial também conta como ativo
-    if (status == 'trial' && expiresAt != null) {
+    if (status == 'active') {
+      if (expiresAt == null) return true;
       return DateTime.now().isBefore(expiresAt);
     }
 

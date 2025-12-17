@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 class AppConfig {
   // URLs do Backend (Railway)
   // Substitua pela sua URL real do Railway após o deploy
-  static const String productionBackendUrl = 'https://flirt-ai-production.up.railway.app';
+  static const String productionBackendUrl = 'https://dating-app-production-ac43.up.railway.app';
   static const String developmentBackendUrl = 'http://localhost:3000';
 
   // URL padrão baseada no modo
@@ -21,6 +21,7 @@ class AppConfig {
 
   // Firebase
   static const String firebaseProjectId = 'desenrola-ia';
+  static const String firebaseHostingUrl = 'https://desenrola-ia.web.app';
 
   // App Info
   static const String appName = 'Desenrola IA';

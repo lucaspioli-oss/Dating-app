@@ -253,21 +253,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
 
         final details = snapshot.data!;
-        final isTrial = details.isTrial;
-        final isPaid = details.isPaid;
+        final isActive = details.isActive;
 
         Color cardColor;
         IconData icon;
         String title;
 
-        if (isPaid) {
+        if (isActive) {
           cardColor = Colors.green.shade50;
           icon = Icons.verified;
           title = 'Assinatura Ativa';
-        } else if (isTrial) {
-          cardColor = Colors.orange.shade50;
-          icon = Icons.access_time;
-          title = 'Período Trial';
         } else {
           cardColor = Colors.grey.shade100;
           icon = Icons.info_outline;
@@ -284,7 +279,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(icon, color: isPaid ? Colors.green : Colors.orange),
+                    Icon(icon, color: isActive ? Colors.green : Colors.grey),
                     const SizedBox(width: 8),
                     Text(
                       title,
@@ -308,7 +303,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     );
                   },
                 ),
-                if (details.plan != 'trial') ...[
+                if (isActive && details.plan != 'none') ...[
                   const SizedBox(height: 4),
                   Text(
                     'Plano: ${details.plan == 'monthly' ? 'Mensal' : 'Anual'}',

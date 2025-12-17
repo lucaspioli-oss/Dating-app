@@ -1,9 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
-// import 'package:google_fonts/google_fonts.dart';
 
+import 'config/app_theme.dart';
 import 'providers/app_state.dart';
 import 'providers/user_profile_provider.dart';
 import 'screens/auth/auth_wrapper.dart';
@@ -39,25 +40,11 @@ class FlirtAIApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => UserProfileProvider()),
       ],
       child: MaterialApp(
-        title: 'Desenrola IA',
+        title: 'Desenrola AI',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFFE91E63),
-            brightness: Brightness.light,
-          ),
-          useMaterial3: true,
-          // textTheme: GoogleFonts.poppinsTextTheme(),
-        ),
-        darkTheme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFFE91E63),
-            brightness: Brightness.dark,
-          ),
-          useMaterial3: true,
-          // textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
-        ),
-        themeMode: ThemeMode.system,
+        theme: AppTheme.darkTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeMode.dark,
         home: const AuthWrapper(),
       ),
     );

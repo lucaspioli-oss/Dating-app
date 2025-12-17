@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../config/app_theme.dart';
 import '../../services/firebase_auth_service.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -35,9 +36,15 @@ class _SignupScreenState extends State<SignupScreen> {
 
     if (!_acceptedTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Você precisa aceitar os termos de uso'),
-          backgroundColor: Colors.orange,
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.white),
+              SizedBox(width: 12),
+              Text('Aceite os termos de uso'),
+            ],
+          ),
+          backgroundColor: AppColors.warning,
         ),
       );
       return;
@@ -53,24 +60,34 @@ class _SignupScreenState extends State<SignupScreen> {
       );
 
       if (mounted) {
-        // Mostrar mensagem de sucesso
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Conta criada com sucesso! 7 dias grátis.'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 12),
+                Text('Conta criada com sucesso!'),
+              ],
+            ),
+            backgroundColor: AppColors.success,
+            duration: const Duration(seconds: 3),
           ),
         );
 
-        // Voltar para tela de login (o AuthWrapper vai redirecionar para o app)
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: Colors.red,
+            content: Row(
+              children: [
+                const Icon(Icons.info_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(child: Text(e.toString())),
+              ],
+            ),
+            backgroundColor: AppColors.warning,
           ),
         );
       }
@@ -85,7 +102,10 @@ class _SignupScreenState extends State<SignupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Criar Conta'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: SafeArea(
         child: Center(
@@ -98,40 +118,28 @@ class _SignupScreenState extends State<SignupScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Trial badge
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.green.shade200),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.celebration, color: Colors.green.shade700),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              '7 dias grátis para testar!',
-                              style: TextStyle(
-                                color: Colors.green.shade700,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                    // Header
+                    Text(
+                      'Criar conta',
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
                           ),
-                        ],
-                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Comece sua jornada no Desenrola AI',
+                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 32),
 
                     // Name field
                     TextFormField(
                       controller: _nameController,
+                      style: const TextStyle(color: AppColors.textPrimary),
                       decoration: const InputDecoration(
                         labelText: 'Nome',
-                        hintText: 'Seu nome',
-                        prefixIcon: Icon(Icons.person_outlined),
-                        border: OutlineInputBorder(),
+                        hintText: 'Como podemos te chamar?',
+                        prefixIcon: Icon(Icons.person_outlined, color: AppColors.textTertiary),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
@@ -149,11 +157,11 @@ class _SignupScreenState extends State<SignupScreen> {
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
+                      style: const TextStyle(color: AppColors.textPrimary),
                       decoration: const InputDecoration(
                         labelText: 'Email',
                         hintText: 'seu@email.com',
-                        prefixIcon: Icon(Icons.email_outlined),
-                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.email_outlined, color: AppColors.textTertiary),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
@@ -171,21 +179,22 @@ class _SignupScreenState extends State<SignupScreen> {
                     TextFormField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
+                      style: const TextStyle(color: AppColors.textPrimary),
                       decoration: InputDecoration(
                         labelText: 'Senha',
                         hintText: 'Mínimo 6 caracteres',
-                        prefixIcon: const Icon(Icons.lock_outlined),
+                        prefixIcon: const Icon(Icons.lock_outlined, color: AppColors.textTertiary),
                         suffixIcon: IconButton(
                           icon: Icon(
                             _obscurePassword
                                 ? Icons.visibility_outlined
                                 : Icons.visibility_off_outlined,
+                            color: AppColors.textTertiary,
                           ),
                           onPressed: () {
                             setState(() => _obscurePassword = !_obscurePassword);
                           },
                         ),
-                        border: const OutlineInputBorder(),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -203,22 +212,22 @@ class _SignupScreenState extends State<SignupScreen> {
                     TextFormField(
                       controller: _confirmPasswordController,
                       obscureText: _obscureConfirmPassword,
+                      style: const TextStyle(color: AppColors.textPrimary),
                       decoration: InputDecoration(
                         labelText: 'Confirmar Senha',
                         hintText: 'Digite a senha novamente',
-                        prefixIcon: const Icon(Icons.lock_outlined),
+                        prefixIcon: const Icon(Icons.lock_outlined, color: AppColors.textTertiary),
                         suffixIcon: IconButton(
                           icon: Icon(
                             _obscureConfirmPassword
                                 ? Icons.visibility_outlined
                                 : Icons.visibility_off_outlined,
+                            color: AppColors.textTertiary,
                           ),
                           onPressed: () {
-                            setState(
-                                () => _obscureConfirmPassword = !_obscureConfirmPassword);
+                            setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
                           },
                         ),
-                        border: const OutlineInputBorder(),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -233,59 +242,88 @@ class _SignupScreenState extends State<SignupScreen> {
                     const SizedBox(height: 24),
 
                     // Terms checkbox
-                    CheckboxListTile(
-                      value: _acceptedTerms,
-                      onChanged: _isLoading
-                          ? null
-                          : (value) {
-                              setState(() => _acceptedTerms = value ?? false);
-                            },
-                      contentPadding: EdgeInsets.zero,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      title: const Text.rich(
-                        TextSpan(
-                          text: 'Aceito os ',
-                          children: [
-                            TextSpan(
-                              text: 'Termos de Uso',
-                              style: TextStyle(
-                                decoration: TextDecoration.underline,
-                                fontWeight: FontWeight.bold,
-                              ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: Checkbox(
+                            value: _acceptedTerms,
+                            onChanged: _isLoading
+                                ? null
+                                : (value) {
+                                    setState(() => _acceptedTerms = value ?? false);
+                                  },
+                            activeColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
                             ),
-                            TextSpan(text: ' e '),
-                            TextSpan(
-                              text: 'Política de Privacidade',
-                              style: TextStyle(
-                                decoration: TextDecoration.underline,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() => _acceptedTerms = !_acceptedTerms);
+                            },
+                            child: Text.rich(
+                              TextSpan(
+                                text: 'Aceito os ',
+                                style: TextStyle(color: AppColors.textSecondary),
+                                children: [
+                                  TextSpan(
+                                    text: 'Termos de Uso',
+                                    style: TextStyle(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const TextSpan(text: ' e '),
+                                  TextSpan(
+                                    text: 'Política de Privacidade',
+                                    style: TextStyle(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+
+                    // Signup button
+                    GradientButton(
+                      text: 'Criar Conta',
+                      isLoading: _isLoading,
+                      icon: Icons.person_add,
+                      onPressed: _isLoading ? null : _signUp,
                     ),
                     const SizedBox(height: 24),
 
-                    // Signup button
-                    FilledButton(
-                      onPressed: _isLoading ? null : _signUp,
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text(
-                              'Criar Conta Grátis',
-                              style: TextStyle(fontSize: 16),
+                    // Login link
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Já tem uma conta?',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        ),
+                        TextButton(
+                          onPressed: _isLoading ? null : () => Navigator.pop(context),
+                          child: const GradientText(
+                            text: 'Fazer login',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
                             ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

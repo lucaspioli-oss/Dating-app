@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../config/app_theme.dart';
 import '../../services/firebase_auth_service.dart';
 import 'signup_screen.dart';
 
@@ -37,11 +38,16 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (mounted) {
-        // Navegação será feita pelo AuthWrapper
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Login realizado com sucesso!'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 12),
+                Text('Login realizado com sucesso!'),
+              ],
+            ),
+            backgroundColor: AppColors.success,
           ),
         );
       }
@@ -49,8 +55,14 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: Colors.red,
+            content: Row(
+              children: [
+                const Icon(Icons.info_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(child: Text(e.toString())),
+              ],
+            ),
+            backgroundColor: AppColors.warning,
           ),
         );
       }
@@ -66,9 +78,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Digite seu email primeiro'),
-          backgroundColor: Colors.orange,
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.white),
+              SizedBox(width: 12),
+              Text('Digite seu email primeiro'),
+            ],
+          ),
+          backgroundColor: AppColors.warning,
         ),
       );
       return;
@@ -80,8 +98,14 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Email de recuperação enviado para $email'),
-            backgroundColor: Colors.green,
+            content: Row(
+              children: [
+                const Icon(Icons.email, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Email enviado para $email')),
+              ],
+            ),
+            backgroundColor: AppColors.success,
           ),
         );
       }
@@ -89,8 +113,14 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: Colors.red,
+            content: Row(
+              children: [
+                const Icon(Icons.info_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(child: Text(e.toString())),
+              ],
+            ),
+            backgroundColor: AppColors.warning,
           ),
         );
       }
@@ -113,41 +143,48 @@ class _LoginScreenState extends State<LoginScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Logo
-                    Icon(
-                      Icons.favorite,
-                      size: 80,
-                      color: Theme.of(context).colorScheme.primary,
+                    Center(
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        height: 120,
+                        fit: BoxFit.contain,
+                      ),
                     ),
                     const SizedBox(height: 16),
 
-                    // Title
+                    // Subtitle
                     Text(
-                      'Flirt AI',
+                      'Seu assistente inteligente de conversas',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                    ),
+                    const SizedBox(height: 48),
+
+                    // Welcome text
+                    Text(
+                      'Bem-vindo de volta!',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.primary,
                           ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Seu assistente de conversas',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: Colors.grey.shade600,
-                          ),
+                      'Faça login para continuar',
+                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 32),
 
                     // Email field
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
+                      style: const TextStyle(color: AppColors.textPrimary),
+                      decoration: InputDecoration(
                         labelText: 'Email',
                         hintText: 'seu@email.com',
-                        prefixIcon: Icon(Icons.email_outlined),
-                        border: OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.email_outlined, color: AppColors.textTertiary),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
@@ -165,21 +202,22 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextFormField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
+                      style: const TextStyle(color: AppColors.textPrimary),
                       decoration: InputDecoration(
                         labelText: 'Senha',
-                        hintText: '••••••',
-                        prefixIcon: const Icon(Icons.lock_outlined),
+                        hintText: 'Digite sua senha',
+                        prefixIcon: const Icon(Icons.lock_outlined, color: AppColors.textTertiary),
                         suffixIcon: IconButton(
                           icon: Icon(
                             _obscurePassword
                                 ? Icons.visibility_outlined
                                 : Icons.visibility_off_outlined,
+                            color: AppColors.textTertiary,
                           ),
                           onPressed: () {
                             setState(() => _obscurePassword = !_obscurePassword);
                           },
                         ),
-                        border: const OutlineInputBorder(),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -203,33 +241,38 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Login button
-                    FilledButton(
+                    // Login button with gradient
+                    GradientButton(
+                      text: 'Entrar',
+                      isLoading: _isLoading,
                       onPressed: _isLoading ? null : _signIn,
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text(
-                              'Entrar',
-                              style: TextStyle(fontSize: 16),
-                            ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 32),
+
+                    // Divider
+                    Row(
+                      children: [
+                        Expanded(child: Divider(color: AppColors.elevatedDark)),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            'ou',
+                            style: TextStyle(color: AppColors.textTertiary),
+                          ),
+                        ),
+                        Expanded(child: Divider(color: AppColors.elevatedDark)),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
 
                     // Signup link
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text('Não tem uma conta?'),
+                        Text(
+                          'Não tem uma conta?',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        ),
                         TextButton(
                           onPressed: _isLoading
                               ? null
@@ -241,7 +284,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   );
                                 },
-                          child: const Text('Criar conta'),
+                          child: const GradientText(
+                            text: 'Criar conta',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
                         ),
                       ],
                     ),
