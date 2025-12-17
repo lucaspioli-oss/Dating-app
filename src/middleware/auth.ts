@@ -96,6 +96,45 @@ export async function verifyAuth(
 }
 
 /**
+ * Auth only - verifies token but doesn't require subscription
+ * Use this for endpoints like checkout where user needs to be logged in but may not have subscription
+ */
+export async function verifyAuthOnly(
+  request: AuthenticatedRequest,
+  reply: FastifyReply
+): Promise<void> {
+  try {
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      reply.code(401).send({
+        error: 'Unauthorized',
+        message: 'Missing or invalid authorization header',
+      });
+      return;
+    }
+
+    const token = authHeader.substring(7);
+
+    // Verify Firebase token
+    const decodedToken = await admin.auth().verifyIdToken(token);
+
+    // Attach user to request (without checking subscription)
+    request.user = {
+      uid: decodedToken.uid,
+      email: decodedToken.email,
+      hasActiveSubscription: false, // Will be checked separately if needed
+    };
+  } catch (error: any) {
+    console.error('Auth error:', error);
+    reply.code(401).send({
+      error: 'Unauthorized',
+      message: error.message || 'Invalid token',
+    });
+  }
+}
+
+/**
  * Optional auth - doesn't block if no token, but checks subscription if token exists
  */
 export async function optionalAuth(

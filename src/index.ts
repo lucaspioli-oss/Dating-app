@@ -27,7 +27,7 @@ import {
   handleInvoicePaid,
   handlePaymentFailed,
 } from './services/stripe';
-import { verifyAuth, AuthenticatedRequest } from './middleware/auth';
+import { verifyAuth, verifyAuthOnly, AuthenticatedRequest } from './middleware/auth';
 import Stripe from 'stripe';
 
 const fastify = Fastify({
@@ -410,8 +410,9 @@ fastify.delete('/conversations/:id', async (request, reply) => {
 // ═══════════════════════════════════════════════════════════════════
 
 // Create Stripe Checkout Session
+// Uses verifyAuthOnly because user needs to be logged in but may not have subscription yet
 fastify.post('/create-checkout-session', {
-  preHandler: verifyAuth,
+  preHandler: verifyAuthOnly,
 }, async (request: AuthenticatedRequest, reply) => {
   try {
     const { priceId, plan } = request.body as {
