@@ -1,9 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../config/app_config.dart';
 
 class AppState extends ChangeNotifier {
-  // Backend URL
-  String _backendUrl = 'http://localhost:3000';
+  // Backend URL - uses production URL by default in release mode
+  String _backendUrl = AppConfig.defaultBackendUrl;
 
   // Tom selecionado
   String _selectedTone = 'casual';
@@ -28,7 +29,7 @@ class AppState extends ChangeNotifier {
   Future<void> _loadPreferences() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      _backendUrl = prefs.getString('backend_url') ?? 'http://localhost:3000';
+      _backendUrl = prefs.getString('backend_url') ?? AppConfig.defaultBackendUrl;
       _selectedTone = prefs.getString('selected_tone') ?? 'casual';
       notifyListeners();
     } catch (e) {

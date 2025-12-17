@@ -5,18 +5,19 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="AI-powered messaging assistant for dating conversations">
+  <meta name="description" content="Assistente IA para conversas de relacionamento">
 
   <!-- iOS meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="Flirt AI">
+  <meta name="apple-mobile-web-app-title" content="Desenrola IA">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>Flirt AI - Dating Assistant</title>
+  <title>Desenrola IA - Assistente de Conversas</title>
   <link rel="manifest" href="manifest.json">
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -62,15 +63,18 @@
 <body>
   <div class="loading">
     <div class="spinner"></div>
-    <div class="loading-text">Carregando Flirt AI...</div>
+    <div class="loading-text">Carregando Desenrola IA...</div>
   </div>
+
+  <script src="flutter_bootstrap.js" async></script>
 
   <script>
     window.addEventListener('flutter-first-frame', function () {
-      document.querySelector('.loading').style.display = 'none';
+      var loadingElement = document.querySelector('.loading');
+      if (loadingElement) {
+        loadingElement.style.display = 'none';
+      }
     });
   </script>
-
-  <script src="flutter.js" defer></script>
 </body>
 </html>

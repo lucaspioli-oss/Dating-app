@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../services/api_service.dart';
 import '../widgets/message_bubble.dart';
+import '../widgets/tone_selector.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -83,11 +84,43 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  Widget _buildInstructionStep(BuildContext context, String number, String text) {
+    return Row(
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer,
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              number,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Conversas'),
+        title: const Text('Flirt AI'),
+        centerTitle: true,
         actions: [
           Consumer<AppState>(
             builder: (context, appState, _) {
@@ -127,34 +160,61 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: Column(
         children: [
+          // Seletor de Tom
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              border: Border(
+                bottom: BorderSide(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                  width: 1,
+                ),
+              ),
+            ),
+            child: const ToneSelector(),
+          ),
+
           // Histórico de mensagens
           Expanded(
             child: Consumer<AppState>(
               builder: (context, appState, _) {
                 if (appState.messages.isEmpty) {
-                  return Center(
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        const SizedBox(height: 40),
                         Icon(
-                          Icons.chat_bubble_outline,
+                          Icons.auto_awesome,
                           size: 64,
-                          color: Theme.of(context).colorScheme.outline,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          'Bem-vindo ao Flirt AI!',
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                          textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Nenhuma conversa ainda',
+                          'Como usar:',
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.outline,
+                                fontWeight: FontWeight.bold,
                               ),
+                          textAlign: TextAlign.center,
                         ),
+                        const SizedBox(height: 12),
+                        _buildInstructionStep(context, '1', 'Escolha o tom da conversa acima'),
                         const SizedBox(height: 8),
-                        Text(
-                          'Cole uma mensagem abaixo para começar',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.outline,
-                              ),
-                        ),
+                        _buildInstructionStep(context, '2', 'Cole a mensagem recebida'),
+                        const SizedBox(height: 8),
+                        _buildInstructionStep(context, '3', 'Clique em enviar e veja a resposta!'),
+                        const SizedBox(height: 40),
                       ],
                     ),
                   );

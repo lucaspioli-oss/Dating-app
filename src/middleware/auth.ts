@@ -1,0 +1,140 @@
+import { FastifyRequest, FastifyReply } from 'fastify';
+import * as admin from 'firebase-admin';
+
+// Initialize Firebase Admin (only if not already initialized)
+if (!admin.apps.length) {
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: privateKey,
+    }),
+  });
+}
+
+const db = admin.firestore();
+
+export interface AuthenticatedRequest extends FastifyRequest {
+  user?: {
+    uid: string;
+    email?: string;
+    hasActiveSubscription: boolean;
+  };
+}
+
+/**
+ * Middleware to verify Firebase Auth token
+ */
+export async function verifyAuth(
+  request: AuthenticatedRequest,
+  reply: FastifyReply
+): Promise<void> {
+  try {
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      reply.code(401).send({
+        error: 'Unauthorized',
+        message: 'Missing or invalid authorization header',
+      });
+      return;
+    }
+
+    const token = authHeader.substring(7); // Remove 'Bearer '
+
+    // Verify Firebase token
+    const decodedToken = await admin.auth().verifyIdToken(token);
+
+    // Check subscription status
+    const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+
+    if (!userDoc.exists) {
+      reply.code(403).send({
+        error: 'Forbidden',
+        message: 'User not found',
+      });
+      return;
+    }
+
+    const userData = userDoc.data();
+    const subscription = userData?.subscription;
+
+    const now = new Date();
+    const expiresAt = subscription?.expiresAt?.toDate();
+
+    const hasActiveSubscription =
+      (subscription?.status === 'active' || subscription?.status === 'trial') &&
+      expiresAt &&
+      now < expiresAt;
+
+    // Attach user to request
+    request.user = {
+      uid: decodedToken.uid,
+      email: decodedToken.email,
+      hasActiveSubscription,
+    };
+
+    // If no active subscription, return error
+    if (!hasActiveSubscription) {
+      reply.code(403).send({
+        error: 'Subscription Required',
+        message: 'You need an active subscription to use this feature',
+        subscriptionStatus: subscription?.status || 'none',
+        expiresAt: expiresAt?.toISOString(),
+      });
+      return;
+    }
+  } catch (error: any) {
+    console.error('Auth error:', error);
+    reply.code(401).send({
+      error: 'Unauthorized',
+      message: error.message || 'Invalid token',
+    });
+  }
+}
+
+/**
+ * Optional auth - doesn't block if no token, but checks subscription if token exists
+ */
+export async function optionalAuth(
+  request: AuthenticatedRequest,
+  reply: FastifyReply
+): Promise<void> {
+  const authHeader = request.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // No auth provided, continue without user
+    return;
+  }
+
+  try {
+    const token = authHeader.substring(7);
+    const decodedToken = await admin.auth().verifyIdToken(token);
+
+    const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+
+    if (userDoc.exists) {
+      const userData = userDoc.data();
+      const subscription = userData?.subscription;
+
+      const now = new Date();
+      const expiresAt = subscription?.expiresAt?.toDate();
+
+      const hasActiveSubscription =
+        (subscription?.status === 'active' || subscription?.status === 'trial') &&
+        expiresAt &&
+        now < expiresAt;
+
+      request.user = {
+        uid: decodedToken.uid,
+        email: decodedToken.email,
+        hasActiveSubscription,
+      };
+    }
+  } catch (error) {
+    // Invalid token, continue without user
+    console.warn('Optional auth failed:', error);
+  }
+}

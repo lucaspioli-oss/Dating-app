@@ -1,0 +1,58 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function hasActiveSubscription() {
+      return isAuthenticated() &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.subscription.status == 'active' &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.subscription.expiresAt > request.time;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isOwner(userId);
+      allow delete: if false; // Nunca permitir deletar usuários
+    }
+
+    // User profiles
+    match /profiles/{userId} {
+      allow read, write: if isOwner(userId) && hasActiveSubscription();
+    }
+
+    // Conversations
+    match /conversations/{conversationId} {
+      allow read, write: if isAuthenticated() &&
+                            resource.data.userId == request.auth.uid &&
+                            hasActiveSubscription();
+      allow create: if isAuthenticated() &&
+                       request.resource.data.userId == request.auth.uid &&
+                       hasActiveSubscription();
+      allow delete: if isAuthenticated() &&
+                       resource.data.userId == request.auth.uid;
+    }
+
+    // Analytics (read-only for users, write via Cloud Functions)
+    match /analytics/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if false; // Only Cloud Functions can write
+    }
+
+    // Subscriptions (managed by Cloud Functions via Hotmart webhook)
+    match /subscriptions/{subscriptionId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow write: if false; // Only Cloud Functions can write
+    }
+  }
+}

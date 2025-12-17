@@ -1,11 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../widgets/tone_selector.dart';
 import '../widgets/suggestion_card.dart';
+import '../services/api_service.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final TextEditingController _messageController = TextEditingController();
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pasteFromClipboard() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    if (data?.text != null) {
+      setState(() {
+        _messageController.text = data!.text!;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -88,8 +112,6 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildMessageInput(BuildContext context) {
-    final controller = TextEditingController();
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -101,7 +123,7 @@ class HomeScreen extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         TextField(
-          controller: controller,
+          controller: _messageController,
           maxLines: 4,
           decoration: InputDecoration(
             hintText: 'Cole aqui a mensagem que você recebeu...',
@@ -111,15 +133,10 @@ class HomeScreen extends StatelessWidget {
             filled: true,
             suffixIcon: IconButton(
               icon: const Icon(Icons.content_paste),
-              onPressed: () async {
-                // TODO: Implementar paste do clipboard
-              },
+              onPressed: _pasteFromClipboard,
               tooltip: 'Colar do clipboard',
             ),
           ),
-          onChanged: (value) {
-            // Salvar no state se necessário
-          },
         ),
       ],
     );
@@ -129,11 +146,7 @@ class HomeScreen extends StatelessWidget {
     return Consumer<AppState>(
       builder: (context, appState, _) {
         return FilledButton.icon(
-          onPressed: appState.isLoading
-              ? null
-              : () {
-                  // TODO: Implementar análise
-                },
+          onPressed: appState.isLoading ? null : _analyzeMessage,
           icon: appState.isLoading
               ? const SizedBox(
                   width: 20,
@@ -157,6 +170,76 @@ class HomeScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<void> _analyzeMessage() async {
+    final message = _messageController.text.trim();
+
+    if (message.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor, digite uma mensagem primeiro!'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final appState = context.read<AppState>();
+    appState.setLoading(true);
+
+    try {
+      final apiService = ApiService(baseUrl: appState.backendUrl);
+
+      final response = await apiService.analyzeMessage(
+        text: message,
+        tone: appState.selectedTone,
+      );
+
+      if (response.success && response.analysis != null) {
+        final conversationMessage = ConversationMessage(
+          receivedMessage: message,
+          aiSuggestion: response.analysis!,
+          tone: appState.selectedTone,
+          timestamp: DateTime.now(),
+        );
+
+        appState.addMessage(conversationMessage);
+        _messageController.clear();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Análise concluída!'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('❌ ${response.errorMessage ?? 'Erro desconhecido'}'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Erro: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } finally {
+      appState.setLoading(false);
+    }
   }
 
   Widget _buildResults(BuildContext context) {
