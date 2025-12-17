@@ -24,7 +24,8 @@
       "Bash(powershell.exe -Command \"& ''C:\\src\\flutter\\bin\\flutter.bat'' run -d web-server --web-port=8080\")",
       "Bash(npm install:*)",
       "Bash(npm run build:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import {
   Conversation,
   ConversationAvatar,
@@ -16,7 +16,7 @@ export class ConversationManager {
    * Criar nova conversa
    */
   static createConversation(request: CreateConversationRequest): Conversation {
-    const conversationId = uuidv4();
+    const conversationId = randomUUID();
     const now = new Date();
 
     const avatar: ConversationAvatar = {
@@ -57,7 +57,7 @@ export class ConversationManager {
     // Se tiver primeira mensagem (opener), adicionar
     if (request.firstMessage) {
       messages.push({
-        id: uuidv4(),
+        id: randomUUID(),
         role: 'user',
         content: request.firstMessage,
         timestamp: now,
@@ -90,7 +90,7 @@ export class ConversationManager {
     }
 
     const message: Message = {
-      id: uuidv4(),
+      id: randomUUID(),
       role: request.role,
       content: request.content,
       timestamp: new Date(),
