@@ -198,4 +198,31 @@ class ConversationService {
       throw Exception('Erro ao deletar conversa: ${response.body}');
     }
   }
+
+  /// Submeter feedback sobre mensagem (contribui para inteligência coletiva)
+  Future<void> submitFeedback({
+    required String conversationId,
+    required String messageId,
+    required bool gotResponse,
+    String? responseQuality, // 'cold', 'neutral', 'warm', 'hot'
+  }) async {
+    final url = Uri.parse('$baseUrl/conversations/$conversationId/feedback');
+    final headers = await _getHeaders();
+
+    final body = {
+      'messageId': messageId,
+      'gotResponse': gotResponse,
+      if (responseQuality != null) 'responseQuality': responseQuality,
+    };
+
+    final response = await http.post(
+      url,
+      headers: headers,
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Erro ao submeter feedback: ${response.body}');
+    }
+  }
 }

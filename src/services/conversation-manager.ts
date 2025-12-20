@@ -8,17 +8,28 @@ import {
   AddMessageRequest,
   ConversationListItem,
 } from '../types/conversation';
+import { CollectiveAvatarManager } from './collective-avatar-manager';
 
 // Firestore reference
 const getDb = () => admin.firestore();
 
 export class ConversationManager {
   /**
-   * Criar nova conversa
+   * Criar nova conversa (com vínculo ao avatar coletivo)
    */
   static async createConversation(request: CreateConversationRequest & { userId: string }): Promise<Conversation> {
     const conversationId = randomUUID();
     const now = new Date();
+
+    // Encontrar ou criar avatar coletivo
+    const collectiveAvatar = await CollectiveAvatarManager.findOrCreateCollectiveAvatar({
+      name: request.matchName,
+      platform: request.platform,
+      bio: request.bio,
+      age: request.age,
+      location: request.location,
+      interests: request.interests,
+    });
 
     const avatar: ConversationAvatar = {
       matchName: request.matchName,
@@ -78,9 +89,10 @@ export class ConversationManager {
       lastMessageAt: now,
     };
 
-    // Salvar no Firestore
+    // Salvar no Firestore (incluindo referência ao avatar coletivo)
     await getDb().collection('conversations').doc(conversationId).set({
       ...conversation,
+      collectiveAvatarId: collectiveAvatar.id, // Link para inteligência coletiva
       createdAt: admin.firestore.Timestamp.fromDate(now),
       lastMessageAt: admin.firestore.Timestamp.fromDate(now),
     });
@@ -121,7 +133,7 @@ export class ConversationManager {
 
     // Se for mensagem do match, analisar e atualizar calibragem
     if (request.role === 'match') {
-      this.updateCalibration(conversation, request.content);
+      await this.updateCalibration(conversation, request.content);
     }
 
     // Atualizar no Firestore
@@ -135,9 +147,9 @@ export class ConversationManager {
   }
 
   /**
-   * Analisar mensagem e atualizar calibragem
+   * Analisar mensagem e atualizar calibragem (local + contribuir para coletivo)
    */
-  private static updateCalibration(conversation: Conversation, message: string): void {
+  private static async updateCalibration(conversation: Conversation, message: string): Promise<void> {
     const avatar = conversation.avatar;
 
     // Detectar tamanho de resposta
@@ -192,6 +204,18 @@ export class ConversationManager {
           const hobby = afterKeyword.split(/[.,!?]/)[0].trim();
           if (hobby && !avatar.learnedInfo.hobbies?.includes(hobby)) {
             avatar.learnedInfo.hobbies = [...(avatar.learnedInfo.hobbies || []), hobby];
+          }
+        }
+      }
+    });
+
+    dislikesKeywords.forEach((keyword) => {
+      if (lowerMessage.includes(keyword)) {
+        const afterKeyword = lowerMessage.split(keyword)[1];
+        if (afterKeyword) {
+          const dislike = afterKeyword.split(/[.,!?]/)[0].trim();
+          if (dislike && !avatar.learnedInfo.dislikes?.includes(dislike)) {
+            avatar.learnedInfo.dislikes = [...(avatar.learnedInfo.dislikes || []), dislike];
           }
         }
       }
@@ -291,6 +315,7 @@ export class ConversationManager {
 
   /**
    * Obter histórico formatado para o prompt da IA
+   * Inclui: contexto individual + inteligência coletiva
    */
   static async getFormattedHistory(conversationId: string, userId: string): Promise<string> {
     const conversation = await this.getConversation(conversationId, userId);
@@ -298,8 +323,21 @@ export class ConversationManager {
 
     const { avatar, messages } = conversation;
 
-    let history = `═══════════════════════════════════════════════════════════════════
-📋 CONTEXTO DA CONVERSA
+    // Obter insights coletivos (de múltiplos usuários)
+    const collectiveInsights = await CollectiveAvatarManager.getCollectiveInsightsForPrompt(
+      avatar.matchName,
+      avatar.platform
+    );
+
+    let history = '';
+
+    // Se tiver insights coletivos, adicionar primeiro
+    if (collectiveInsights) {
+      history += collectiveInsights + '\n';
+    }
+
+    history += `═══════════════════════════════════════════════════════════════════
+📋 CONTEXTO DA SUA CONVERSA ESPECÍFICA
 ═══════════════════════════════════════════════════════════════════
 
 👤 PERFIL DO MATCH:
@@ -310,15 +348,16 @@ ${avatar.age ? `Idade: ${avatar.age}` : ''}
 ${avatar.location ? `Localização: ${avatar.location}` : ''}
 ${avatar.interests && avatar.interests.length > 0 ? `Interesses: ${avatar.interests.join(', ')}` : ''}
 
-📊 CALIBRAGEM DETECTADA:
+📊 CALIBRAGEM DESTA CONVERSA:
 - Tamanho de resposta: ${avatar.detectedPatterns.responseLength === 'short' ? 'CURTO (espelhe com respostas curtas!)' : avatar.detectedPatterns.responseLength === 'long' ? 'LONGO (pode investir mais)' : 'MÉDIO'}
 - Tom emocional: ${avatar.detectedPatterns.emotionalTone === 'warm' ? '🔥 CALOROSO (ela/ele está receptivo!)' : avatar.detectedPatterns.emotionalTone === 'cold' ? '❄️ FRIO (reduza investimento)' : '😐 NEUTRO'}
 - Usa emojis: ${avatar.detectedPatterns.useEmojis ? 'SIM (você pode usar também)' : 'NÃO (evite emojis)'}
 - Nível de flerte: ${avatar.detectedPatterns.flirtLevel === 'high' ? '🔥 ALTO (ela/ele está muito interessado!)' : avatar.detectedPatterns.flirtLevel === 'low' ? '❄️ BAIXO (aumente atração gradualmente)' : '😊 MÉDIO'}
 
-💡 INFORMAÇÕES APRENDIDAS:
-${avatar.learnedInfo.hobbies && avatar.learnedInfo.hobbies.length > 0 ? `- Hobbies: ${avatar.learnedInfo.hobbies.join(', ')}` : ''}
+💡 INFORMAÇÕES APRENDIDAS NESTA CONVERSA:
+${avatar.learnedInfo.hobbies && avatar.learnedInfo.hobbies.length > 0 ? `- Hobbies: ${avatar.learnedInfo.hobbies.join(', ')}` : '- Nenhum hobby descoberto ainda'}
 ${avatar.learnedInfo.dislikes && avatar.learnedInfo.dislikes.length > 0 ? `- Não gosta de: ${avatar.learnedInfo.dislikes.join(', ')}` : ''}
+${avatar.learnedInfo.personality && avatar.learnedInfo.personality.length > 0 ? `- Personalidade: ${avatar.learnedInfo.personality.join(', ')}` : ''}
 
 📈 ANÁLISE DE PERFORMANCE:
 - Total de mensagens: ${avatar.analytics.totalMessages}
@@ -341,12 +380,40 @@ ${avatar.learnedInfo.dislikes && avatar.learnedInfo.dislikes.length > 0 ? `- Nã
     history += `
 ═══════════════════════════════════════════════════════════════════
 
-⚠️ IMPORTANTE:
+⚠️ INSTRUÇÕES DE CALIBRAGEM:
 - ESPELHE o tamanho de resposta detectado (${avatar.detectedPatterns.responseLength})
 - ADAPTE ao tom emocional (${avatar.detectedPatterns.emotionalTone})
 - MANTENHA a qualidade da conversa (atualmente: ${avatar.analytics.conversationQuality})
+${collectiveInsights ? '- USE os insights coletivos para evitar erros que outros cometeram' : ''}
+${avatar.learnedInfo.dislikes && avatar.learnedInfo.dislikes.length > 0 ? `- EVITE mencionar: ${avatar.learnedInfo.dislikes.join(', ')}` : ''}
 `;
 
     return history;
+  }
+
+  /**
+   * Registrar feedback sobre mensagem enviada
+   */
+  static async submitMessageFeedback(
+    conversationId: string,
+    userId: string,
+    messageId: string,
+    gotResponse: boolean,
+    responseQuality?: 'cold' | 'neutral' | 'warm' | 'hot'
+  ): Promise<void> {
+    const conversation = await this.getConversation(conversationId, userId);
+    if (!conversation) {
+      throw new Error('Conversa não encontrada');
+    }
+
+    await CollectiveAvatarManager.submitFeedback(
+      {
+        conversationId,
+        messageId,
+        gotResponse,
+        responseQuality,
+      },
+      conversation
+    );
   }
 }

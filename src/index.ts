@@ -429,6 +429,41 @@ fastify.delete('/conversations/:id', {
 });
 
 // ═══════════════════════════════════════════════════════════════════
+// 🧠 ENDPOINTS DE INTELIGÊNCIA COLETIVA
+// ═══════════════════════════════════════════════════════════════════
+
+// Submeter feedback sobre mensagem (funcionou/não funcionou)
+fastify.post('/conversations/:id/feedback', {
+  preHandler: verifyAuth,
+}, async (request: AuthenticatedRequest, reply) => {
+  try {
+    const { id } = request.params as { id: string };
+    const userId = request.user!.uid;
+    const { messageId, gotResponse, responseQuality } = request.body as {
+      messageId: string;
+      gotResponse: boolean;
+      responseQuality?: 'cold' | 'neutral' | 'warm' | 'hot';
+    };
+
+    await ConversationManager.submitMessageFeedback(
+      id,
+      userId,
+      messageId,
+      gotResponse,
+      responseQuality
+    );
+
+    return reply.code(200).send({ success: true });
+  } catch (error) {
+    fastify.log.error(error);
+    return reply.code(500).send({
+      error: 'Erro ao submeter feedback',
+      message: error instanceof Error ? error.message : 'Erro desconhecido',
+    });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════
 // 💳 STRIPE ENDPOINTS
 // ═══════════════════════════════════════════════════════════════════
 

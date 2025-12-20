@@ -229,40 +229,127 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
       itemBuilder: (context, index) {
         final message = _conversation!.messages[index];
         final isUser = message.role == 'user';
-        return Align(
-          alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(12),
-            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-            decoration: BoxDecoration(
-              color: isUser ? Theme.of(context).colorScheme.primary : Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  message.content,
-                  style: TextStyle(color: isUser ? Colors.white : Colors.black),
+        final isLastUserMessage = isUser &&
+            (index == _conversation!.messages.length - 1 ||
+             _conversation!.messages.skip(index + 1).every((m) => m.role == 'user'));
+
+        return Column(
+          children: [
+            Align(
+              alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+                decoration: BoxDecoration(
+                  color: isUser ? Theme.of(context).colorScheme.primary : Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                if (message.wasAiSuggestion == true)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      '🤖 Sugestão da IA',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: isUser ? Colors.white70 : Colors.black54,
-                      ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      message.content,
+                      style: TextStyle(color: isUser ? Colors.white : Colors.black),
                     ),
-                  ),
-              ],
+                    if (message.wasAiSuggestion == true)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          '🤖 Sugestão da IA',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: isUser ? Colors.white70 : Colors.black54,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             ),
-          ),
+            // Botões de feedback para última mensagem enviada pelo usuário
+            if (isLastUserMessage && message.wasAiSuggestion == true)
+              _buildFeedbackButtons(message.id),
+          ],
         );
       },
     );
+  }
+
+  Widget _buildFeedbackButtons(String messageId) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.amber.shade200),
+      ),
+      child: Column(
+        children: [
+          const Text(
+            '🧠 Ajude a IA a melhorar! Ela respondeu?',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildFeedbackChip('❄️ Fria', messageId, true, 'cold'),
+              _buildFeedbackChip('😐 Neutra', messageId, true, 'neutral'),
+              _buildFeedbackChip('🔥 Calorosa', messageId, true, 'warm'),
+              _buildFeedbackChip('❌ Não', messageId, false, null),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeedbackChip(String label, String messageId, bool gotResponse, String? quality) {
+    return InkWell(
+      onTap: () => _submitFeedback(messageId, gotResponse, quality),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Text(label, style: const TextStyle(fontSize: 11)),
+      ),
+    );
+  }
+
+  Future<void> _submitFeedback(String messageId, bool gotResponse, String? quality) async {
+    try {
+      final appState = context.read<AppState>();
+      final service = ConversationService(baseUrl: appState.backendUrl);
+
+      await service.submitFeedback(
+        conversationId: widget.conversationId,
+        messageId: messageId,
+        gotResponse: gotResponse,
+        responseQuality: quality,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('🧠 Feedback registrado! Obrigado por ajudar.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        await _loadConversation(); // Recarregar para remover botões
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   Widget _buildInputSection() {
