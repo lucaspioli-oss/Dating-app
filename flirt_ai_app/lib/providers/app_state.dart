@@ -1,10 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../config/app_config.dart';
 
 class AppState extends ChangeNotifier {
-  // Backend URL - uses production URL by default in release mode
-  String _backendUrl = AppConfig.defaultBackendUrl;
+  // Backend URL - uses production URL by default
+  String _backendUrl = AppConfig.productionBackendUrl;
 
   // Tom selecionado
   String _selectedTone = 'casual';
@@ -16,7 +17,7 @@ class AppState extends ChangeNotifier {
   bool _isLoading = false;
 
   // Getters
-  String get backendUrl => _backendUrl;
+  String get backendUrl => _getEffectiveBackendUrl();
   String get selectedTone => _selectedTone;
   List<ConversationMessage> get messages => _messages;
   bool get isLoading => _isLoading;
@@ -25,11 +26,26 @@ class AppState extends ChangeNotifier {
     _loadPreferences();
   }
 
+  // Verificar se usuário atual é desenvolvedor
+  bool get isDeveloper {
+    final user = FirebaseAuth.instance.currentUser;
+    return AppConfig.isDeveloper(user?.email);
+  }
+
+  // URL efetiva: desenvolvedores podem escolher, outros sempre Railway
+  String _getEffectiveBackendUrl() {
+    if (isDeveloper) {
+      return _backendUrl;
+    }
+    // Usuários normais SEMPRE usam Railway
+    return AppConfig.productionBackendUrl;
+  }
+
   // Carregar preferências salvas
   Future<void> _loadPreferences() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      _backendUrl = prefs.getString('backend_url') ?? AppConfig.defaultBackendUrl;
+      _backendUrl = prefs.getString('backend_url') ?? AppConfig.productionBackendUrl;
       _selectedTone = prefs.getString('selected_tone') ?? 'casual';
       notifyListeners();
     } catch (e) {
@@ -37,8 +53,13 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  // Salvar URL do backend
+  // Salvar URL do backend (só funciona para desenvolvedores)
   Future<void> setBackendUrl(String url) async {
+    if (!isDeveloper) {
+      debugPrint('Tentativa de mudar backend por não-desenvolvedor ignorada');
+      return;
+    }
+
     _backendUrl = url;
     notifyListeners();
 
@@ -79,6 +100,11 @@ class AppState extends ChangeNotifier {
   void setLoading(bool loading) {
     _isLoading = loading;
     notifyListeners();
+  }
+
+  // Recarregar preferências (útil após login)
+  Future<void> reloadPreferences() async {
+    await _loadPreferences();
   }
 }
 
