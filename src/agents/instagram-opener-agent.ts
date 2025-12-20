@@ -3,105 +3,132 @@ import { BaseAgent, UserContext } from './base-agent';
 export interface InstagramOpenerInput {
   username: string;
   bio?: string;
-  recentPosts?: string[]; // Descrições dos últimos posts
-  stories?: string[]; // Descrições de stories recentes
+  recentPosts?: string[];
+  stories?: string[];
   tone: 'engraçado' | 'ousado' | 'romântico' | 'casual' | 'confiante';
   approachType: 'dm_direto' | 'comentario_post' | 'resposta_story';
-  specificPost?: string; // Post específico para comentar/responder
+  specificPost?: string;
+  // Insights da inteligência coletiva
+  collectiveInsights?: {
+    whatWorks?: string[];
+    whatDoesntWork?: string[];
+    goodOpenerExamples?: string[];
+    badOpenerExamples?: string[];
+    bestOpenerTypes?: string[];
+  };
 }
 
 export class InstagramOpenerAgent extends BaseAgent {
   async execute(input: InstagramOpenerInput, userContext?: UserContext): Promise<string> {
-    const systemPrompt = this.buildSystemPrompt(input.tone, input.approachType);
+    const systemPrompt = this.buildSystemPrompt(input.tone, input.approachType, input.collectiveInsights);
     const userPrompt = this.buildUserPrompt(input, userContext);
 
     return await this.callClaude(systemPrompt, userPrompt);
   }
 
-  private buildSystemPrompt(tone: string, approachType: string): string {
+  private buildSystemPrompt(
+    tone: string,
+    approachType: string,
+    insights?: InstagramOpenerInput['collectiveInsights']
+  ): string {
     const approachInstructions = {
-      dm_direto: 'DM DIRETO: Curto e de boa. Sem parecer que você ficou stalkeando o perfil.',
-      comentario_post: 'COMENTÁRIO: Natural e leve. Tipo algo que você realmente comentaria.',
-      resposta_story: 'STORY: Reação casual, como se tivesse visto de passagem e achou interessante.',
+      dm_direto: 'DM DIRETO: Curto e natural.',
+      comentario_post: 'COMENTÁRIO: Algo que você realmente comentaria.',
+      resposta_story: 'STORY: Reação casual.',
     };
 
     const toneInstructions = {
-      engraçado: 'Humor simples. Uma observação engraçada, não uma piada elaborada.',
-      ousado: 'Direto mas de boa. Flerte leve.',
-      romântico: 'Charmoso sem exagero. Elogio simples.',
-      casual: 'Super natural, como se fosse qualquer pessoa reagindo.',
-      confiante: 'Seguro mas tranquilo. Não tá tentando impressionar.',
+      engraçado: 'Humor simples.',
+      ousado: 'Flerte leve.',
+      romântico: 'Elogio simples.',
+      casual: 'Super natural.',
+      confiante: 'Seguro mas tranquilo.',
     };
 
-    return `Você cria abordagens LEVES pro Instagram.
-
-PRINCÍPIO: Uma reação simples e pronto. Não precisa dar continuidade nem fazer pergunta.
+    let prompt = `Crie abordagens curtas pro Instagram.
 
 ${approachInstructions[approachType as keyof typeof approachInstructions]}
 Tom: ${toneInstructions[tone as keyof typeof toneInstructions]}
 
+DIRETRIZES:
+- Uma frase só
+- Pode usar "kkk" ou emoji
+- Parecer natural, não calculado
+`;
+
+    // Se tem insights da inteligência coletiva
+    if (insights) {
+      if (insights.whatWorks && insights.whatWorks.length > 0) {
+        prompt += `
+✅ O QUE FUNCIONA COM ESSE NOME:
+${insights.whatWorks.slice(0, 3).map(w => `- ${w}`).join('\n')}
+`;
+      }
+
+      if (insights.whatDoesntWork && insights.whatDoesntWork.length > 0) {
+        prompt += `
+❌ O QUE NÃO FUNCIONA (EVITE):
+${insights.whatDoesntWork.slice(0, 3).map(w => `- ${w}`).join('\n')}
+`;
+      }
+
+      if (insights.goodOpenerExamples && insights.goodOpenerExamples.length > 0) {
+        prompt += `
+📊 EXEMPLOS QUE GERARAM RESPOSTA:
+${insights.goodOpenerExamples.slice(0, 3).map(e => `✅ "${e}"`).join('\n')}
+`;
+      }
+
+      if (insights.badOpenerExamples && insights.badOpenerExamples.length > 0) {
+        prompt += `
+📊 EXEMPLOS QUE NÃO FUNCIONARAM:
+${insights.badOpenerExamples.slice(0, 2).map(e => `❌ "${e}"`).join('\n')}
+`;
+      }
+    } else {
+      prompt += `
 EVITE:
-- Fazer PERGUNTAS (parece entrevista)
-- Observação + pergunta (investindo demais)
-- "Aposto que...", "Com certeza você..."
+- Perguntas
+- "Aposto que...", "Com certeza..."
 - Elogios exagerados
-- MISTURAR IDIOMAS. Use só português brasileiro
-- Só use outro idioma se o perfil indicar que a pessoa é de outro país
+- Misturar idiomas
+`;
+    }
 
-FUNCIONA:
-- UMA reação curta e só
-- Pode usar "kkk" ou emoji pra ficar leve
-- Parecer que foi de passagem
-- Deixar a pessoa responder se quiser
+    prompt += `
+Retorne 2-3 opções numeradas. Sem explicações.`;
 
-EXEMPLOS BOM:
-✅ "esse lugar parece ser incrível"
-✅ "a vibe dessa foto kkk"
-✅ "curti demais"
-
-FORMATO: 2-3 opções. Cada uma com UMA frase só.`;
+    return prompt;
   }
 
   private buildUserPrompt(input: InstagramOpenerInput, userContext?: UserContext): string {
     const parts: string[] = [];
 
-    // Contexto do usuário
     if (userContext) {
       parts.push(this.buildUserContext(userContext));
     }
 
-    // Informações do perfil do Instagram
-    parts.push('=== PERFIL DO INSTAGRAM ===');
+    parts.push('=== PERFIL ===');
     parts.push(`Username: @${input.username}`);
 
     if (input.bio) {
-      parts.push(`\nBio:\n${input.bio}`);
+      parts.push(`Bio: ${input.bio}`);
     }
 
     if (input.recentPosts && input.recentPosts.length > 0) {
-      parts.push(`\nÚltimos posts:`);
-      input.recentPosts.forEach((post, i) => {
-        parts.push(`${i + 1}. ${post}`);
-      });
+      parts.push(`Posts: ${input.recentPosts.slice(0, 3).join(', ')}`);
     }
 
     if (input.stories && input.stories.length > 0) {
-      parts.push(`\nStories recentes:`);
-      input.stories.forEach((story, i) => {
-        parts.push(`${i + 1}. ${story}`);
-      });
+      parts.push(`Stories: ${input.stories.slice(0, 2).join(', ')}`);
     }
 
     if (input.specificPost) {
-      parts.push(`\n⭐ POST/STORY PARA INTERAGIR:\n${input.specificPost}`);
+      parts.push(`Interagir com: ${input.specificPost}`);
     }
 
-    parts.push('\n=== SUA TAREFA ===');
-    parts.push(`Tipo: ${input.approachType.replace('_', ' ')}`);
-    parts.push(`Tom: ${input.tone}`);
-    parts.push('\nCrie 2-3 opções curtas e naturais.');
-    parts.push('Menos é mais. Não force.');
-    parts.push('\nFormato: Apenas as opções numeradas, sem explicações.');
+    parts.push(`\nTipo: ${input.approachType.replace('_', ' ')}`);
+    parts.push('\nCrie 2-3 opções.');
 
     return parts.join('\n');
   }

@@ -6,80 +6,127 @@ export interface FirstMessageInput {
   platform: 'tinder' | 'bumble' | 'hinge' | 'outro';
   tone: 'engraçado' | 'ousado' | 'romântico' | 'casual' | 'confiante';
   photoDescription?: string;
-  specificDetail?: string; // Algo específico do perfil para mencionar
+  specificDetail?: string;
+  // Insights da inteligência coletiva
+  collectiveInsights?: {
+    whatWorks?: string[];
+    whatDoesntWork?: string[];
+    goodOpenerExamples?: string[];
+    badOpenerExamples?: string[];
+    responseRate?: number;
+    bestOpenerTypes?: string[];
+  };
 }
 
 export class FirstMessageAgent extends BaseAgent {
   async execute(input: FirstMessageInput, userContext?: UserContext): Promise<string> {
-    const systemPrompt = this.buildSystemPrompt(input.tone);
+    const systemPrompt = this.buildSystemPrompt(input.tone, input.collectiveInsights);
     const userPrompt = this.buildUserPrompt(input, userContext);
 
     return await this.callClaude(systemPrompt, userPrompt);
   }
 
-  private buildSystemPrompt(tone: string): string {
+  private buildSystemPrompt(
+    tone: string,
+    insights?: FirstMessageInput['collectiveInsights']
+  ): string {
     const toneInstructions = {
-      engraçado: 'Humor leve e natural. Uma piada simples ou observação divertida.',
-      ousado: 'Confiante e direto, mas de boa. Flerte sutil.',
-      romântico: 'Charmoso mas sem forçar. Elogio simples e sincero.',
-      casual: 'Super de boa, descontraído. Como se tivesse acabado de notar algo.',
-      confiante: 'Seguro mas tranquilo. Sem parecer que tá tentando impressionar.',
+      engraçado: 'Humor leve e natural.',
+      ousado: 'Confiante e direto, flerte sutil.',
+      romântico: 'Charmoso, elogio simples.',
+      casual: 'Descontraído, de boa.',
+      confiante: 'Seguro mas tranquilo.',
     };
 
-    return `Gere primeiras mensagens MUITO CURTAS (5-10 palavras máximo).
-
-TAMANHO OBRIGATÓRIO: 5-10 palavras. Se passar disso, está errado.
-
-PROIBIDO:
-- Começar com "Oi/Olá [nome]"
-- Perguntas (nada com "?")
-- "Aposto que...", "Tenho certeza..."
-- Piadas elaboradas
-- Misturar idiomas
-
-BOM: comentário rápido + kkk
-
-EXEMPLOS DO TAMANHO CERTO:
-✅ "canceriana de pagode já sei que é problema kkk" (8 palavras)
-✅ "essa vibe de praia combinou" (5 palavras)
-✅ "dividir açaí é teste de compatibilidade kkk" (6 palavras)
-
-EXEMPLOS LONGOS DEMAIS (NÃO FAÇA):
-❌ "Amo que você já deixou claro que a primeira batalha vai ser decidir qual sabor de açaí" (17 palavras - MUITO LONGO)
-❌ "Canceriana + pagode = a combinação perfeita pra chorar numa mesa de bar" (12 palavras - LONGO)
+    let prompt = `Gere primeiras mensagens curtas e naturais (5-10 palavras).
 
 TOM: ${tone} - ${toneInstructions[tone as keyof typeof toneInstructions]}
 
-Retorne 3 opções. MÁXIMO 10 palavras cada.`;
+DIRETRIZES GERAIS:
+- Mensagens curtas (5-10 palavras)
+- Pode usar "kkk" ou "haha" pra ficar leve
+- Parecer natural, não calculado
+`;
+
+    // Se tem insights da inteligência coletiva, usa eles
+    if (insights) {
+      if (insights.whatWorks && insights.whatWorks.length > 0) {
+        prompt += `
+✅ O QUE JÁ FUNCIONOU COM ESSE NOME:
+${insights.whatWorks.slice(0, 3).map(w => `- ${w}`).join('\n')}
+`;
+      }
+
+      if (insights.whatDoesntWork && insights.whatDoesntWork.length > 0) {
+        prompt += `
+❌ O QUE NÃO FUNCIONA (EVITE):
+${insights.whatDoesntWork.slice(0, 3).map(w => `- ${w}`).join('\n')}
+`;
+      }
+
+      if (insights.goodOpenerExamples && insights.goodOpenerExamples.length > 0) {
+        prompt += `
+📊 EXEMPLOS QUE GERARAM RESPOSTA:
+${insights.goodOpenerExamples.slice(0, 3).map(e => `✅ "${e}"`).join('\n')}
+`;
+      }
+
+      if (insights.badOpenerExamples && insights.badOpenerExamples.length > 0) {
+        prompt += `
+📊 EXEMPLOS QUE NÃO FUNCIONARAM:
+${insights.badOpenerExamples.slice(0, 2).map(e => `❌ "${e}"`).join('\n')}
+`;
+      }
+
+      if (insights.bestOpenerTypes && insights.bestOpenerTypes.length > 0) {
+        prompt += `
+🎯 TIPOS DE OPENER QUE FUNCIONAM MELHOR:
+${insights.bestOpenerTypes.slice(0, 3).map(t => `- ${t}`).join('\n')}
+`;
+      }
+    } else {
+      // Sem dados da inteligência coletiva, usa diretrizes básicas
+      prompt += `
+EVITE:
+- Começar com "Oi/Olá nome"
+- Perguntas (nada com "?")
+- Piadas muito elaboradas
+- Misturar idiomas
+
+FUNCIONA BEM:
+- Comentário rápido sobre algo do perfil
+- Observação leve + kkk
+- Ser direto sem forçar
+`;
+    }
+
+    prompt += `
+Retorne 3 opções numeradas. Sem explicações.`;
+
+    return prompt;
   }
 
   private buildUserPrompt(input: FirstMessageInput, userContext?: UserContext): string {
     const parts: string[] = [];
 
-    // Contexto do usuário
     if (userContext) {
       parts.push(this.buildUserContext(userContext));
     }
 
-    // Informações do match
-    parts.push('=== INFORMAÇÕES DO MATCH ===');
+    parts.push('=== PERFIL ===');
     parts.push(`Nome: ${input.matchName}`);
-    parts.push(`Plataforma: ${input.platform.toUpperCase()}`);
-    parts.push(`\nBio:\n${input.matchBio}`);
+    parts.push(`Plataforma: ${input.platform}`);
+    parts.push(`Bio: ${input.matchBio}`);
 
     if (input.photoDescription) {
-      parts.push(`\nFoto(s): ${input.photoDescription}`);
+      parts.push(`Fotos: ${input.photoDescription}`);
     }
 
     if (input.specificDetail) {
-      parts.push(`\nDetalhe específico para mencionar: ${input.specificDetail}`);
+      parts.push(`Detalhe: ${input.specificDetail}`);
     }
 
-    parts.push('\n=== SUA TAREFA ===');
-    parts.push(`Crie 3 opções de primeira mensagem com tom ${input.tone}.`);
-    parts.push('Pode mencionar algo do perfil, mas só se parecer natural.');
-    parts.push('Mensagens curtas. Não force a barra.');
-    parts.push('\nFormato: Apenas as 3 mensagens numeradas, sem explicações.');
+    parts.push('\nCrie 3 opções de primeira mensagem.');
 
     return parts.join('\n');
   }

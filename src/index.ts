@@ -28,6 +28,7 @@ import {
   handlePaymentFailed,
 } from './services/stripe';
 import { verifyAuth, verifyAuthOnly, AuthenticatedRequest } from './middleware/auth';
+import { CollectiveAvatarManager } from './services/collective-avatar-manager';
 import Stripe from 'stripe';
 
 const fastify = Fastify({
@@ -118,15 +119,57 @@ fastify.post('/analyze-profile', async (request, reply) => {
   }
 });
 
-// Nova rota: Gerar primeira mensagem
+// Nova rota: Gerar primeira mensagem (com inteligência coletiva)
 fastify.post('/generate-first-message', async (request, reply) => {
   try {
     const { matchName, matchBio, platform, tone, photoDescription, specificDetail, userContext } =
       request.body as any;
 
+    // Buscar insights da inteligência coletiva para esse nome
+    let collectiveInsights;
+    try {
+      const avatar = await CollectiveAvatarManager.findOrCreateCollectiveAvatar({
+        name: matchName,
+        platform: platform || 'tinder',
+        bio: matchBio,
+      });
+
+      // Extrair insights relevantes para o opener
+      const openerStats = avatar.collectiveInsights?.openerStats || [];
+      const whatWorks = avatar.collectiveInsights?.whatWorks || [];
+      const whatDoesntWork = avatar.collectiveInsights?.whatDoesntWork || [];
+
+      // Pegar exemplos de openers bons e ruins
+      const goodOpeners = openerStats
+        .filter((s: any) => s.responseRate > 50)
+        .flatMap((s: any) => s.examples?.filter((e: any) => e.gotResponse).map((e: any) => e.opener) || []);
+
+      const badOpeners = openerStats
+        .filter((s: any) => s.responseRate < 30)
+        .flatMap((s: any) => s.examples?.filter((e: any) => !e.gotResponse).map((e: any) => e.opener) || []);
+
+      // Melhores tipos de opener
+      const bestTypes = openerStats
+        .filter((s: any) => s.responseRate > 50)
+        .sort((a: any, b: any) => b.responseRate - a.responseRate)
+        .map((s: any) => s.openerType);
+
+      collectiveInsights = {
+        whatWorks: whatWorks.map((w: any) => w.strategy),
+        whatDoesntWork: whatDoesntWork.map((w: any) => w.strategy),
+        goodOpenerExamples: goodOpeners,
+        badOpenerExamples: badOpeners,
+        bestOpenerTypes: bestTypes,
+      };
+
+      console.log(`[Collective] Insights para ${matchName}:`, JSON.stringify(collectiveInsights, null, 2));
+    } catch (err) {
+      console.warn('Não foi possível buscar insights coletivos:', err);
+    }
+
     const agent = new FirstMessageAgent();
     const result = await agent.execute(
-      { matchName, matchBio, platform, tone, photoDescription, specificDetail },
+      { matchName, matchBio, platform, tone, photoDescription, specificDetail, collectiveInsights },
       userContext as UserContext
     );
 
@@ -140,15 +183,48 @@ fastify.post('/generate-first-message', async (request, reply) => {
   }
 });
 
-// Nova rota: Gerar abertura para Instagram
+// Nova rota: Gerar abertura para Instagram (com inteligência coletiva)
 fastify.post('/generate-instagram-opener', async (request, reply) => {
   try {
     const { username, bio, recentPosts, stories, tone, approachType, specificPost, userContext } =
       request.body as any;
 
+    // Buscar insights da inteligência coletiva
+    let collectiveInsights;
+    try {
+      const avatar = await CollectiveAvatarManager.findOrCreateCollectiveAvatar({
+        name: username,
+        platform: 'instagram',
+        bio: bio,
+      });
+
+      const openerStats = avatar.collectiveInsights?.openerStats || [];
+      const whatWorks = avatar.collectiveInsights?.whatWorks || [];
+      const whatDoesntWork = avatar.collectiveInsights?.whatDoesntWork || [];
+
+      const goodOpeners = openerStats
+        .filter((s: any) => s.responseRate > 50)
+        .flatMap((s: any) => s.examples?.filter((e: any) => e.gotResponse).map((e: any) => e.opener) || []);
+
+      const badOpeners = openerStats
+        .filter((s: any) => s.responseRate < 30)
+        .flatMap((s: any) => s.examples?.filter((e: any) => !e.gotResponse).map((e: any) => e.opener) || []);
+
+      collectiveInsights = {
+        whatWorks: whatWorks.map((w: any) => w.strategy),
+        whatDoesntWork: whatDoesntWork.map((w: any) => w.strategy),
+        goodOpenerExamples: goodOpeners,
+        badOpenerExamples: badOpeners,
+      };
+
+      console.log(`[Collective] Insights Instagram para ${username}:`, JSON.stringify(collectiveInsights, null, 2));
+    } catch (err) {
+      console.warn('Não foi possível buscar insights coletivos:', err);
+    }
+
     const agent = new InstagramOpenerAgent();
     const result = await agent.execute(
-      { username, bio, recentPosts, stories, tone, approachType, specificPost },
+      { username, bio, recentPosts, stories, tone, approachType, specificPost, collectiveInsights },
       userContext as UserContext
     );
 
