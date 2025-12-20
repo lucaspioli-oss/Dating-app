@@ -32,6 +32,11 @@ if (!admin.apps.length) {
       privateKey: privateKey,
     }),
   });
+
+  // Configurar Firestore para ignorar valores undefined
+  admin.firestore().settings({
+    ignoreUndefinedProperties: true,
+  });
 }
 
 const db = admin.firestore();
