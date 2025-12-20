@@ -8,13 +8,14 @@ export interface InstagramOpenerInput {
   tone: 'engraçado' | 'ousado' | 'romântico' | 'casual' | 'confiante';
   approachType: 'dm_direto' | 'comentario_post' | 'resposta_story';
   specificPost?: string;
-  // Insights da inteligência coletiva
+  // Insights da inteligência coletiva por características
   collectiveInsights?: {
     whatWorks?: string[];
     whatDoesntWork?: string[];
     goodOpenerExamples?: string[];
     badOpenerExamples?: string[];
     bestOpenerTypes?: string[];
+    matchedTags?: string[]; // Tags do perfil que tiveram match (ex: praia, pagode)
   };
 }
 
@@ -58,9 +59,16 @@ DIRETRIZES:
 
     // Se tem insights da inteligência coletiva
     if (insights) {
+      if (insights.matchedTags && insights.matchedTags.length > 0) {
+        prompt += `
+📊 PERFIL IDENTIFICADO: ${insights.matchedTags.join(', ')}
+(Insights baseados em perfis similares)
+`;
+      }
+
       if (insights.whatWorks && insights.whatWorks.length > 0) {
         prompt += `
-✅ O QUE FUNCIONA COM ESSE NOME:
+✅ O QUE FUNCIONA COM ESSE TIPO DE PERFIL:
 ${insights.whatWorks.slice(0, 3).map(w => `- ${w}`).join('\n')}
 `;
       }

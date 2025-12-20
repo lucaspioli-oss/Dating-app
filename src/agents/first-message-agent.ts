@@ -7,14 +7,14 @@ export interface FirstMessageInput {
   tone: 'engraçado' | 'ousado' | 'romântico' | 'casual' | 'confiante';
   photoDescription?: string;
   specificDetail?: string;
-  // Insights da inteligência coletiva
+  // Insights da inteligência coletiva por características
   collectiveInsights?: {
     whatWorks?: string[];
     whatDoesntWork?: string[];
     goodOpenerExamples?: string[];
     badOpenerExamples?: string[];
-    responseRate?: number;
     bestOpenerTypes?: string[];
+    matchedTags?: string[]; // Tags do perfil que tiveram match (ex: praia, pagode)
   };
 }
 
@@ -50,9 +50,16 @@ DIRETRIZES GERAIS:
 
     // Se tem insights da inteligência coletiva, usa eles
     if (insights) {
+      if (insights.matchedTags && insights.matchedTags.length > 0) {
+        prompt += `
+📊 PERFIL IDENTIFICADO: ${insights.matchedTags.join(', ')}
+(Insights baseados em perfis similares)
+`;
+      }
+
       if (insights.whatWorks && insights.whatWorks.length > 0) {
         prompt += `
-✅ O QUE JÁ FUNCIONOU COM ESSE NOME:
+✅ O QUE FUNCIONA COM ESSE TIPO DE PERFIL:
 ${insights.whatWorks.slice(0, 3).map(w => `- ${w}`).join('\n')}
 `;
       }

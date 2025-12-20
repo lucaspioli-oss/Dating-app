@@ -1,12 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../config/app_config.dart';
 
 class AppState extends ChangeNotifier {
-  // Backend URL - uses production URL by default
-  String _backendUrl = AppConfig.productionBackendUrl;
-
   // Tom selecionado
   String _selectedTone = 'casual';
 
@@ -17,7 +13,7 @@ class AppState extends ChangeNotifier {
   bool _isLoading = false;
 
   // Getters
-  String get backendUrl => _getEffectiveBackendUrl();
+  String get backendUrl => AppConfig.backendUrl;
   String get selectedTone => _selectedTone;
   List<ConversationMessage> get messages => _messages;
   bool get isLoading => _isLoading;
@@ -26,48 +22,14 @@ class AppState extends ChangeNotifier {
     _loadPreferences();
   }
 
-  // Verificar se usuário atual é desenvolvedor
-  bool get isDeveloper {
-    final user = FirebaseAuth.instance.currentUser;
-    return AppConfig.isDeveloper(user?.email);
-  }
-
-  // URL efetiva: desenvolvedores podem escolher, outros sempre Railway
-  String _getEffectiveBackendUrl() {
-    if (isDeveloper) {
-      return _backendUrl;
-    }
-    // Usuários normais SEMPRE usam Railway
-    return AppConfig.productionBackendUrl;
-  }
-
   // Carregar preferências salvas
   Future<void> _loadPreferences() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      _backendUrl = prefs.getString('backend_url') ?? AppConfig.productionBackendUrl;
       _selectedTone = prefs.getString('selected_tone') ?? 'casual';
       notifyListeners();
     } catch (e) {
       debugPrint('Erro ao carregar preferências: $e');
-    }
-  }
-
-  // Salvar URL do backend (só funciona para desenvolvedores)
-  Future<void> setBackendUrl(String url) async {
-    if (!isDeveloper) {
-      debugPrint('Tentativa de mudar backend por não-desenvolvedor ignorada');
-      return;
-    }
-
-    _backendUrl = url;
-    notifyListeners();
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('backend_url', url);
-    } catch (e) {
-      debugPrint('Erro ao salvar URL: $e');
     }
   }
 

@@ -5,6 +5,7 @@ import '../providers/user_profile_provider.dart';
 import '../models/user_profile.dart';
 import '../services/firebase_auth_service.dart';
 import '../services/subscription_service.dart';
+import 'settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -156,6 +157,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: _saveProfile,
             tooltip: 'Salvar perfil',
           ),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: _showUserMenu,
+              child: CircleAvatar(
+                radius: 18,
+                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                child: Text(
+                  (FirebaseAuth.instance.currentUser?.email?.substring(0, 1) ?? 'U').toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
       body: SafeArea(
@@ -167,10 +186,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // Subscription info
             _buildSubscriptionCard(),
             const SizedBox(height: 16),
-
-            // Account info & logout
-            _buildAccountCard(),
-            const SizedBox(height: 24),
 
             // Header
             _buildHeader(),
@@ -322,32 +337,78 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildAccountCard() {
+    // Removido - agora usa avatar no AppBar
+    return const SizedBox.shrink();
+  }
+
+  void _showUserMenu() {
     final authService = FirebaseAuthService();
     final user = authService.currentUser;
 
-    return Card(
-      elevation: 0,
-      color: Colors.blue.shade50,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                const Icon(Icons.email_outlined, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    user?.email ?? 'Não logado',
-                    style: const TextStyle(fontSize: 14),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                    child: Text(
+                      (user?.email?.substring(0, 1) ?? 'U').toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user?.email ?? 'Não logado',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          'Conta conectada',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () async {
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.settings_outlined),
+              title: const Text('Configurações'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.logout, color: Colors.red.shade400),
+              title: Text('Sair da conta', style: TextStyle(color: Colors.red.shade400)),
+              onTap: () async {
+                Navigator.pop(context);
                 final confirm = await showDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
@@ -370,12 +431,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   await authService.signOut();
                 }
               },
-              icon: const Icon(Icons.logout),
-              label: const Text('Sair da Conta'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.red,
-              ),
             ),
+            const SizedBox(height: 8),
           ],
         ),
       ),

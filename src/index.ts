@@ -119,50 +119,32 @@ fastify.post('/analyze-profile', async (request, reply) => {
   }
 });
 
-// Nova rota: Gerar primeira mensagem (com inteligência coletiva)
+// Nova rota: Gerar primeira mensagem (com inteligência coletiva por características)
 fastify.post('/generate-first-message', async (request, reply) => {
   try {
     const { matchName, matchBio, platform, tone, photoDescription, specificDetail, userContext } =
       request.body as any;
 
-    // Buscar insights da inteligência coletiva para esse nome
+    // Extrair características do perfil para buscar insights relevantes
+    const profileTags = extractProfileTags(matchBio, photoDescription);
+    console.log(`[Collective] Tags extraídas do perfil:`, profileTags);
+
+    // Buscar insights da inteligência coletiva por CARACTERÍSTICAS, não por nome
     let collectiveInsights;
     try {
-      const avatar = await CollectiveAvatarManager.findOrCreateCollectiveAvatar({
-        name: matchName,
-        platform: platform || 'tinder',
-        bio: matchBio,
-      });
+      const insights = await getInsightsByTags(profileTags, platform || 'tinder');
 
-      // Extrair insights relevantes para o opener
-      const openerStats = avatar.collectiveInsights?.openerStats || [];
-      const whatWorks = avatar.collectiveInsights?.whatWorks || [];
-      const whatDoesntWork = avatar.collectiveInsights?.whatDoesntWork || [];
-
-      // Pegar exemplos de openers bons e ruins
-      const goodOpeners = openerStats
-        .filter((s: any) => s.responseRate > 50)
-        .flatMap((s: any) => s.examples?.filter((e: any) => e.gotResponse).map((e: any) => e.opener) || []);
-
-      const badOpeners = openerStats
-        .filter((s: any) => s.responseRate < 30)
-        .flatMap((s: any) => s.examples?.filter((e: any) => !e.gotResponse).map((e: any) => e.opener) || []);
-
-      // Melhores tipos de opener
-      const bestTypes = openerStats
-        .filter((s: any) => s.responseRate > 50)
-        .sort((a: any, b: any) => b.responseRate - a.responseRate)
-        .map((s: any) => s.openerType);
-
-      collectiveInsights = {
-        whatWorks: whatWorks.map((w: any) => w.strategy),
-        whatDoesntWork: whatDoesntWork.map((w: any) => w.strategy),
-        goodOpenerExamples: goodOpeners,
-        badOpenerExamples: badOpeners,
-        bestOpenerTypes: bestTypes,
-      };
-
-      console.log(`[Collective] Insights para ${matchName}:`, JSON.stringify(collectiveInsights, null, 2));
+      if (insights) {
+        collectiveInsights = {
+          whatWorks: insights.whatWorks,
+          whatDoesntWork: insights.whatDoesntWork,
+          goodOpenerExamples: insights.goodExamples,
+          badOpenerExamples: insights.badExamples,
+          bestOpenerTypes: insights.bestTypes,
+          matchedTags: insights.matchedTags,
+        };
+        console.log(`[Collective] Insights encontrados para tags:`, insights.matchedTags);
+      }
     } catch (err) {
       console.warn('Não foi possível buscar insights coletivos:', err);
     }
@@ -183,41 +165,120 @@ fastify.post('/generate-first-message', async (request, reply) => {
   }
 });
 
-// Nova rota: Gerar abertura para Instagram (com inteligência coletiva)
+// Extrair tags/características do perfil
+function extractProfileTags(bio?: string, photoDescription?: string): string[] {
+  const tags: string[] = [];
+  const text = `${bio || ''} ${photoDescription || ''}`.toLowerCase();
+
+  // Categorias de interesse
+  const categories: Record<string, string[]> = {
+    'praia': ['praia', 'mar', 'surf', 'beach', 'litoral', 'verão'],
+    'fitness': ['academia', 'gym', 'crossfit', 'treino', 'fitness', 'musculação', 'corrida'],
+    'viagem': ['viagem', 'viajar', 'travel', 'mochilão', 'aventura', 'mundo'],
+    'música': ['música', 'show', 'festival', 'rock', 'sertanejo', 'pagode', 'funk', 'mpb', 'rap'],
+    'pagode': ['pagode', 'samba', 'roda de samba'],
+    'sertanejo': ['sertanejo', 'country', 'rodeio'],
+    'balada': ['balada', 'festa', 'night', 'club', 'role'],
+    'gastronomia': ['comida', 'restaurante', 'culinária', 'chef', 'cozinhar', 'foodie'],
+    'pets': ['cachorro', 'gato', 'pet', 'dog', 'cat', 'animal'],
+    'natureza': ['natureza', 'trilha', 'camping', 'montanha', 'cachoeira'],
+    'arte': ['arte', 'museu', 'teatro', 'cinema', 'fotografia'],
+    'livros': ['livro', 'leitura', 'ler', 'literatura'],
+    'games': ['game', 'jogo', 'gamer', 'playstation', 'xbox', 'nintendo'],
+    'esporte': ['futebol', 'vôlei', 'basquete', 'tênis', 'esporte'],
+    'cerveja': ['cerveja', 'beer', 'bar', 'happy hour', 'drinks', 'vinho'],
+    'café': ['café', 'coffee', 'cafeteria'],
+    'netflix': ['netflix', 'série', 'series', 'filme', 'maratonar'],
+    'tattoo': ['tattoo', 'tatuagem', 'tatuado'],
+    'signo_agua': ['câncer', 'cancer', 'canceriana', 'escorpião', 'escorpiana', 'peixes', 'pisciana'],
+    'signo_fogo': ['áries', 'aries', 'ariana', 'leão', 'leonina', 'sagitário', 'sagitariana'],
+    'signo_terra': ['touro', 'taurina', 'virgem', 'virginiana', 'capricórnio', 'capricorniana'],
+    'signo_ar': ['gêmeos', 'geminiana', 'libra', 'libriana', 'aquário', 'aquariana'],
+  };
+
+  for (const [tag, keywords] of Object.entries(categories)) {
+    if (keywords.some(kw => text.includes(kw))) {
+      tags.push(tag);
+    }
+  }
+
+  return tags;
+}
+
+// Buscar insights por tags no Firestore
+async function getInsightsByTags(tags: string[], platform: string): Promise<any | null> {
+  if (tags.length === 0) return null;
+
+  try {
+    const db = require('firebase-admin').firestore();
+
+    // Buscar insights agregados por tag
+    const insightsRef = db.collection('tagInsights');
+    const allInsights: any = {
+      whatWorks: [],
+      whatDoesntWork: [],
+      goodExamples: [],
+      badExamples: [],
+      bestTypes: [],
+      matchedTags: [],
+    };
+
+    for (const tag of tags) {
+      const docId = `${tag}_${platform}`;
+      const doc = await insightsRef.doc(docId).get();
+
+      if (doc.exists) {
+        const data = doc.data();
+        allInsights.matchedTags.push(tag);
+
+        if (data.whatWorks) allInsights.whatWorks.push(...data.whatWorks);
+        if (data.whatDoesntWork) allInsights.whatDoesntWork.push(...data.whatDoesntWork);
+        if (data.goodExamples) allInsights.goodExamples.push(...data.goodExamples);
+        if (data.badExamples) allInsights.badExamples.push(...data.badExamples);
+        if (data.bestTypes) allInsights.bestTypes.push(...data.bestTypes);
+      }
+    }
+
+    // Remover duplicatas
+    allInsights.whatWorks = [...new Set(allInsights.whatWorks)].slice(0, 5);
+    allInsights.whatDoesntWork = [...new Set(allInsights.whatDoesntWork)].slice(0, 5);
+    allInsights.goodExamples = [...new Set(allInsights.goodExamples)].slice(0, 5);
+    allInsights.badExamples = [...new Set(allInsights.badExamples)].slice(0, 3);
+    allInsights.bestTypes = [...new Set(allInsights.bestTypes)].slice(0, 3);
+
+    return allInsights.matchedTags.length > 0 ? allInsights : null;
+  } catch (err) {
+    console.error('Erro ao buscar insights por tags:', err);
+    return null;
+  }
+}
+
+// Nova rota: Gerar abertura para Instagram (com inteligência coletiva por características)
 fastify.post('/generate-instagram-opener', async (request, reply) => {
   try {
     const { username, bio, recentPosts, stories, tone, approachType, specificPost, userContext } =
       request.body as any;
 
-    // Buscar insights da inteligência coletiva
+    // Extrair características do perfil
+    const allText = [bio, ...(recentPosts || []), ...(stories || [])].filter(Boolean).join(' ');
+    const profileTags = extractProfileTags(allText);
+    console.log(`[Collective] Tags Instagram extraídas:`, profileTags);
+
+    // Buscar insights por características
     let collectiveInsights;
     try {
-      const avatar = await CollectiveAvatarManager.findOrCreateCollectiveAvatar({
-        name: username,
-        platform: 'instagram',
-        bio: bio,
-      });
+      const insights = await getInsightsByTags(profileTags, 'instagram');
 
-      const openerStats = avatar.collectiveInsights?.openerStats || [];
-      const whatWorks = avatar.collectiveInsights?.whatWorks || [];
-      const whatDoesntWork = avatar.collectiveInsights?.whatDoesntWork || [];
-
-      const goodOpeners = openerStats
-        .filter((s: any) => s.responseRate > 50)
-        .flatMap((s: any) => s.examples?.filter((e: any) => e.gotResponse).map((e: any) => e.opener) || []);
-
-      const badOpeners = openerStats
-        .filter((s: any) => s.responseRate < 30)
-        .flatMap((s: any) => s.examples?.filter((e: any) => !e.gotResponse).map((e: any) => e.opener) || []);
-
-      collectiveInsights = {
-        whatWorks: whatWorks.map((w: any) => w.strategy),
-        whatDoesntWork: whatDoesntWork.map((w: any) => w.strategy),
-        goodOpenerExamples: goodOpeners,
-        badOpenerExamples: badOpeners,
-      };
-
-      console.log(`[Collective] Insights Instagram para ${username}:`, JSON.stringify(collectiveInsights, null, 2));
+      if (insights) {
+        collectiveInsights = {
+          whatWorks: insights.whatWorks,
+          whatDoesntWork: insights.whatDoesntWork,
+          goodOpenerExamples: insights.goodExamples,
+          badOpenerExamples: insights.badExamples,
+          matchedTags: insights.matchedTags,
+        };
+        console.log(`[Collective] Insights Instagram para tags:`, insights.matchedTags);
+      }
     } catch (err) {
       console.warn('Não foi possível buscar insights coletivos:', err);
     }
