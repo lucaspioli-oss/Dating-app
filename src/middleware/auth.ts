@@ -3,7 +3,27 @@ import * as admin from 'firebase-admin';
 
 // Initialize Firebase Admin (only if not already initialized)
 if (!admin.apps.length) {
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  const rawKey = process.env.FIREBASE_PRIVATE_KEY;
+
+  // Debug: verificar formato da chave
+  console.log('=== Firebase Config Debug ===');
+  console.log('PROJECT_ID:', process.env.FIREBASE_PROJECT_ID);
+  console.log('CLIENT_EMAIL:', process.env.FIREBASE_CLIENT_EMAIL);
+  console.log('PRIVATE_KEY exists:', !!rawKey);
+  console.log('PRIVATE_KEY length:', rawKey?.length);
+  console.log('PRIVATE_KEY starts with:', rawKey?.substring(0, 30));
+  console.log('PRIVATE_KEY contains \\n:', rawKey?.includes('\\n'));
+  console.log('PRIVATE_KEY contains real newline:', rawKey?.includes('\n') && !rawKey?.includes('\\n'));
+
+  // Tentar diferentes formas de processar a chave
+  let privateKey = rawKey;
+  if (rawKey?.includes('\\n')) {
+    privateKey = rawKey.replace(/\\n/g, '\n');
+    console.log('Converted \\n to real newlines');
+  }
+
+  console.log('Final key starts with:', privateKey?.substring(0, 30));
+  console.log('=============================');
 
   admin.initializeApp({
     credential: admin.credential.cert({
