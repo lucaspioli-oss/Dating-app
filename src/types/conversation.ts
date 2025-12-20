@@ -48,6 +48,7 @@ export interface ConversationAvatar {
 
 export interface Conversation {
   id: string;
+  userId: string; // ID do usuário dono da conversa
   avatar: ConversationAvatar;
   messages: Message[];
   currentTone: string; // Tom atual sendo usado

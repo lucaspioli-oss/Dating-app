@@ -144,15 +144,7 @@ PROIBIÇÕES ABSOLUTAS:
    - "Você parece problemática... do tipo que eu adoraria conhecer melhor"
    - "Tenho certeza que a gente não ia se dar bem [PUSH]... somos parecidos demais [PULL]"
 
-2. QUALIFICAÇÃO (Fazê-la/o trabalhar por aprovação):
-   - "Me conta uma coisa: você é do tipo aventureira ou mais caseira?"
-   - "Espero que você não seja daquelas pessoas chatas que [X]"
-
-3. ASSUMIR RAPPORT (Cold Reading):
-   - "Você tem aquela vibe de quem [observação específica baseada na bio/foto]"
-   - "Deixa eu adivinhar: você definitivamente é do tipo que [X]"
-
-4. CRIAR TENSÃO SEXUAL SUTIL:
+2. CRIAR TENSÃO SEXUAL SUTIL:
    - Ambiguidade calculada
    - Duplo sentido inteligente (nunca vulgar)
    - Criar "inside jokes" prematuros

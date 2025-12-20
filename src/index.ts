@@ -224,14 +224,17 @@ fastify.post('/analyze-profile-image', async (request, reply) => {
 });
 
 // ═══════════════════════════════════════════════════════════════════
-// 💬 ENDPOINTS DE GERENCIAMENTO DE CONVERSAS
+// 💬 ENDPOINTS DE GERENCIAMENTO DE CONVERSAS (COM AUTENTICAÇÃO)
 // ═══════════════════════════════════════════════════════════════════
 
 // Criar nova conversa
-fastify.post('/conversations', async (request, reply) => {
+fastify.post('/conversations', {
+  preHandler: verifyAuth,
+}, async (request: AuthenticatedRequest, reply) => {
   try {
     const body = request.body as CreateConversationRequest;
-    const conversation = ConversationManager.createConversation(body);
+    const userId = request.user!.uid;
+    const conversation = await ConversationManager.createConversation({ ...body, userId });
     return reply.code(201).send(conversation);
   } catch (error) {
     fastify.log.error(error);
@@ -242,10 +245,13 @@ fastify.post('/conversations', async (request, reply) => {
   }
 });
 
-// Listar conversas
-fastify.get('/conversations', async (request, reply) => {
+// Listar conversas do usuário
+fastify.get('/conversations', {
+  preHandler: verifyAuth,
+}, async (request: AuthenticatedRequest, reply) => {
   try {
-    const conversations = ConversationManager.listConversations();
+    const userId = request.user!.uid;
+    const conversations = await ConversationManager.listConversations(userId);
     return reply.code(200).send(conversations);
   } catch (error) {
     fastify.log.error(error);
@@ -257,10 +263,13 @@ fastify.get('/conversations', async (request, reply) => {
 });
 
 // Obter conversa específica
-fastify.get('/conversations/:id', async (request, reply) => {
+fastify.get('/conversations/:id', {
+  preHandler: verifyAuth,
+}, async (request: AuthenticatedRequest, reply) => {
   try {
     const { id } = request.params as { id: string };
-    const conversation = ConversationManager.getConversation(id);
+    const userId = request.user!.uid;
+    const conversation = await ConversationManager.getConversation(id, userId);
 
     if (!conversation) {
       return reply.code(404).send({ error: 'Conversa não encontrada' });
@@ -277,13 +286,17 @@ fastify.get('/conversations/:id', async (request, reply) => {
 });
 
 // Adicionar mensagem à conversa
-fastify.post('/conversations/:id/messages', async (request, reply) => {
+fastify.post('/conversations/:id/messages', {
+  preHandler: verifyAuth,
+}, async (request: AuthenticatedRequest, reply) => {
   try {
     const { id } = request.params as { id: string };
+    const userId = request.user!.uid;
     const body = request.body as Omit<AddMessageRequest, 'conversationId'>;
 
-    const conversation = ConversationManager.addMessage({
+    const conversation = await ConversationManager.addMessage({
       conversationId: id,
+      userId,
       ...body,
     });
 
@@ -298,28 +311,32 @@ fastify.post('/conversations/:id/messages', async (request, reply) => {
 });
 
 // Gerar sugestões baseadas no histórico completo
-fastify.post('/conversations/:id/suggestions', async (request, reply) => {
+fastify.post('/conversations/:id/suggestions', {
+  preHandler: verifyAuth,
+}, async (request: AuthenticatedRequest, reply) => {
   try {
     const { id } = request.params as { id: string };
+    const userId = request.user!.uid;
     const { receivedMessage, tone, userContext } = request.body as Omit<
       GenerateSuggestionsRequest,
       'conversationId'
     >;
 
-    const conversation = ConversationManager.getConversation(id);
+    const conversation = await ConversationManager.getConversation(id, userId);
     if (!conversation) {
       return reply.code(404).send({ error: 'Conversa não encontrada' });
     }
 
     // Primeiro, adicionar a mensagem recebida ao histórico
-    ConversationManager.addMessage({
+    await ConversationManager.addMessage({
       conversationId: id,
+      userId,
       role: 'match',
       content: receivedMessage,
     });
 
     // Obter histórico formatado com calibragem
-    const formattedHistory = ConversationManager.getFormattedHistory(id);
+    const formattedHistory = await ConversationManager.getFormattedHistory(id, userId);
 
     // Selecionar prompt baseado no tom
     const systemPrompt = getSystemPromptForTone(tone);
@@ -368,12 +385,15 @@ Com base em TODO o contexto acima (perfil do match, calibragem detectada, histó
 });
 
 // Atualizar tom da conversa
-fastify.patch('/conversations/:id/tone', async (request, reply) => {
+fastify.patch('/conversations/:id/tone', {
+  preHandler: verifyAuth,
+}, async (request: AuthenticatedRequest, reply) => {
   try {
     const { id } = request.params as { id: string };
+    const userId = request.user!.uid;
     const { tone } = request.body as { tone: string };
 
-    ConversationManager.updateTone(id, tone);
+    await ConversationManager.updateTone(id, userId, tone);
 
     return reply.code(200).send({ success: true });
   } catch (error) {
@@ -386,10 +406,13 @@ fastify.patch('/conversations/:id/tone', async (request, reply) => {
 });
 
 // Deletar conversa
-fastify.delete('/conversations/:id', async (request, reply) => {
+fastify.delete('/conversations/:id', {
+  preHandler: verifyAuth,
+}, async (request: AuthenticatedRequest, reply) => {
   try {
     const { id } = request.params as { id: string };
-    const deleted = ConversationManager.deleteConversation(id);
+    const userId = request.user!.uid;
+    const deleted = await ConversationManager.deleteConversation(id, userId);
 
     if (!deleted) {
       return reply.code(404).send({ error: 'Conversa não encontrada' });

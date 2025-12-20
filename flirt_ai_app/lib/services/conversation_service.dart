@@ -1,11 +1,29 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/conversation.dart';
 
 class ConversationService {
   final String baseUrl;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   ConversationService({required this.baseUrl});
+
+  /// Obter token de autenticação
+  Future<String?> _getAuthToken() async {
+    final user = _auth.currentUser;
+    if (user == null) return null;
+    return await user.getIdToken();
+  }
+
+  /// Headers padrão com autenticação
+  Future<Map<String, String>> _getHeaders() async {
+    final token = await _getAuthToken();
+    return {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
 
   /// Criar nova conversa
   Future<Conversation> createConversation({
@@ -19,6 +37,7 @@ class ConversationService {
     String? tone,
   }) async {
     final url = Uri.parse('$baseUrl/conversations');
+    final headers = await _getHeaders();
 
     final body = {
       'matchName': matchName,
@@ -33,7 +52,7 @@ class ConversationService {
 
     final response = await http.post(
       url,
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: jsonEncode(body),
     );
 
@@ -47,8 +66,9 @@ class ConversationService {
   /// Listar conversas
   Future<List<ConversationListItem>> listConversations() async {
     final url = Uri.parse('$baseUrl/conversations');
+    final headers = await _getHeaders();
 
-    final response = await http.get(url);
+    final response = await http.get(url, headers: headers);
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
@@ -61,8 +81,9 @@ class ConversationService {
   /// Obter conversa específica
   Future<Conversation> getConversation(String conversationId) async {
     final url = Uri.parse('$baseUrl/conversations/$conversationId');
+    final headers = await _getHeaders();
 
-    final response = await http.get(url);
+    final response = await http.get(url, headers: headers);
 
     if (response.statusCode == 200) {
       return Conversation.fromJson(jsonDecode(response.body));
@@ -80,6 +101,7 @@ class ConversationService {
     String? tone,
   }) async {
     final url = Uri.parse('$baseUrl/conversations/$conversationId/messages');
+    final headers = await _getHeaders();
 
     final body = {
       'role': role,
@@ -90,7 +112,7 @@ class ConversationService {
 
     final response = await http.post(
       url,
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: jsonEncode(body),
     );
 
@@ -109,6 +131,7 @@ class ConversationService {
     Map<String, dynamic>? userContext,
   }) async {
     final url = Uri.parse('$baseUrl/conversations/$conversationId/suggestions');
+    final headers = await _getHeaders();
 
     final body = {
       'receivedMessage': receivedMessage,
@@ -118,7 +141,7 @@ class ConversationService {
 
     final response = await http.post(
       url,
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: jsonEncode(body),
     ).timeout(
       const Duration(seconds: 45),
@@ -151,10 +174,11 @@ class ConversationService {
   /// Atualizar tom da conversa
   Future<void> updateTone(String conversationId, String tone) async {
     final url = Uri.parse('$baseUrl/conversations/$conversationId/tone');
+    final headers = await _getHeaders();
 
     final response = await http.patch(
       url,
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: jsonEncode({'tone': tone}),
     );
 
@@ -166,8 +190,9 @@ class ConversationService {
   /// Deletar conversa
   Future<void> deleteConversation(String conversationId) async {
     final url = Uri.parse('$baseUrl/conversations/$conversationId');
+    final headers = await _getHeaders();
 
-    final response = await http.delete(url);
+    final response = await http.delete(url, headers: headers);
 
     if (response.statusCode != 200) {
       throw Exception('Erro ao deletar conversa: ${response.body}');

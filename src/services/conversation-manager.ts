@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import * as admin from 'firebase-admin';
 import {
   Conversation,
   ConversationAvatar,
@@ -8,14 +9,14 @@ import {
   ConversationListItem,
 } from '../types/conversation';
 
-// Storage em memória (em produção, usar banco de dados)
-const conversations = new Map<string, Conversation>();
+// Firestore reference
+const getDb = () => admin.firestore();
 
 export class ConversationManager {
   /**
    * Criar nova conversa
    */
-  static createConversation(request: CreateConversationRequest): Conversation {
+  static async createConversation(request: CreateConversationRequest & { userId: string }): Promise<Conversation> {
     const conversationId = randomUUID();
     const now = new Date();
 
@@ -68,6 +69,7 @@ export class ConversationManager {
 
     const conversation: Conversation = {
       id: conversationId,
+      userId: request.userId,
       avatar,
       messages,
       currentTone: request.tone || 'casual',
@@ -76,15 +78,21 @@ export class ConversationManager {
       lastMessageAt: now,
     };
 
-    conversations.set(conversationId, conversation);
+    // Salvar no Firestore
+    await getDb().collection('conversations').doc(conversationId).set({
+      ...conversation,
+      createdAt: admin.firestore.Timestamp.fromDate(now),
+      lastMessageAt: admin.firestore.Timestamp.fromDate(now),
+    });
+
     return conversation;
   }
 
   /**
    * Adicionar mensagem à conversa
    */
-  static addMessage(request: AddMessageRequest): Conversation {
-    const conversation = conversations.get(request.conversationId);
+  static async addMessage(request: AddMessageRequest & { userId: string }): Promise<Conversation> {
+    const conversation = await this.getConversation(request.conversationId, request.userId);
     if (!conversation) {
       throw new Error('Conversa não encontrada');
     }
@@ -116,7 +124,13 @@ export class ConversationManager {
       this.updateCalibration(conversation, request.content);
     }
 
-    conversations.set(request.conversationId, conversation);
+    // Atualizar no Firestore
+    await getDb().collection('conversations').doc(request.conversationId).update({
+      messages: conversation.messages,
+      lastMessageAt: admin.firestore.Timestamp.fromDate(conversation.lastMessageAt),
+      avatar: conversation.avatar,
+    });
+
     return conversation;
   }
 
@@ -198,58 +212,88 @@ export class ConversationManager {
   }
 
   /**
-   * Obter conversa por ID
+   * Obter conversa por ID (verificando ownership)
    */
-  static getConversation(conversationId: string): Conversation | undefined {
-    return conversations.get(conversationId);
+  static async getConversation(conversationId: string, userId: string): Promise<Conversation | null> {
+    const doc = await getDb().collection('conversations').doc(conversationId).get();
+
+    if (!doc.exists) {
+      return null;
+    }
+
+    const data = doc.data();
+
+    // Verificar se a conversa pertence ao usuário
+    if (data?.userId !== userId) {
+      return null;
+    }
+
+    return {
+      ...data,
+      createdAt: data?.createdAt?.toDate() || new Date(),
+      lastMessageAt: data?.lastMessageAt?.toDate() || new Date(),
+    } as Conversation;
   }
 
   /**
-   * Listar todas as conversas
+   * Listar conversas do usuário
    */
-  static listConversations(): ConversationListItem[] {
-    return Array.from(conversations.values())
-      .map((conv) => ({
-        id: conv.id,
-        matchName: conv.avatar.matchName,
-        platform: conv.avatar.platform,
-        lastMessage:
-          conv.messages.length > 0
-            ? conv.messages[conv.messages.length - 1].content
-            : 'Sem mensagens',
-        lastMessageAt: conv.lastMessageAt,
-        unreadCount: 0, // Futuro: implementar sistema de lidas/não lidas
+  static async listConversations(userId: string): Promise<ConversationListItem[]> {
+    const snapshot = await getDb()
+      .collection('conversations')
+      .where('userId', '==', userId)
+      .orderBy('lastMessageAt', 'desc')
+      .get();
+
+    return snapshot.docs.map((doc) => {
+      const data = doc.data();
+      const messages = data.messages || [];
+      return {
+        id: doc.id,
+        matchName: data.avatar?.matchName || 'Sem nome',
+        platform: data.avatar?.platform || 'tinder',
+        lastMessage: messages.length > 0
+          ? messages[messages.length - 1].content
+          : 'Sem mensagens',
+        lastMessageAt: data.lastMessageAt?.toDate() || new Date(),
+        unreadCount: 0,
         avatar: {
-          emotionalTone: conv.avatar.detectedPatterns.emotionalTone,
-          flirtLevel: conv.avatar.detectedPatterns.flirtLevel,
+          emotionalTone: data.avatar?.detectedPatterns?.emotionalTone || 'neutral',
+          flirtLevel: data.avatar?.detectedPatterns?.flirtLevel || 'medium',
         },
-      }))
-      .sort((a, b) => b.lastMessageAt.getTime() - a.lastMessageAt.getTime());
+      };
+    });
   }
 
   /**
    * Atualizar tom atual da conversa
    */
-  static updateTone(conversationId: string, tone: string): void {
-    const conversation = conversations.get(conversationId);
+  static async updateTone(conversationId: string, userId: string, tone: string): Promise<void> {
+    const conversation = await this.getConversation(conversationId, userId);
     if (conversation) {
-      conversation.currentTone = tone;
-      conversations.set(conversationId, conversation);
+      await getDb().collection('conversations').doc(conversationId).update({
+        currentTone: tone,
+      });
     }
   }
 
   /**
    * Deletar conversa
    */
-  static deleteConversation(conversationId: string): boolean {
-    return conversations.delete(conversationId);
+  static async deleteConversation(conversationId: string, userId: string): Promise<boolean> {
+    const conversation = await this.getConversation(conversationId, userId);
+    if (!conversation) {
+      return false;
+    }
+    await getDb().collection('conversations').doc(conversationId).delete();
+    return true;
   }
 
   /**
    * Obter histórico formatado para o prompt da IA
    */
-  static getFormattedHistory(conversationId: string): string {
-    const conversation = conversations.get(conversationId);
+  static async getFormattedHistory(conversationId: string, userId: string): Promise<string> {
+    const conversation = await this.getConversation(conversationId, userId);
     if (!conversation) return '';
 
     const { avatar, messages } = conversation;
