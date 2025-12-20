@@ -53,10 +53,13 @@ export async function verifyAuth(
   request: AuthenticatedRequest,
   reply: FastifyReply
 ): Promise<void> {
+  console.log('=== verifyAuth START ===');
   try {
     const authHeader = request.headers.authorization;
+    console.log('1. Auth header exists:', !!authHeader);
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('1. FAIL - No auth header');
       reply.code(401).send({
         error: 'Unauthorized',
         message: 'Missing or invalid authorization header',
@@ -65,14 +68,20 @@ export async function verifyAuth(
     }
 
     const token = authHeader.substring(7); // Remove 'Bearer '
+    console.log('2. Token length:', token.length);
 
     // Verify Firebase token
+    console.log('3. Verifying token with Firebase Auth...');
     const decodedToken = await admin.auth().verifyIdToken(token);
+    console.log('3. Token verified! UID:', decodedToken.uid, 'Email:', decodedToken.email);
 
     // Check subscription status
+    console.log('4. Getting user doc from Firestore...');
     const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+    console.log('4. User doc exists:', userDoc.exists);
 
     if (!userDoc.exists) {
+      console.log('4. FAIL - User doc not found');
       reply.code(403).send({
         error: 'Forbidden',
         message: 'User not found',
@@ -81,14 +90,17 @@ export async function verifyAuth(
     }
 
     const userData = userDoc.data();
+    console.log('5. User data:', JSON.stringify(userData, null, 2));
     const subscription = userData?.subscription;
 
     // Check for admin/developer status (stored in Firestore, not in code)
     const isAdmin = userData?.isAdmin === true;
     const isDeveloper = userData?.isDeveloper === true;
+    console.log('5. isAdmin:', isAdmin, 'isDeveloper:', isDeveloper);
 
     const now = new Date();
     const expiresAt = subscription?.expiresAt?.toDate();
+    console.log('5. Subscription status:', subscription?.status, 'expiresAt:', expiresAt);
 
     // Admins and developers always have access
     // Active subscription with valid expiration date
@@ -97,6 +109,8 @@ export async function verifyAuth(
       isDeveloper ||
       (subscription?.status === 'active' &&
         (!expiresAt || now < expiresAt));
+
+    console.log('6. hasActiveSubscription:', hasActiveSubscription);
 
     // Attach user to request
     request.user = {
@@ -109,6 +123,7 @@ export async function verifyAuth(
 
     // If no active subscription (and not admin/developer), return error
     if (!hasActiveSubscription) {
+      console.log('6. FAIL - No active subscription');
       reply.code(403).send({
         error: 'Subscription Required',
         message: 'You need an active subscription to use this feature',
@@ -117,8 +132,13 @@ export async function verifyAuth(
       });
       return;
     }
+    console.log('=== verifyAuth SUCCESS ===');
   } catch (error: any) {
-    console.error('Auth error:', error);
+    console.error('=== verifyAuth ERROR ===');
+    console.error('Error name:', error.name);
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message);
+    console.error('Full error:', error);
     reply.code(401).send({
       error: 'Unauthorized',
       message: error.message || 'Invalid token',
