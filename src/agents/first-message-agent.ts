@@ -19,30 +19,38 @@ export class FirstMessageAgent extends BaseAgent {
 
   private buildSystemPrompt(tone: string): string {
     const toneInstructions = {
-      engraçado: 'Use humor inteligente, trocadilhos criativos ou observações engraçadas. NUNCA use piadas ofensivas ou de mal gosto.',
-      ousado: 'Seja confiante e direto, mas SEMPRE respeitoso. Um pouco de flerte é ok, mas sem ser invasivo ou vulgar.',
-      romântico: 'Seja charmoso e genuíno. Destaque beleza, interesses ou algo especial do perfil de forma sincera.',
-      casual: 'Seja descontraído e natural. Como se já conhecesse a pessoa. Evite formalidades.',
-      confiante: 'Demonstre segurança e interesse real. Seja direto sobre sua intenção de conhecer melhor.',
+      engraçado: 'Humor leve e natural. Uma piada simples ou observação divertida.',
+      ousado: 'Confiante e direto, mas de boa. Flerte sutil.',
+      romântico: 'Charmoso mas sem forçar. Elogio simples e sincero.',
+      casual: 'Super de boa, descontraído. Como se tivesse acabado de notar algo.',
+      confiante: 'Seguro mas tranquilo. Sem parecer que tá tentando impressionar.',
     };
 
-    return `Você é um especialista em criar primeiras mensagens IRRESISTÍVEIS para apps de namoro.
+    return `Gere primeiras mensagens MUITO CURTAS (5-10 palavras máximo).
 
-REGRAS FUNDAMENTAIS:
-❌ NUNCA use "Oi, tudo bem?" ou variações genéricas
-❌ NUNCA seja ofensivo, vulgar ou desrespeitoso
-❌ NUNCA copie frases prontas da internet
-✅ SEMPRE personalize com base no perfil
-✅ SEMPRE seja autêntico e criativo
-✅ SEMPRE deixe espaço para resposta fácil
+TAMANHO OBRIGATÓRIO: 5-10 palavras. Se passar disso, está errado.
 
-TOM DA MENSAGEM: ${tone}
-${toneInstructions[tone as keyof typeof toneInstructions]}
+PROIBIDO:
+- Começar com "Oi/Olá [nome]"
+- Perguntas (nada com "?")
+- "Aposto que...", "Tenho certeza..."
+- Piadas elaboradas
+- Misturar idiomas
 
-FORMATO DA RESPOSTA:
-Retorne APENAS 3 opções de primeira mensagem, numeradas.
-Cada mensagem deve ter 1-3 frases no máximo.
-Seja DIRETO e MEMORÁVEL.`;
+BOM: comentário rápido + kkk
+
+EXEMPLOS DO TAMANHO CERTO:
+✅ "canceriana de pagode já sei que é problema kkk" (8 palavras)
+✅ "essa vibe de praia combinou" (5 palavras)
+✅ "dividir açaí é teste de compatibilidade kkk" (6 palavras)
+
+EXEMPLOS LONGOS DEMAIS (NÃO FAÇA):
+❌ "Amo que você já deixou claro que a primeira batalha vai ser decidir qual sabor de açaí" (17 palavras - MUITO LONGO)
+❌ "Canceriana + pagode = a combinação perfeita pra chorar numa mesa de bar" (12 palavras - LONGO)
+
+TOM: ${tone} - ${toneInstructions[tone as keyof typeof toneInstructions]}
+
+Retorne 3 opções. MÁXIMO 10 palavras cada.`;
   }
 
   private buildUserPrompt(input: FirstMessageInput, userContext?: UserContext): string {
@@ -69,8 +77,8 @@ Seja DIRETO e MEMORÁVEL.`;
 
     parts.push('\n=== SUA TAREFA ===');
     parts.push(`Crie 3 opções de primeira mensagem com tom ${input.tone}.`);
-    parts.push('Personalize com base nas informações do perfil.');
-    parts.push('Seja criativo, memorável e EVITE clichês!');
+    parts.push('Pode mencionar algo do perfil, mas só se parecer natural.');
+    parts.push('Mensagens curtas. Não force a barra.');
     parts.push('\nFormato: Apenas as 3 mensagens numeradas, sem explicações.');
 
     return parts.join('\n');

@@ -20,33 +20,46 @@ export class InstagramOpenerAgent extends BaseAgent {
 
   private buildSystemPrompt(tone: string, approachType: string): string {
     const approachInstructions = {
-      dm_direto: 'DM DIRETO: Seja confiante mas não invasivo. Mostre que você realmente olhou o perfil. Evite parecer desesperado ou stalker.',
-      comentario_post: 'COMENTÁRIO EM POST: Seja engajador e genuíno. O comentário deve se destacar mas não ser exagerado. Pode ser engraçado ou admirador.',
-      resposta_story: 'RESPOSTA A STORY: Seja casual e natural. Reaja ao conteúdo do story de forma autêntica. Crie abertura para conversa.',
+      dm_direto: 'DM DIRETO: Curto e de boa. Sem parecer que você ficou stalkeando o perfil.',
+      comentario_post: 'COMENTÁRIO: Natural e leve. Tipo algo que você realmente comentaria.',
+      resposta_story: 'STORY: Reação casual, como se tivesse visto de passagem e achou interessante.',
     };
 
     const toneInstructions = {
-      engraçado: 'Tom ENGRAÇADO: Use humor inteligente relacionado ao conteúdo. Seja criativo mas não forçado.',
-      ousado: 'Tom OUSADO: Seja direto e confiante, com um toque de flerte sutil mas respeitoso.',
-      romântico: 'Tom ROMÂNTICO: Seja charmoso e admirador, mas sem parecer exagerado ou fake.',
-      casual: 'Tom CASUAL: Seja descontraído, como se fosse apenas um amigo reagindo naturalmente.',
-      confiante: 'Tom CONFIANTE: Mostre segurança e interesse real sem soar arrogante.',
+      engraçado: 'Humor simples. Uma observação engraçada, não uma piada elaborada.',
+      ousado: 'Direto mas de boa. Flerte leve.',
+      romântico: 'Charmoso sem exagero. Elogio simples.',
+      casual: 'Super natural, como se fosse qualquer pessoa reagindo.',
+      confiante: 'Seguro mas tranquilo. Não tá tentando impressionar.',
     };
 
-    return `Você é um especialista em abordagens pelo Instagram que geram respostas.
+    return `Você cria abordagens LEVES pro Instagram.
+
+PRINCÍPIO: Uma reação simples e pronto. Não precisa dar continuidade nem fazer pergunta.
 
 ${approachInstructions[approachType as keyof typeof approachInstructions]}
-${toneInstructions[tone as keyof typeof toneInstructions]}
+Tom: ${toneInstructions[tone as keyof typeof toneInstructions]}
 
-REGRAS DO INSTAGRAM:
-❌ NUNCA envie mensagens longas demais
-❌ NUNCA seja invasivo ou insistente
-❌ NUNCA elogie só a aparência física
-✅ SEMPRE mencione algo específico do conteúdo
-✅ SEMPRE deixe espaço para resposta natural
-✅ SEMPRE seja autêntico
+EVITE:
+- Fazer PERGUNTAS (parece entrevista)
+- Observação + pergunta (investindo demais)
+- "Aposto que...", "Com certeza você..."
+- Elogios exagerados
+- MISTURAR IDIOMAS. Use só português brasileiro
+- Só use outro idioma se o perfil indicar que a pessoa é de outro país
 
-FORMATO: Retorne 2-3 opções de abordagem, cada uma em 1-2 frases no máximo.`;
+FUNCIONA:
+- UMA reação curta e só
+- Pode usar "kkk" ou emoji pra ficar leve
+- Parecer que foi de passagem
+- Deixar a pessoa responder se quiser
+
+EXEMPLOS BOM:
+✅ "esse lugar parece ser incrível"
+✅ "a vibe dessa foto kkk"
+✅ "curti demais"
+
+FORMATO: 2-3 opções. Cada uma com UMA frase só.`;
   }
 
   private buildUserPrompt(input: InstagramOpenerInput, userContext?: UserContext): string {
@@ -84,10 +97,10 @@ FORMATO: Retorne 2-3 opções de abordagem, cada uma em 1-2 frases no máximo.`;
     }
 
     parts.push('\n=== SUA TAREFA ===');
-    parts.push(`Tipo de abordagem: ${input.approachType.replace('_', ' ').toUpperCase()}`);
+    parts.push(`Tipo: ${input.approachType.replace('_', ' ')}`);
     parts.push(`Tom: ${input.tone}`);
-    parts.push('\nCrie 2-3 opções de mensagem/comentário.');
-    parts.push('Seja específico, criativo e memorável!');
+    parts.push('\nCrie 2-3 opções curtas e naturais.');
+    parts.push('Menos é mais. Não force.');
     parts.push('\nFormato: Apenas as opções numeradas, sem explicações.');
 
     return parts.join('\n');
