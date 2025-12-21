@@ -609,7 +609,7 @@ fastify.post('/create-checkout-session', {
   try {
     const { priceId, plan } = request.body as {
       priceId: string;
-      plan: 'monthly' | 'yearly';
+      plan: 'monthly' | 'quarterly' | 'yearly';
     };
 
     const user = request.user!;
