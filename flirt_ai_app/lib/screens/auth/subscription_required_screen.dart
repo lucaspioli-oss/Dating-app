@@ -22,19 +22,23 @@ class SubscriptionRequiredScreen extends StatefulWidget {
 }
 
 class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen> {
-  int _selectedPlan = 1; // 0 = monthly, 1 = yearly (default - most popular)
+  int _selectedPlan = 1; // 0 = monthly, 1 = quarterly (default), 2 = yearly
 
   // Pricing configuration
   static const double monthlyPrice = 29.90;
+  static const double quarterlyPrice = 69.90;
   static const double yearlyPrice = 199.90;
   static const double monthlyOriginalPrice = 49.90; // Anchoring
+  static const double quarterlyOriginalPrice = 89.70; // 29.90 * 3
   static const double yearlyOriginalPrice = 358.80; // 29.90 * 12
 
-  // Calculate per day prices
+  // Calculate per day/month prices
   double get monthlyPerDay => monthlyPrice / 30;
-  double get yearlyPerDay => yearlyPrice / 365;
+  double get quarterlyPerMonth => quarterlyPrice / 3;
+  double get yearlyPerMonth => yearlyPrice / 12;
   double get monthlyOriginalPerDay => monthlyOriginalPrice / 30;
-  double get yearlyOriginalPerDay => yearlyOriginalPrice / 365;
+  double get quarterlyOriginalPerMonth => quarterlyOriginalPrice / 3;
+  double get yearlyOriginalPerMonth => yearlyOriginalPrice / 12;
 
   @override
   Widget build(BuildContext context) {
@@ -83,23 +87,40 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                 planName: 'Plano Mensal',
                 totalPrice: monthlyPrice,
                 originalPrice: monthlyOriginalPrice,
-                perDayPrice: monthlyPerDay,
-                originalPerDayPrice: monthlyOriginalPerDay,
+                perUnitPrice: monthlyPerDay,
+                originalPerUnitPrice: monthlyOriginalPerDay,
                 period: '/mês',
+                perUnitLabel: 'por dia',
                 isPopular: false,
               ),
               const SizedBox(height: 16),
 
-              // Yearly Plan (Most Popular)
+              // Quarterly Plan (Most Popular)
               _buildPlanCard(
                 index: 1,
+                planName: 'Plano Trimestral',
+                totalPrice: quarterlyPrice,
+                originalPrice: quarterlyOriginalPrice,
+                perUnitPrice: quarterlyPerMonth,
+                originalPerUnitPrice: quarterlyOriginalPerMonth,
+                period: '/3 meses',
+                perUnitLabel: 'por mês',
+                isPopular: true,
+                savingsPercent: 22,
+              ),
+              const SizedBox(height: 16),
+
+              // Yearly Plan
+              _buildPlanCard(
+                index: 2,
                 planName: 'Plano Anual',
                 totalPrice: yearlyPrice,
                 originalPrice: yearlyOriginalPrice,
-                perDayPrice: yearlyPerDay,
-                originalPerDayPrice: yearlyOriginalPerDay,
+                perUnitPrice: yearlyPerMonth,
+                originalPerUnitPrice: yearlyOriginalPerMonth,
                 period: '/ano',
-                isPopular: true,
+                perUnitLabel: 'por mês',
+                isPopular: false,
                 savingsPercent: 44,
               ),
               const SizedBox(height: 32),
@@ -181,9 +202,10 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
     required String planName,
     required double totalPrice,
     required double originalPrice,
-    required double perDayPrice,
-    required double originalPerDayPrice,
+    required double perUnitPrice,
+    required double originalPerUnitPrice,
     required String period,
+    required String perUnitLabel,
     required bool isPopular,
     int? savingsPercent,
   }) {
@@ -310,12 +332,12 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                     ),
                   ),
 
-                  // Per day price
+                  // Per unit price
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        'R\$ ${originalPerDayPrice.toStringAsFixed(2).replaceAll('.', ',')}',
+                        'R\$ ${originalPerUnitPrice.toStringAsFixed(2).replaceAll('.', ',')}',
                         style: TextStyle(
                           color: AppColors.textTertiary,
                           fontSize: 12,
@@ -334,7 +356,7 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                             ),
                           ),
                           Text(
-                            perDayPrice.toStringAsFixed(2).replaceAll('.', ','),
+                            perUnitPrice.toStringAsFixed(2).replaceAll('.', ','),
                             style: TextStyle(
                               color: isPopular ? AppColors.primary : AppColors.textPrimary,
                               fontSize: 28,
@@ -345,7 +367,7 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                         ],
                       ),
                       Text(
-                        'por dia',
+                        perUnitLabel,
                         style: TextStyle(
                           color: AppColors.textSecondary,
                           fontSize: 12,
@@ -514,10 +536,26 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
       final backendUrl = appState.backendUrl;
 
       // Determine price ID and plan based on selection
-      final priceId = _selectedPlan == 0
-          ? AppConfig.monthlyPriceId
-          : AppConfig.yearlyPriceId;
-      final plan = _selectedPlan == 0 ? 'monthly' : 'yearly';
+      late final String priceId;
+      late final String plan;
+
+      switch (_selectedPlan) {
+        case 0:
+          priceId = AppConfig.monthlyPriceId;
+          plan = 'monthly';
+          break;
+        case 1:
+          priceId = AppConfig.quarterlyPriceId;
+          plan = 'quarterly';
+          break;
+        case 2:
+          priceId = AppConfig.yearlyPriceId;
+          plan = 'yearly';
+          break;
+        default:
+          priceId = AppConfig.quarterlyPriceId;
+          plan = 'quarterly';
+      }
 
       final response = await http.post(
         Uri.parse('$backendUrl/create-checkout-session'),
