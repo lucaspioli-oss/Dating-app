@@ -27,7 +27,6 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
 
   String _selectedPlatform = 'tinder';
   String _selectedAction = 'opener'; // opener, instagram_dm, instagram_story, instagram_post, analyze
-  String _selectedTone = 'casual';
   bool _isLoading = false;
   bool _isAnalyzingImage = false;
   List<String> _suggestions = [];
@@ -188,7 +187,6 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
 
         final result = await agentService.generateInstagramOpener(
           username: _nameController.text.trim(),
-          tone: _selectedTone,
           approachType: approachType,
           bio: _bioController.text.trim().isEmpty ? null : _bioController.text.trim(),
           userProfile: profileProvider.profile,
@@ -208,7 +206,6 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
           matchName: _nameController.text.trim(),
           matchBio: _bioController.text.trim(),
           platform: _selectedPlatform,
-          tone: _selectedTone,
           photoDescription: _photoDescController.text.trim().isEmpty ? null : _photoDescController.text.trim(),
           userProfile: profileProvider.profile,
         );
@@ -275,7 +272,7 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
             ? null
             : _interestsController.text.trim().split(',').map((e) => e.trim()).toList(),
         firstMessage: opener,
-        tone: _selectedTone,
+        tone: 'expert', // Expert mode - calibra automaticamente
       );
 
       if (mounted) {
@@ -324,12 +321,6 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
               const SizedBox(height: 12),
               _buildActionSelector(),
               const SizedBox(height: 24),
-              if (_selectedAction != 'analyze') ...[
-                _buildSectionTitle('Tom da Mensagem'),
-                const SizedBox(height: 12),
-                _buildToneSelector(),
-                const SizedBox(height: 24),
-              ],
               _buildSectionTitle('Nome / Username'),
               const SizedBox(height: 8),
               _buildNameField(),
@@ -510,38 +501,6 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
           },
         );
       }).toList(),
-    );
-  }
-
-  Widget _buildToneSelector() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          // 🟢 Básico
-          _buildToneChip('😄', 'Engraçado', 'engraçado', Colors.grey),
-          _buildToneChip('❤️', 'Romântico', 'romântico', Colors.grey),
-          _buildToneChip('😎', 'Casual', 'casual', Colors.grey),
-          // 🟡 Avançado
-          _buildToneChip('🔥', 'Ousado', 'ousado', Colors.orange),
-          _buildToneChip('💪', 'Confiante', 'confiante', Colors.orange),
-          // 🔴 Expert
-          _buildToneChip('🎯', 'Expert', 'expert', Colors.red),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildToneChip(String emoji, String label, String value, Color levelColor) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: ChoiceChip(
-        avatar: Text(emoji),
-        label: Text(label),
-        selected: _selectedTone == value,
-        onSelected: (selected) => setState(() => _selectedTone = value),
-        side: BorderSide(color: levelColor.withOpacity(0.3)),
-      ),
     );
   }
 

@@ -7,12 +7,11 @@ class AgentService {
 
   AgentService({required this.baseUrl});
 
-  /// Gerar primeira mensagem criativa
+  /// Gerar primeira mensagem criativa (expert mode - calibra automaticamente)
   Future<AgentResponse> generateFirstMessage({
     required String matchName,
     required String matchBio,
     required String platform,
-    required String tone,
     String? photoDescription,
     String? specificDetail,
     UserProfile? userProfile,
@@ -24,7 +23,6 @@ class AgentService {
         'matchName': matchName,
         'matchBio': matchBio,
         'platform': platform,
-        'tone': tone,
         if (photoDescription != null) 'photoDescription': photoDescription,
         if (specificDetail != null) 'specificDetail': specificDetail,
         if (userProfile != null && userProfile.isComplete)
@@ -119,10 +117,9 @@ class AgentService {
     }
   }
 
-  /// Gerar abertura para Instagram
+  /// Gerar abertura para Instagram (expert mode - calibra automaticamente)
   Future<AgentResponse> generateInstagramOpener({
     required String username,
-    required String tone,
     required String approachType,
     String? bio,
     List<String>? recentPosts,
@@ -135,7 +132,6 @@ class AgentService {
 
       final body = {
         'username': username,
-        'tone': tone,
         'approachType': approachType,
         if (bio != null) 'bio': bio,
         if (recentPosts != null) 'recentPosts': recentPosts,

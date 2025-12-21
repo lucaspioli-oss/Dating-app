@@ -9,7 +9,7 @@ const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
 
 interface CreateCheckoutSessionParams {
   priceId: string;
-  plan: 'monthly' | 'yearly';
+  plan: 'monthly' | 'quarterly' | 'yearly';
   userId: string;
   userEmail: string;
 }
@@ -147,7 +147,7 @@ export async function handleCheckoutCompleted(
   const currency = subscription.items.data[0].price.currency;
 
   // Determine plan from metadata
-  const plan = session.metadata?.plan as 'monthly' | 'yearly' || 'monthly';
+  const plan = session.metadata?.plan as 'monthly' | 'quarterly' | 'yearly' || 'monthly';
 
   const db = admin.firestore();
 
@@ -268,7 +268,7 @@ export async function handleSubscriptionUpdated(
     const priceId = subscription.items.data[0].price.id;
     const amount = subscription.items.data[0].price.unit_amount || 0;
     const currency = subscription.items.data[0].price.currency;
-    const plan = subscription.metadata?.plan as 'monthly' | 'yearly' || 'monthly';
+    const plan = subscription.metadata?.plan as 'monthly' | 'quarterly' | 'yearly' || 'monthly';
 
     await db.collection('users').doc(userId).update({
       'subscription.status': 'active',
@@ -358,7 +358,7 @@ export async function handleInvoicePaid(
   const priceId = subscription.items.data[0].price.id;
   const amount = subscription.items.data[0].price.unit_amount || 0;
   const currency = subscription.items.data[0].price.currency;
-  const plan = subscription.metadata?.plan as 'monthly' | 'yearly' || 'monthly';
+  const plan = subscription.metadata?.plan as 'monthly' | 'quarterly' | 'yearly' || 'monthly';
 
   await db.collection('users').doc(userId).update({
     'subscription.status': 'active',

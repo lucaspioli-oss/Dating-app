@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../services/api_service.dart';
 import '../widgets/message_bubble.dart';
-import '../widgets/tone_selector.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -36,14 +35,12 @@ class _ChatScreenState extends State<ChatScreen> {
 
       final response = await apiService.analyzeMessage(
         text: text,
-        tone: appState.selectedTone,
       );
 
       if (response.success && response.analysis != null) {
         final message = ConversationMessage(
           receivedMessage: text,
           aiSuggestion: response.analysis!,
-          tone: appState.selectedTone,
           timestamp: DateTime.now(),
         );
 
@@ -160,22 +157,6 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: Column(
         children: [
-          // Seletor de Tom
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              border: Border(
-                bottom: BorderSide(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                  width: 1,
-                ),
-              ),
-            ),
-            child: const ToneSelector(),
-          ),
-
           // Histórico de mensagens
           Expanded(
             child: Consumer<AppState>(
@@ -209,11 +190,11 @@ class _ChatScreenState extends State<ChatScreen> {
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 12),
-                        _buildInstructionStep(context, '1', 'Escolha o tom da conversa acima'),
+                        _buildInstructionStep(context, '1', 'Cole a mensagem que você recebeu'),
                         const SizedBox(height: 8),
-                        _buildInstructionStep(context, '2', 'Cole a mensagem recebida'),
+                        _buildInstructionStep(context, '2', 'Clique em enviar'),
                         const SizedBox(height: 8),
-                        _buildInstructionStep(context, '3', 'Clique em enviar e veja a resposta!'),
+                        _buildInstructionStep(context, '3', 'O modo Expert calibra automaticamente!'),
                         const SizedBox(height: 40),
                       ],
                     ),

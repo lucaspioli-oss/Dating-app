@@ -21,7 +21,6 @@ class _InstagramOpenerScreenState extends State<InstagramOpenerScreen> {
   final _specificPostController = TextEditingController();
 
   String _selectedApproach = 'dm_direto';
-  String _selectedTone = 'casual';
   bool _isLoading = false;
   List<String> _suggestions = [];
 
@@ -90,7 +89,6 @@ class _InstagramOpenerScreenState extends State<InstagramOpenerScreen> {
 
       final result = await agentService.generateInstagramOpener(
         username: _usernameController.text.trim(),
-        tone: _selectedTone,
         approachType: _selectedApproach,
         bio: _bioController.text.trim().isEmpty ? null : _bioController.text.trim(),
         recentPosts: recentPosts,
@@ -171,12 +169,6 @@ class _InstagramOpenerScreenState extends State<InstagramOpenerScreen> {
               _buildSectionTitle('Tipo de Abordagem'),
               const SizedBox(height: 12),
               _buildApproachSelector(),
-              const SizedBox(height: 24),
-
-              // Tom
-              _buildSectionTitle('Tom'),
-              const SizedBox(height: 12),
-              _buildToneSelector(),
               const SizedBox(height: 24),
 
               // Username
@@ -346,40 +338,6 @@ class _InstagramOpenerScreenState extends State<InstagramOpenerScreen> {
           ),
         );
       }).toList(),
-    );
-  }
-
-  Widget _buildToneSelector() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        ChoiceChip(
-          label: const Text('😄 Engraçado'),
-          selected: _selectedTone == 'engraçado',
-          onSelected: (selected) => setState(() => _selectedTone = 'engraçado'),
-        ),
-        ChoiceChip(
-          label: const Text('🔥 Ousado'),
-          selected: _selectedTone == 'ousado',
-          onSelected: (selected) => setState(() => _selectedTone = 'ousado'),
-        ),
-        ChoiceChip(
-          label: const Text('❤️ Romântico'),
-          selected: _selectedTone == 'romântico',
-          onSelected: (selected) => setState(() => _selectedTone = 'romântico'),
-        ),
-        ChoiceChip(
-          label: const Text('😎 Casual'),
-          selected: _selectedTone == 'casual',
-          onSelected: (selected) => setState(() => _selectedTone = 'casual'),
-        ),
-        ChoiceChip(
-          label: const Text('💪 Confiante'),
-          selected: _selectedTone == 'confiante',
-          onSelected: (selected) => setState(() => _selectedTone = 'confiante'),
-        ),
-      ],
     );
   }
 

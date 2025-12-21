@@ -21,7 +21,6 @@ class _FirstMessageScreenState extends State<FirstMessageScreen> {
   final _photoDescController = TextEditingController();
 
   String _selectedPlatform = 'tinder';
-  String _selectedTone = 'casual';
   bool _isLoading = false;
   bool _isAnalyzingImage = false;
   List<String> _suggestions = [];
@@ -61,7 +60,6 @@ class _FirstMessageScreenState extends State<FirstMessageScreen> {
         matchName: _nameController.text.trim(),
         matchBio: _bioController.text.trim(),
         platform: _selectedPlatform,
-        tone: _selectedTone,
         photoDescription: _photoDescController.text.trim().isEmpty
             ? null
             : _photoDescController.text.trim(),
@@ -287,12 +285,6 @@ class _FirstMessageScreenState extends State<FirstMessageScreen> {
               _buildPlatformSelector(),
               const SizedBox(height: 24),
 
-              // Tom
-              _buildSectionTitle('Tom da Mensagem'),
-              const SizedBox(height: 12),
-              _buildToneSelector(),
-              const SizedBox(height: 24),
-
               // Nome do match
               _buildSectionTitle('Nome do Match'),
               const SizedBox(height: 8),
@@ -390,64 +382,6 @@ class _FirstMessageScreenState extends State<FirstMessageScreen> {
           },
         );
       }).toList(),
-    );
-  }
-
-  Widget _buildToneSelector() {
-    return Consumer<AppState>(
-      builder: (context, appState, _) {
-        return Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            ChoiceChip(
-              label: const Text('😄 Engraçado'),
-              selected: _selectedTone == 'engraçado',
-              onSelected: (selected) {
-                setState(() {
-                  _selectedTone = 'engraçado';
-                });
-              },
-            ),
-            ChoiceChip(
-              label: const Text('🔥 Ousado'),
-              selected: _selectedTone == 'ousado',
-              onSelected: (selected) {
-                setState(() {
-                  _selectedTone = 'ousado';
-                });
-              },
-            ),
-            ChoiceChip(
-              label: const Text('❤️ Romântico'),
-              selected: _selectedTone == 'romântico',
-              onSelected: (selected) {
-                setState(() {
-                  _selectedTone = 'romântico';
-                });
-              },
-            ),
-            ChoiceChip(
-              label: const Text('😎 Casual'),
-              selected: _selectedTone == 'casual',
-              onSelected: (selected) {
-                setState(() {
-                  _selectedTone = 'casual';
-                });
-              },
-            ),
-            ChoiceChip(
-              label: const Text('💪 Confiante'),
-              selected: _selectedTone == 'confiante',
-              onSelected: (selected) {
-                setState(() {
-                  _selectedTone = 'confiante';
-                });
-              },
-            ),
-          ],
-        );
-      },
     );
   }
 

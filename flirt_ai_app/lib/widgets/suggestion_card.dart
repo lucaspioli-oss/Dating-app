@@ -21,10 +21,10 @@ class SuggestionCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                _getToneIcon(message.tone),
+                const Text('🎯', style: TextStyle(fontSize: 24)),
                 const SizedBox(width: 8),
                 Text(
-                  _getToneName(message.tone),
+                  'Expert',
                   style: Theme.of(context).textTheme.labelLarge,
                 ),
                 const Spacer(),
@@ -59,28 +59,6 @@ class SuggestionCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Widget _getToneIcon(String tone) {
-    final icons = {
-      'engraçado': '😄',
-      'ousado': '🔥',
-      'romântico': '❤️',
-      'casual': '😎',
-      'confiante': '💪',
-    };
-    return Text(icons[tone] ?? '😎', style: const TextStyle(fontSize: 24));
-  }
-
-  String _getToneName(String tone) {
-    final names = {
-      'engraçado': 'Engraçado',
-      'ousado': 'Ousado',
-      'romântico': 'Romântico',
-      'casual': 'Casual',
-      'confiante': 'Confiante',
-    };
-    return names[tone] ?? 'Casual';
   }
 
   String _formatTime(DateTime time) {

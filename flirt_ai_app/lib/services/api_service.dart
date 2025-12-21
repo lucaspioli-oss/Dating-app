@@ -6,10 +6,9 @@ class ApiService {
 
   ApiService({required this.baseUrl});
 
-  /// Analisa uma mensagem e retorna sugestões da IA
+  /// Analisa uma mensagem e retorna sugestões da IA (expert mode)
   Future<ApiResponse> analyzeMessage({
     required String text,
-    required String tone,
   }) async {
     try {
       final url = Uri.parse('$baseUrl/analyze');
@@ -21,7 +20,6 @@ class ApiService {
         },
         body: jsonEncode({
           'text': text,
-          'tone': tone,
         }),
       ).timeout(
         const Duration(seconds: 30),

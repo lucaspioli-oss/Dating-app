@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
-import '../widgets/tone_selector.dart';
 import '../widgets/suggestion_card.dart';
 import '../services/api_service.dart';
 
@@ -53,10 +52,6 @@ class _HomeScreenState extends State<HomeScreen> {
               // Hero Section
               _buildHeroSection(context),
               const SizedBox(height: 32),
-
-              // Seletor de Tom
-              const ToneSelector(),
-              const SizedBox(height: 24),
 
               // Input de Mensagem
               _buildMessageInput(context),
@@ -193,14 +188,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final response = await apiService.analyzeMessage(
         text: message,
-        tone: appState.selectedTone,
       );
 
       if (response.success && response.analysis != null) {
         final conversationMessage = ConversationMessage(
           receivedMessage: message,
           aiSuggestion: response.analysis!,
-          tone: appState.selectedTone,
           timestamp: DateTime.now(),
         );
 

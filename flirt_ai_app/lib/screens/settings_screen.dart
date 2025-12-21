@@ -26,43 +26,55 @@ class SettingsScreen extends StatelessWidget {
   }
 
   Widget _buildToneSection(BuildContext context) {
-    return Consumer<AppState>(
-      builder: (context, appState, _) {
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Tom Padrão',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: appState.selectedTone,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'engraçado', child: Text('😄 Engraçado')),
-                    DropdownMenuItem(value: 'ousado', child: Text('🔥 Ousado')),
-                    DropdownMenuItem(value: 'romântico', child: Text('❤️ Romântico')),
-                    DropdownMenuItem(value: 'casual', child: Text('😎 Casual')),
-                    DropdownMenuItem(value: 'confiante', child: Text('💪 Confiante')),
-                    DropdownMenuItem(value: 'expert', child: Text('🎯 Expert Mode')),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) {
-                      appState.setSelectedTone(value);
-                    }
-                  },
-                ),
-              ],
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Modo de Análise',
+              style: Theme.of(context).textTheme.titleLarge,
             ),
-          ),
-        );
-      },
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  const Text('🎯', style: TextStyle(fontSize: 32)),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Expert Mode',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Calibragem automática baseada em princípios de atração',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.check_circle,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

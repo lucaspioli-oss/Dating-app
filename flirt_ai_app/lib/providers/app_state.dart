@@ -3,9 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 
 class AppState extends ChangeNotifier {
-  // Tom selecionado
-  String _selectedTone = 'casual';
-
   // Histórico de conversas
   List<ConversationMessage> _messages = [];
 
@@ -14,7 +11,6 @@ class AppState extends ChangeNotifier {
 
   // Getters
   String get backendUrl => AppConfig.backendUrl;
-  String get selectedTone => _selectedTone;
   List<ConversationMessage> get messages => _messages;
   bool get isLoading => _isLoading;
 
@@ -24,26 +20,8 @@ class AppState extends ChangeNotifier {
 
   // Carregar preferências salvas
   Future<void> _loadPreferences() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      _selectedTone = prefs.getString('selected_tone') ?? 'casual';
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Erro ao carregar preferências: $e');
-    }
-  }
-
-  // Selecionar tom
-  Future<void> setSelectedTone(String tone) async {
-    _selectedTone = tone;
+    // Expert mode - não precisa mais carregar tone
     notifyListeners();
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('selected_tone', tone);
-    } catch (e) {
-      debugPrint('Erro ao salvar tom: $e');
-    }
   }
 
   // Adicionar mensagem ao histórico
@@ -74,13 +52,11 @@ class AppState extends ChangeNotifier {
 class ConversationMessage {
   final String receivedMessage;
   final String aiSuggestion;
-  final String tone;
   final DateTime timestamp;
 
   ConversationMessage({
     required this.receivedMessage,
     required this.aiSuggestion,
-    required this.tone,
     required this.timestamp,
   });
 
@@ -88,7 +64,6 @@ class ConversationMessage {
     return {
       'receivedMessage': receivedMessage,
       'aiSuggestion': aiSuggestion,
-      'tone': tone,
       'timestamp': timestamp.toIso8601String(),
     };
   }
@@ -97,7 +72,6 @@ class ConversationMessage {
     return ConversationMessage(
       receivedMessage: json['receivedMessage'],
       aiSuggestion: json['aiSuggestion'],
-      tone: json['tone'],
       timestamp: DateTime.parse(json['timestamp']),
     );
   }

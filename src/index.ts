@@ -59,13 +59,9 @@ fastify.addContentTypeParser(
 const analyzeSchema = {
   body: {
     type: 'object',
-    required: ['text', 'tone'],
+    required: ['text'],
     properties: {
       text: { type: 'string', minLength: 1 },
-      tone: {
-        type: 'string',
-        enum: ['engraçado', 'ousado', 'romântico', 'casual', 'confiante', 'expert'],
-      },
     },
   },
 };
@@ -75,9 +71,10 @@ fastify.post<{ Body: AnalyzeRequest }>(
   { schema: analyzeSchema },
   async (request, reply) => {
     try {
-      const { text, tone } = request.body;
+      const { text } = request.body;
 
-      const analysis = await analyzeMessage({ text, tone });
+      // Expert mode - calibra automaticamente
+      const analysis = await analyzeMessage({ text, tone: 'expert' });
 
       const response: AnalyzeResponse = {
         analysis,
@@ -122,7 +119,7 @@ fastify.post('/analyze-profile', async (request, reply) => {
 // Nova rota: Gerar primeira mensagem (com inteligência coletiva por características)
 fastify.post('/generate-first-message', async (request, reply) => {
   try {
-    const { matchName, matchBio, platform, tone, photoDescription, specificDetail, userContext } =
+    const { matchName, matchBio, platform, photoDescription, specificDetail, userContext } =
       request.body as any;
 
     // Extrair características do perfil para buscar insights relevantes
@@ -151,7 +148,7 @@ fastify.post('/generate-first-message', async (request, reply) => {
 
     const agent = new FirstMessageAgent();
     const result = await agent.execute(
-      { matchName, matchBio, platform, tone, photoDescription, specificDetail, collectiveInsights },
+      { matchName, matchBio, platform, photoDescription, specificDetail, collectiveInsights },
       userContext as UserContext
     );
 
@@ -256,7 +253,7 @@ async function getInsightsByTags(tags: string[], platform: string): Promise<any 
 // Nova rota: Gerar abertura para Instagram (com inteligência coletiva por características)
 fastify.post('/generate-instagram-opener', async (request, reply) => {
   try {
-    const { username, bio, recentPosts, stories, tone, approachType, specificPost, userContext } =
+    const { username, bio, recentPosts, stories, approachType, specificPost, userContext } =
       request.body as any;
 
     // Extrair características do perfil
@@ -285,7 +282,7 @@ fastify.post('/generate-instagram-opener', async (request, reply) => {
 
     const agent = new InstagramOpenerAgent();
     const result = await agent.execute(
-      { username, bio, recentPosts, stories, tone, approachType, specificPost, collectiveInsights },
+      { username, bio, recentPosts, stories, approachType, specificPost, collectiveInsights },
       userContext as UserContext
     );
 
@@ -299,15 +296,15 @@ fastify.post('/generate-instagram-opener', async (request, reply) => {
   }
 });
 
-// Nova rota: Responder mensagem (versão melhorada)
+// Nova rota: Responder mensagem (expert mode - calibra automaticamente)
 fastify.post('/reply', async (request, reply) => {
   try {
-    const { receivedMessage, conversationHistory, tone, matchName, context, userContext } =
+    const { receivedMessage, conversationHistory, matchName, context, platform, userContext } =
       request.body as any;
 
     const agent = new ConversationReplyAgent();
     const result = await agent.execute(
-      { receivedMessage, conversationHistory, tone, matchName, context },
+      { receivedMessage, conversationHistory, matchName, context, platform },
       userContext as UserContext
     );
 

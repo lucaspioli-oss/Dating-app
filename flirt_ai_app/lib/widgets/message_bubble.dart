@@ -67,7 +67,7 @@ class MessageBubble extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'Sugestão IA (${_getToneName(message.tone)})',
+                      'Sugestão IA (Expert)',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                             color: Theme.of(context).colorScheme.onPrimaryContainer,
                           ),
@@ -100,16 +100,5 @@ class MessageBubble extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _getToneName(String tone) {
-    final names = {
-      'engraçado': 'Engraçado',
-      'ousado': 'Ousado',
-      'romântico': 'Romântico',
-      'casual': 'Casual',
-      'confiante': 'Confiante',
-    };
-    return names[tone] ?? 'Casual';
   }
 }
