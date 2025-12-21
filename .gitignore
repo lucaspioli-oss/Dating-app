@@ -198,3 +198,9 @@ mock-data/
 
 # Screenshots (adicione quando necessário)
 # screenshots/
+
+# Windows reserved device names
+nul
+con
+prn
+aux
