@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import * as admin from 'firebase-admin';
+import { trackPurchase } from './meta-conversions';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2023-10-16',
@@ -224,6 +225,15 @@ export async function handleCheckoutCompleted(
     plan,
     subscriptionId,
     expiresAt: new Date(subscription.current_period_end * 1000),
+  });
+
+  // Track purchase on Meta Conversions API
+  await trackPurchase({
+    email: customerEmail,
+    value: amount / 100,
+    currency: currency.toUpperCase(),
+    eventId: `purchase_${session.id}`,
+    plan,
   });
 }
 
