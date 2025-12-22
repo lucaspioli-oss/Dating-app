@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
@@ -8,6 +9,7 @@ import '../../providers/app_state.dart';
 import '../../config/app_config.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../../services/meta_pixel_service.dart';
 
 class SubscriptionRequiredScreen extends StatefulWidget {
   final SubscriptionStatus status;
@@ -567,24 +569,36 @@ class _SubscriptionRequiredScreenState
       // Determine price ID and plan based on selection
       late final String priceId;
       late final String plan;
+      late final double checkoutValue;
 
       switch (_selectedPlan) {
         case 0:
           priceId = AppConfig.monthlyPriceId;
           plan = 'monthly';
+          checkoutValue = monthlyPrice;
           break;
         case 1:
           priceId = AppConfig.quarterlyPriceId;
           plan = 'quarterly';
+          checkoutValue = quarterlyPrice;
           break;
         case 2:
           priceId = AppConfig.yearlyPriceId;
           plan = 'yearly';
+          checkoutValue = yearlyPrice;
           break;
         default:
           priceId = AppConfig.quarterlyPriceId;
           plan = 'quarterly';
+          checkoutValue = quarterlyPrice;
       }
+
+      // Track InitiateCheckout on Meta Pixel
+      MetaPixelService.trackInitiateCheckout(
+        value: checkoutValue,
+        currency: 'BRL',
+        planName: 'Desenrola IA - $plan',
+      );
 
       final response = await http.post(
         Uri.parse('$backendUrl/create-checkout-session'),
