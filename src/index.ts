@@ -20,6 +20,7 @@ import {
 import { getSystemPromptForTone } from './prompts';
 import {
   createCheckoutSession,
+  createCustomerPortalSession,
   constructWebhookEvent,
   handleCheckoutCompleted,
   handleSubscriptionUpdated,
@@ -642,6 +643,51 @@ fastify.post('/create-checkout-session', {
     fastify.log.error(error);
     return reply.code(500).send({
       error: 'Failed to create checkout session',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// Create Stripe Customer Portal Session (for managing subscription)
+fastify.post('/create-portal-session', {
+  preHandler: verifyAuth,
+}, async (request: AuthenticatedRequest, reply) => {
+  try {
+    const user = request.user!;
+    const admin = require('firebase-admin');
+    const db = admin.firestore();
+
+    // Get user's Stripe customer ID from Firestore
+    const userDoc = await db.collection('users').doc(user.uid).get();
+
+    if (!userDoc.exists) {
+      return reply.code(404).send({
+        error: 'User not found',
+        message: 'User document not found in database',
+      });
+    }
+
+    const userData = userDoc.data();
+    const customerId = userData?.subscription?.stripeCustomerId;
+
+    if (!customerId) {
+      return reply.code(400).send({
+        error: 'No subscription found',
+        message: 'User does not have an active Stripe subscription',
+      });
+    }
+
+    // Create portal session
+    const returnUrl = `${process.env.FRONTEND_URL || 'https://desenrola-ia.web.app'}/`;
+    const session = await createCustomerPortalSession(customerId, returnUrl);
+
+    return reply.code(200).send({
+      url: session.url,
+    });
+  } catch (error) {
+    fastify.log.error(error);
+    return reply.code(500).send({
+      error: 'Failed to create portal session',
       message: error instanceof Error ? error.message : 'Unknown error',
     });
   }
