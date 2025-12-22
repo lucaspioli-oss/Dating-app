@@ -131,18 +131,18 @@ export class FaceStorageService {
         },
       });
 
-      // Tornar arquivo público
-      await file.makePublic();
-
-      // Obter URL pública
-      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+      // Gerar Signed URL (validade de 10 anos para evitar expiração)
+      const [signedUrl] = await file.getSignedUrl({
+        action: 'read',
+        expires: Date.now() + 10 * 365 * 24 * 60 * 60 * 1000, // 10 anos
+      });
 
       // Gerar hash perceptual
       const faceHash = await this.generatePerceptualHash(imageBase64);
 
       return {
         success: true,
-        faceUrl: publicUrl,
+        faceUrl: signedUrl,
         faceHash,
       };
     } catch (error) {
