@@ -103,6 +103,7 @@ class _SubscriptionRequiredScreenState
                   ),
                 ),
               ),
+              SizedBox(height: isDesktop ? 24 : (isTablet ? 20 : 16)),
 
               // Title
               Text(
