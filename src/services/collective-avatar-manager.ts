@@ -150,7 +150,9 @@ export class CollectiveAvatarManager {
         ...data,
         lastUpdated: data.lastUpdated?.toDate() || new Date(),
         lastAnalyzedAt: data.lastAnalyzedAt?.toDate(),
-      } as CollectiveAvatar;
+        // Retornar a primeira faceUrl se existir
+        faceUrl: data.faceData?.faceUrls?.[0],
+      } as CollectiveAvatar & { faceUrl?: string };
     }
 
     // Criar novo avatar coletivo
