@@ -179,6 +179,10 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
             icon: const Icon(Icons.info_outline),
             onPressed: _showAvatarInfo,
           ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            onPressed: _confirmDeleteConversation,
+          ),
         ],
       ),
       body: Column(
@@ -523,6 +527,51 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _confirmDeleteConversation() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Excluir conversa'),
+        content: Text('Excluir conversa com ${_conversation!.avatar.matchName}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        final appState = context.read<AppState>();
+        final service = ConversationService(baseUrl: appState.backendUrl);
+        await service.deleteConversation(widget.conversationId);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Conversa excluída'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context); // Voltar para lista de conversas
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
   }
 
   void _showAvatarInfo() {

@@ -129,32 +129,109 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
             ? '❄️'
             : '😐';
 
-    return ListTile(
-      leading: CircleAvatar(
-        child: Text(conv.platformEmoji, style: const TextStyle(fontSize: 24)),
+    return Dismissible(
+      key: Key(conv.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        color: Colors.red,
+        child: const Icon(Icons.delete, color: Colors.white),
       ),
-      title: Row(
-        children: [
-          Expanded(
-            child: Text(
-              conv.matchName,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-              overflow: TextOverflow.ellipsis,
+      confirmDismiss: (direction) => _confirmDelete(conv),
+      onDismissed: (direction) => _deleteConversation(conv.id),
+      child: ListTile(
+        leading: CircleAvatar(
+          child: Text(conv.platformEmoji, style: const TextStyle(fontSize: 24)),
+        ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                conv.matchName,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
+            Text(emotionalToneEmoji),
+          ],
+        ),
+        subtitle: Text(
+          conv.lastMessage,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _formatDate(conv.lastMessageAt),
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+              onPressed: () => _confirmAndDelete(conv),
+            ),
+          ],
+        ),
+        onTap: () => _openConversation(conv),
+      ),
+    );
+  }
+
+  Future<bool> _confirmDelete(ConversationListItem conv) async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Excluir conversa'),
+        content: Text('Excluir conversa com ${conv.matchName}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
           ),
-          Text(emotionalToneEmoji),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Excluir'),
+          ),
         ],
       ),
-      subtitle: Text(
-        conv.lastMessage,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: Text(
-        _formatDate(conv.lastMessageAt),
-        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-      ),
-      onTap: () => _openConversation(conv),
-    );
+    ) ?? false;
+  }
+
+  Future<void> _confirmAndDelete(ConversationListItem conv) async {
+    final confirmed = await _confirmDelete(conv);
+    if (confirmed) {
+      await _deleteConversation(conv.id);
+    }
+  }
+
+  Future<void> _deleteConversation(String conversationId) async {
+    try {
+      final appState = context.read<AppState>();
+      final service = ConversationService(baseUrl: appState.backendUrl);
+      await service.deleteConversation(conversationId);
+
+      setState(() {
+        _conversations.removeWhere((c) => c.id == conversationId);
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Conversa excluída'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 }
