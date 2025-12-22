@@ -548,6 +548,7 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                     color: Colors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
+                    decoration: TextDecoration.none,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -556,6 +557,7 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                   style: TextStyle(
                     color: Colors.grey[500],
                     fontSize: 14,
+                    decoration: TextDecoration.none,
                   ),
                 ),
               ],
