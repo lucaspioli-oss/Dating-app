@@ -648,6 +648,12 @@ fastify.post('/create-checkout-session', {
   }
 });
 
+// Test endpoint without auth
+fastify.post('/test-portal', async (request, reply) => {
+  console.log('=== TEST PORTAL CALLED ===');
+  return reply.code(200).send({ test: 'ok' });
+});
+
 // Create Stripe Customer Portal Session (for managing subscription)
 fastify.post('/create-portal-session', {
   preHandler: verifyAuth,
