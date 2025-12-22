@@ -46,14 +46,14 @@ class _SubscriptionRequiredScreenState
     final isTablet = screenWidth > 600 && screenWidth <= 1024;
     final isMobile = screenWidth <= 600;
 
-    // Tamanhos responsivos do logo
+    // Tamanhos responsivos do logo (imagem tem espaço transparente, então valores menores)
     double logoHeight;
     if (isDesktop) {
-      logoHeight = 200;
+      logoHeight = 90;
     } else if (isTablet) {
-      logoHeight = 160;
-    } else {
       logoHeight = 70;
+    } else {
+      logoHeight = 50;
     }
 
     // Tamanhos responsivos de fonte do título
