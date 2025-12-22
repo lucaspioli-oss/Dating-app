@@ -149,21 +149,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Logo - com recorte do espaço transparente
+                    // Logo
                     Center(
-                      child: SizedBox(
-                        height: isDesktop ? 70 : 55, // Altura visual reduzida
-                        child: OverflowBox(
-                          maxHeight: isDesktop ? 130 : 100, // Logo maior
-                          child: Image.asset(
-                            'assets/images/logo_pricing.png',
-                            height: isDesktop ? 130 : 100,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
+                      child: Image.asset(
+                        'assets/images/logo_pricing.png',
+                        height: isDesktop ? 60 : 48,
+                        fit: BoxFit.contain,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 16),
 
                     // Subtitle
                     Text(

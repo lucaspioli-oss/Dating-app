@@ -46,16 +46,6 @@ class _SubscriptionRequiredScreenState
     final isTablet = screenWidth > 600 && screenWidth <= 1024;
     final isMobile = screenWidth <= 600;
 
-    // Tamanhos responsivos do logo
-    double logoHeight;
-    if (isDesktop) {
-      logoHeight = 180;
-    } else if (isTablet) {
-      logoHeight = 140;
-    } else {
-      logoHeight = 100;
-    }
-
     // Tamanhos responsivos de fonte do título
     double titleFontSize;
     if (isDesktop) {
@@ -89,18 +79,12 @@ class _SubscriptionRequiredScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Logo - Desenrola AI (responsivo) - com recorte do espaço transparente
+              // Logo - Desenrola AI (responsivo)
               Center(
-                child: SizedBox(
-                  height: logoHeight * 0.55, // Corta espaço transparente
-                  child: OverflowBox(
-                    maxHeight: logoHeight,
-                    child: Image.asset(
-                      'assets/images/logo_pricing.png',
-                      height: logoHeight,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
+                child: Image.asset(
+                  'assets/images/logo_pricing.png',
+                  height: isDesktop ? 80 : (isTablet ? 60 : 48),
+                  fit: BoxFit.contain,
                 ),
               ),
               SizedBox(height: isDesktop ? 24 : (isTablet ? 20 : 16)),
