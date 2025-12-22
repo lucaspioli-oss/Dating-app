@@ -82,18 +82,16 @@ class _SubscriptionRequiredScreenState
         child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(
             horizontal: horizontalPadding,
-            vertical: isMobile ? 16 : 32,
+            vertical: isMobile ? 12 : 16,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              SizedBox(height: isDesktop ? 24 : (isTablet ? 20 : 16)),
-
               // Logo - Desenrola AI (responsivo)
               Center(
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
-                    maxWidth: isDesktop ? 500 : (isTablet ? 350 : 260),
+                    maxWidth: isDesktop ? 500 : (isTablet ? 400 : 260),
                   ),
                   child: Image.asset(
                     'assets/images/logo_pricing.png',
@@ -102,7 +100,7 @@ class _SubscriptionRequiredScreenState
                   ),
                 ),
               ),
-              SizedBox(height: isDesktop ? 32 : (isTablet ? 24 : 20)),
+              SizedBox(height: isDesktop ? 20 : (isTablet ? 16 : 16)),
 
               // Title
               Text(
@@ -114,7 +112,7 @@ class _SubscriptionRequiredScreenState
                   fontSize: titleFontSize,
                 ),
               ),
-              SizedBox(height: isDesktop ? 12 : 8),
+              SizedBox(height: isDesktop ? 8 : 6),
               Text(
                 'Desbloqueie todo o potencial do Desenrola AI',
                 textAlign: TextAlign.center,
@@ -123,7 +121,7 @@ class _SubscriptionRequiredScreenState
                   fontSize: isDesktop ? 18 : (isTablet ? 16 : 14),
                 ),
               ),
-              SizedBox(height: isDesktop ? 40 : (isTablet ? 32 : 24)),
+              SizedBox(height: isDesktop ? 28 : (isTablet ? 24 : 20)),
 
               // Pricing Cards - Layout responsivo
               if (isDesktop || isTablet)
