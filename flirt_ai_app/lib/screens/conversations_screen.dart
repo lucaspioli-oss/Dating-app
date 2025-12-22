@@ -141,14 +141,12 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
       confirmDismiss: (direction) => _confirmDelete(conv),
       onDismissed: (direction) => _deleteConversation(conv.id),
       child: ListTile(
-        leading: CircleAvatar(
-          child: Text(conv.platformEmoji, style: const TextStyle(fontSize: 24)),
-        ),
+        leading: _buildAvatar(conv),
         title: Row(
           children: [
             Expanded(
               child: Text(
-                conv.matchName,
+                conv.displayNameWithAge,
                 style: const TextStyle(fontWeight: FontWeight.bold),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -178,6 +176,65 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
         onTap: () => _openConversation(conv),
       ),
     );
+  }
+
+  Widget _buildAvatar(ConversationListItem conv) {
+    // Se tem imagem do rosto, exibir
+    if (conv.faceImageUrl != null && conv.faceImageUrl!.isNotEmpty) {
+      return Stack(
+        children: [
+          CircleAvatar(
+            radius: 24,
+            backgroundImage: NetworkImage(conv.faceImageUrl!),
+            onBackgroundImageError: (_, __) {},
+            child: null,
+          ),
+          Positioned(
+            right: -2,
+            bottom: -2,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 2,
+                  ),
+                ],
+              ),
+              child: Text(conv.platformEmoji, style: const TextStyle(fontSize: 12)),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Fallback: emoji da plataforma ou primeira letra do nome
+    return CircleAvatar(
+      radius: 24,
+      backgroundColor: _getPlatformColor(conv.platform),
+      child: Text(
+        conv.matchName.isNotEmpty ? conv.matchName[0].toUpperCase() : '?',
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+      ),
+    );
+  }
+
+  Color _getPlatformColor(String platform) {
+    switch (platform) {
+      case 'tinder':
+        return Colors.red.shade400;
+      case 'bumble':
+        return Colors.amber.shade400;
+      case 'hinge':
+        return Colors.pink.shade400;
+      case 'instagram':
+        return Colors.purple.shade400;
+      default:
+        return Colors.grey.shade400;
+    }
   }
 
   Future<bool> _confirmDelete(ConversationListItem conv) async {

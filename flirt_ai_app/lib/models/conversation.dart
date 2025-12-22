@@ -179,24 +179,28 @@ class Analytics {
 
 class ConversationAvatar {
   final String matchName;
+  final String? username;         // Para Instagram: @usuario (sem @)
   final String platform;
   final String? bio;
   final List<String>? photoDescriptions;
   final String? age;
   final String? location;
   final List<String>? interests;
+  final String? faceImageUrl;     // URL da imagem do rosto
   final DetectedPatterns detectedPatterns;
   final LearnedInfo learnedInfo;
   final Analytics analytics;
 
   ConversationAvatar({
     required this.matchName,
+    this.username,
     required this.platform,
     this.bio,
     this.photoDescriptions,
     this.age,
     this.location,
     this.interests,
+    this.faceImageUrl,
     required this.detectedPatterns,
     required this.learnedInfo,
     required this.analytics,
@@ -205,6 +209,7 @@ class ConversationAvatar {
   factory ConversationAvatar.fromJson(Map<String, dynamic> json) {
     return ConversationAvatar(
       matchName: json['matchName'] ?? '',
+      username: json['username'],
       platform: json['platform'] ?? 'tinder',
       bio: json['bio'],
       photoDescriptions: json['photoDescriptions'] != null
@@ -213,6 +218,7 @@ class ConversationAvatar {
       age: json['age'],
       location: json['location'],
       interests: json['interests'] != null ? List<String>.from(json['interests']) : null,
+      faceImageUrl: json['faceImageUrl'],
       detectedPatterns: json['detectedPatterns'] != null
           ? DetectedPatterns.fromJson(json['detectedPatterns'])
           : DetectedPatterns(
@@ -274,19 +280,25 @@ class Conversation {
 class ConversationListItem {
   final String id;
   final String matchName;
+  final String? username;         // Para Instagram
   final String platform;
   final String lastMessage;
   final DateTime lastMessageAt;
   final int unreadCount;
+  final String? faceImageUrl;     // URL da imagem do rosto
+  final String? age;
   final Map<String, String> avatar;
 
   ConversationListItem({
     required this.id,
     required this.matchName,
+    this.username,
     required this.platform,
     required this.lastMessage,
     required this.lastMessageAt,
     required this.unreadCount,
+    this.faceImageUrl,
+    this.age,
     required this.avatar,
   });
 
@@ -294,10 +306,13 @@ class ConversationListItem {
     return ConversationListItem(
       id: json['id'] ?? '',
       matchName: json['matchName'] ?? '',
+      username: json['username'],
       platform: json['platform'] ?? 'tinder',
       lastMessage: json['lastMessage'] ?? '',
       lastMessageAt: _parseDate(json['lastMessageAt']),
       unreadCount: json['unreadCount'] ?? 0,
+      faceImageUrl: json['faceImageUrl'],
+      age: json['age'],
       avatar: json['avatar'] != null ? Map<String, String>.from(json['avatar']) : {},
     );
   }
@@ -315,5 +330,22 @@ class ConversationListItem {
       default:
         return '📱';
     }
+  }
+
+  /// Retorna o nome a exibir (username para Instagram, nome para outros)
+  String get displayName {
+    if (platform == 'instagram' && username != null && username!.isNotEmpty) {
+      return '@$username';
+    }
+    return matchName;
+  }
+
+  /// Retorna o nome com idade se disponível
+  String get displayNameWithAge {
+    final name = displayName;
+    if (age != null && age!.isNotEmpty) {
+      return '$name, $age';
+    }
+    return name;
   }
 }

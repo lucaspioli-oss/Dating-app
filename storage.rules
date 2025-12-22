@@ -1,0 +1,15 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Faces são públicas para leitura (exibidas no app)
+    match /faces/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Qualquer outro arquivo requer autenticação
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

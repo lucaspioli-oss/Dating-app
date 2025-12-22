@@ -21,7 +21,7 @@ export class ConversationManager {
     const conversationId = randomUUID();
     const now = new Date();
 
-    // Encontrar ou criar avatar coletivo
+    // Encontrar ou criar avatar coletivo (com detecção de face para duplicatas)
     const collectiveAvatar = await CollectiveAvatarManager.findOrCreateCollectiveAvatar({
       name: request.matchName,
       platform: request.platform,
@@ -29,16 +29,21 @@ export class ConversationManager {
       age: request.age,
       location: request.location,
       interests: request.interests,
+      username: request.username,
+      faceImageBase64: request.faceImageBase64,
+      faceDescription: request.faceDescription,
     });
 
     const avatar: ConversationAvatar = {
       matchName: request.matchName,
+      username: request.username,
       platform: request.platform as any,
       bio: request.bio,
       photoDescriptions: request.photoDescriptions,
       age: request.age,
       location: request.location,
       interests: request.interests,
+      faceImageUrl: collectiveAvatar.faceUrl, // URL da imagem do rosto
 
       detectedPatterns: {
         responseLength: 'medium',
@@ -275,12 +280,15 @@ export class ConversationManager {
       return {
         id: doc.id,
         matchName: data.avatar?.matchName || 'Sem nome',
+        username: data.avatar?.username,
         platform: data.avatar?.platform || 'tinder',
         lastMessage: messages.length > 0
           ? messages[messages.length - 1].content
           : 'Sem mensagens',
         lastMessageAt: data.lastMessageAt?.toDate() || new Date(),
         unreadCount: 0,
+        faceImageUrl: data.avatar?.faceImageUrl,
+        age: data.avatar?.age,
         avatar: {
           emotionalTone: data.avatar?.detectedPatterns?.emotionalTone || 'neutral',
           flirtLevel: data.avatar?.detectedPatterns?.flirtLevel || 'medium',

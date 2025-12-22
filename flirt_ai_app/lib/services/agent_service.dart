@@ -212,6 +212,7 @@ class AgentService {
 
         return ProfileImageResponse.success(
           name: extractedData['name'],
+          username: extractedData['username'],
           age: extractedData['age'],
           bio: extractedData['bio'],
           photoDescriptions: extractedData['photoDescriptions'] != null
@@ -223,6 +224,7 @@ class AgentService {
               ? List<String>.from(extractedData['interests'])
               : null,
           additionalInfo: extractedData['additionalInfo'],
+          faceDescription: extractedData['faceDescription'],
         );
       } else {
         return ProfileImageResponse.error(
@@ -255,6 +257,7 @@ class AgentService {
 class ProfileImageResponse {
   final bool success;
   final String? name;
+  final String? username;           // Para Instagram
   final String? age;
   final String? bio;
   final List<String>? photoDescriptions;
@@ -262,11 +265,13 @@ class ProfileImageResponse {
   final String? occupation;
   final List<String>? interests;
   final String? additionalInfo;
+  final String? faceDescription;    // Descrição facial para identificação
   final String? errorMessage;
 
   ProfileImageResponse._({
     required this.success,
     this.name,
+    this.username,
     this.age,
     this.bio,
     this.photoDescriptions,
@@ -274,11 +279,13 @@ class ProfileImageResponse {
     this.occupation,
     this.interests,
     this.additionalInfo,
+    this.faceDescription,
     this.errorMessage,
   });
 
   factory ProfileImageResponse.success({
     String? name,
+    String? username,
     String? age,
     String? bio,
     List<String>? photoDescriptions,
@@ -286,10 +293,12 @@ class ProfileImageResponse {
     String? occupation,
     List<String>? interests,
     String? additionalInfo,
+    String? faceDescription,
   }) {
     return ProfileImageResponse._(
       success: true,
       name: name,
+      username: username,
       age: age,
       bio: bio,
       photoDescriptions: photoDescriptions,
@@ -297,6 +306,7 @@ class ProfileImageResponse {
       occupation: occupation,
       interests: interests,
       additionalInfo: additionalInfo,
+      faceDescription: faceDescription,
     );
   }
 

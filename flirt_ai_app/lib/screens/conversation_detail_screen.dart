@@ -293,6 +293,14 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
   }
 
   PreferredSizeWidget _buildAppBar() {
+    final avatar = _conversation!.avatar;
+    final displayName = avatar.platform == 'instagram' && avatar.username != null
+        ? '@${avatar.username}'
+        : avatar.matchName;
+    final displaySubtitle = avatar.age != null
+        ? '${avatar.platform}, ${avatar.age} anos'
+        : avatar.platform;
+
     return AppBar(
       backgroundColor: const Color(0xFF1A1A2E),
       elevation: 0,
@@ -302,26 +310,17 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
       ),
       title: Row(
         children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: const Color(0xFF2A2A3E),
-            child: Text(
-              _conversation!.avatar.matchName.isNotEmpty
-                  ? _conversation!.avatar.matchName[0].toUpperCase()
-                  : '?',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-            ),
-          ),
+          _buildAvatarImage(avatar, 18),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _conversation!.avatar.matchName,
+                displayName,
                 style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
               ),
               Text(
-                _conversation!.avatar.platform,
+                displaySubtitle,
                 style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
               ),
             ],
@@ -338,6 +337,30 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
           onPressed: _confirmDeleteConversation,
         ),
       ],
+    );
+  }
+
+  Widget _buildAvatarImage(ConversationAvatar avatar, double radius) {
+    if (avatar.faceImageUrl != null && avatar.faceImageUrl!.isNotEmpty) {
+      return CircleAvatar(
+        radius: radius,
+        backgroundImage: NetworkImage(avatar.faceImageUrl!),
+        onBackgroundImageError: (_, __) {},
+        backgroundColor: const Color(0xFF2A2A3E),
+      );
+    }
+
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: const Color(0xFF2A2A3E),
+      child: Text(
+        avatar.matchName.isNotEmpty ? avatar.matchName[0].toUpperCase() : '?',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: radius * 0.8,
+        ),
+      ),
     );
   }
 
@@ -763,6 +786,13 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
       ),
       builder: (context) {
         final avatar = _conversation!.avatar;
+        final displayName = avatar.platform == 'instagram' && avatar.username != null
+            ? '@${avatar.username}'
+            : avatar.matchName;
+        final displaySubtitle = avatar.age != null
+            ? '${avatar.platform}, ${avatar.age} anos'
+            : avatar.platform;
+
         return SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -781,27 +811,22 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
               const SizedBox(height: 20),
               Row(
                 children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: const Color(0xFF2A2A3E),
-                    child: Text(
-                      avatar.matchName.isNotEmpty ? avatar.matchName[0].toUpperCase() : '?',
-                      style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-                    ),
-                  ),
+                  _buildAvatarImage(avatar, 28),
                   const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        avatar.matchName,
-                        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        avatar.platform,
-                        style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
-                      ),
-                    ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          displayName,
+                          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          displaySubtitle,
+                          style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),

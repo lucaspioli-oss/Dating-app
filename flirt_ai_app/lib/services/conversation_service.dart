@@ -28,6 +28,7 @@ class ConversationService {
   /// Criar nova conversa
   Future<Conversation> createConversation({
     required String matchName,
+    String? username,
     required String platform,
     String? bio,
     List<String>? photoDescriptions,
@@ -35,12 +36,15 @@ class ConversationService {
     List<String>? interests,
     String? firstMessage,
     String? tone,
+    String? faceImageBase64,
+    String? faceDescription,
   }) async {
     final url = Uri.parse('$baseUrl/conversations');
     final headers = await _getHeaders();
 
     final body = {
       'matchName': matchName,
+      if (username != null) 'username': username,
       'platform': platform,
       if (bio != null) 'bio': bio,
       if (photoDescriptions != null) 'photoDescriptions': photoDescriptions,
@@ -48,6 +52,8 @@ class ConversationService {
       if (interests != null) 'interests': interests,
       if (firstMessage != null) 'firstMessage': firstMessage,
       if (tone != null) 'tone': tone,
+      if (faceImageBase64 != null) 'faceImageBase64': faceImageBase64,
+      if (faceDescription != null) 'faceDescription': faceDescription,
     };
 
     final response = await http.post(

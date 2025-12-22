@@ -20,6 +20,7 @@ class UnifiedAnalysisScreen extends StatefulWidget {
 class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _ageController = TextEditingController();
   final _bioController = TextEditingController();
   final _photoDescController = TextEditingController();
   final _interestsController = TextEditingController();
@@ -32,12 +33,16 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
   String? _analysis;
   final ImagePicker _picker = ImagePicker();
 
-  // Para preview da imagem
+  // Para preview da imagem e dados de face
   Uint8List? _uploadedImageBytes;
+  String? _uploadedImageBase64;
+  String? _extractedUsername;
+  String? _extractedFaceDescription;
 
   @override
   void dispose() {
     _nameController.dispose();
+    _ageController.dispose();
     _bioController.dispose();
     _photoDescController.dispose();
     _interestsController.dispose();
@@ -76,8 +81,15 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
 
       if (result.success) {
         setState(() {
+          // Salvar imagem base64 para enviar ao criar conversa
+          _uploadedImageBase64 = base64Image;
+
           if (result.name != null && result.name!.isNotEmpty) {
             _nameController.text = result.name!;
+          }
+          // Extrair idade
+          if (result.age != null && result.age!.isNotEmpty) {
+            _ageController.text = result.age!;
           }
           if (result.bio != null && result.bio!.isNotEmpty) {
             _bioController.text = result.bio!;
@@ -88,6 +100,9 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
           if (result.interests != null && result.interests!.isNotEmpty) {
             _interestsController.text = result.interests!.join(', ');
           }
+          // Extrair username e descrição facial
+          _extractedUsername = result.username;
+          _extractedFaceDescription = result.faceDescription;
         });
 
         if (mounted) {
@@ -240,17 +255,20 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
 
       final conversation = await conversationService.createConversation(
         matchName: _nameController.text.trim(),
+        username: _extractedUsername,
         platform: _selectedPlatform,
         bio: _bioController.text.trim().isEmpty ? null : _bioController.text.trim(),
         photoDescriptions: _photoDescController.text.trim().isEmpty
             ? null
             : _photoDescController.text.trim().split('\n'),
-        age: null,
+        age: _ageController.text.trim().isEmpty ? null : _ageController.text.trim(),
         interests: _interestsController.text.trim().isEmpty
             ? null
             : _interestsController.text.trim().split(',').map((e) => e.trim()).toList(),
         firstMessage: opener,
         tone: 'expert',
+        faceImageBase64: _uploadedImageBase64,
+        faceDescription: _extractedFaceDescription,
       );
 
       if (mounted) {
@@ -625,99 +643,146 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
   }
 
   Widget _buildInputFields() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Nome / Username',
-                style: TextStyle(
-                  color: Colors.grey.shade400,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
+        // Primeira linha: Nome e Idade
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 3,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Nome / Username',
+                    style: TextStyle(
+                      color: Colors.grey.shade400,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _nameController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: _selectedPlatform == 'instagram' ? '@usuario' : 'Nome',
+                      hintStyle: TextStyle(color: Colors.grey.shade600),
+                      filled: true,
+                      fillColor: const Color(0xFF1A1A2E),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFF2A2A3E)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFF2A2A3E)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE91E63)),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Campo obrigatório';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _nameController,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: _selectedPlatform == 'instagram' ? '@usuario' : 'Nome',
-                  hintStyle: TextStyle(color: Colors.grey.shade600),
-                  filled: true,
-                  fillColor: const Color(0xFF1A1A2E),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF2A2A3E)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 1,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Idade',
+                    style: TextStyle(
+                      color: Colors.grey.shade400,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF2A2A3E)),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _ageController,
+                    style: const TextStyle(color: Colors.white),
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      hintText: '25',
+                      hintStyle: TextStyle(color: Colors.grey.shade600),
+                      filled: true,
+                      fillColor: const Color(0xFF1A1A2E),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFF2A2A3E)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFF2A2A3E)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE91E63)),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    ),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE91E63)),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Campo obrigatório';
-                  }
-                  return null;
-                },
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Bio / Descrição',
-                style: TextStyle(
-                  color: Colors.grey.shade400,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
+        const SizedBox(height: 16),
+        // Segunda linha: Bio
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Bio / Descrição',
+              style: TextStyle(
+                color: Colors.grey.shade400,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
               ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _bioController,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Bio do perfil...',
-                  hintStyle: TextStyle(color: Colors.grey.shade600),
-                  filled: true,
-                  fillColor: const Color(0xFF1A1A2E),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF2A2A3E)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF2A2A3E)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE91E63)),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _bioController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Bio do perfil...',
+                hintStyle: TextStyle(color: Colors.grey.shade600),
+                filled: true,
+                fillColor: const Color(0xFF1A1A2E),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF2A2A3E)),
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Campo obrigatório';
-                  }
-                  return null;
-                },
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF2A2A3E)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE91E63)),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               ),
-            ],
-          ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Campo obrigatório';
+                }
+                return null;
+              },
+            ),
+          ],
         ),
       ],
     );

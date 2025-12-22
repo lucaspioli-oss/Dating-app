@@ -7,10 +7,11 @@
  * de diferentes usuários com a mesma pessoa
  */
 export interface CollectiveAvatar {
-  id: string; // Hash único: nome_normalizado + plataforma
+  id: string; // Hash único: nome_normalizado + plataforma (ou username para Instagram)
 
   // Identificação
   normalizedName: string; // Nome em lowercase, sem acentos
+  username?: string;      // Para Instagram: @usuario (sem @)
   platform: 'tinder' | 'bumble' | 'hinge' | 'instagram' | 'outro';
 
   // Dados coletados de múltiplas fontes (anônimo)
@@ -19,6 +20,13 @@ export interface CollectiveAvatar {
     possibleLocations: string[];
     possibleBios: string[];
     commonInterests: string[]; // Interesses mencionados em múltiplas conversas
+  };
+
+  // Dados faciais para identificação e exibição
+  faceData?: {
+    faceHashes: string[];      // Hashes perceptuais das imagens faciais
+    faceUrls: string[];        // URLs das imagens no Firebase Storage
+    faceDescription: string;   // Descrição textual do rosto
   };
 
   // 🔥 INSIGHTS COLETIVOS (aprendidos de todas as conversas)
@@ -181,6 +189,9 @@ export interface FindOrCreateCollectiveAvatarRequest {
   age?: string;
   location?: string;
   interests?: string[];
+  username?: string;         // Para Instagram: @usuario (sem @)
+  faceImageBase64?: string;  // Imagem do rosto em base64
+  faceDescription?: string;  // Descrição textual do rosto
 }
 
 export interface SubmitFeedbackRequest {

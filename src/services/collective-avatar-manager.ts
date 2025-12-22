@@ -12,6 +12,7 @@ import {
 import { Conversation } from '../types/conversation';
 import Anthropic from '@anthropic-ai/sdk';
 import { env } from '../config/env';
+import { FaceStorageService, FaceData } from './face-storage-service';
 
 const getDb = () => admin.firestore();
 const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
@@ -35,20 +36,107 @@ export class CollectiveAvatarManager {
 
   /**
    * Gerar ID único para avatar coletivo
+   * Para Instagram: username_instagram
+   * Para outros: nome_idade_plataforma (com detecção de face para duplicatas)
    */
-  private static generateAvatarId(name: string, platform: string): string {
+  private static generateAvatarId(
+    name: string,
+    platform: string,
+    username?: string,
+    age?: string
+  ): string {
+    // Instagram usa username como identificador único
+    if (platform.toLowerCase() === 'instagram' && username) {
+      return `${username.toLowerCase()}_instagram`;
+    }
+
     const normalizedName = this.normalizeName(name);
     const normalizedPlatform = platform.toLowerCase();
+
+    // Para outras plataformas, incluir idade no ID para diferenciação inicial
+    if (age) {
+      return `${normalizedName}_${age}_${normalizedPlatform}`;
+    }
+
     return `${normalizedName}_${normalizedPlatform}`;
   }
 
   /**
    * Encontrar ou criar avatar coletivo
+   * Com suporte a detecção de duplicatas por face
    */
   static async findOrCreateCollectiveAvatar(
     request: FindOrCreateCollectiveAvatarRequest
-  ): Promise<CollectiveAvatar> {
-    const avatarId = this.generateAvatarId(request.name, request.platform);
+  ): Promise<CollectiveAvatar & { faceUrl?: string }> {
+    const { name, platform, username, age, faceImageBase64, faceDescription } = request;
+
+    // Se temos imagem de face, usar o fluxo de detecção de duplicatas
+    if (faceImageBase64 && faceDescription) {
+      try {
+        const faceResult = await FaceStorageService.processProfileFace({
+          name,
+          age,
+          platform,
+          imageBase64: faceImageBase64,
+          faceDescription,
+          username,
+        });
+
+        if (faceResult.isExistingMatch) {
+          // Avatar existente encontrado - atualizar dados
+          await this.mergeAvatarData(faceResult.avatarId, request);
+          const existing = await this.getCollectiveAvatar(faceResult.avatarId);
+          if (existing) {
+            return {
+              ...existing,
+              faceUrl: faceResult.faceUrl,
+            };
+          }
+        }
+
+        // Novo avatar - criar com dados de face
+        const avatarId = faceResult.avatarId;
+        const docRef = getDb().collection('collectiveAvatars').doc(avatarId);
+        const doc = await docRef.get();
+
+        if (!doc.exists) {
+          const now = new Date();
+          const newAvatar = this.createNewAvatarObject(avatarId, request, now);
+
+          // Inicializar com dados de face
+          const faceHash = await FaceStorageService.generatePerceptualHash(faceImageBase64);
+          newAvatar.faceData = {
+            faceUrls: [faceResult.faceUrl],
+            faceHashes: [faceHash],
+            faceDescription,
+          };
+
+          await docRef.set({
+            ...newAvatar,
+            lastUpdated: admin.firestore.Timestamp.fromDate(now),
+          });
+
+          return {
+            ...newAvatar,
+            faceUrl: faceResult.faceUrl,
+          };
+        } else {
+          // Documento já existe (race condition ou ID existente)
+          await this.mergeAvatarData(avatarId, request);
+          const existing = await this.getCollectiveAvatar(avatarId);
+          return {
+            ...existing!,
+            faceUrl: faceResult.faceUrl,
+          };
+        }
+      } catch (error) {
+        console.error('Erro ao processar face, continuando sem face:', error);
+        // Continuar sem face em caso de erro
+      }
+    }
+
+    // Fluxo original (sem face)
+    const avatarId = this.generateAvatarId(name, platform, username, age);
     const docRef = getDb().collection('collectiveAvatars').doc(avatarId);
     const doc = await docRef.get();
 
@@ -65,9 +153,28 @@ export class CollectiveAvatarManager {
 
     // Criar novo avatar coletivo
     const now = new Date();
-    const newAvatar: CollectiveAvatar = {
+    const newAvatar = this.createNewAvatarObject(avatarId, request, now);
+
+    await docRef.set({
+      ...newAvatar,
+      lastUpdated: admin.firestore.Timestamp.fromDate(now),
+    });
+
+    return newAvatar;
+  }
+
+  /**
+   * Criar objeto de novo avatar
+   */
+  private static createNewAvatarObject(
+    avatarId: string,
+    request: FindOrCreateCollectiveAvatarRequest,
+    now: Date
+  ): CollectiveAvatar {
+    return {
       id: avatarId,
       normalizedName: this.normalizeName(request.name),
+      username: request.username,
       platform: request.platform as any,
 
       profileData: {
@@ -98,13 +205,6 @@ export class CollectiveAvatarManager {
       lastUpdated: now,
       confidenceScore: 10, // Começa baixo
     };
-
-    await docRef.set({
-      ...newAvatar,
-      lastUpdated: admin.firestore.Timestamp.fromDate(now),
-    });
-
-    return newAvatar;
   }
 
   /**

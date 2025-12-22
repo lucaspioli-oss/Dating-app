@@ -143,6 +143,7 @@ class SubscriptionService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
+        body: json.encode({}), // Empty JSON body required by Fastify
       ).timeout(const Duration(seconds: 30));
 
       print('Response status: ${response.statusCode}');

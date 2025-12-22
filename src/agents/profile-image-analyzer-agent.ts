@@ -9,6 +9,7 @@ export interface ProfileImageAnalysisInput {
 
 export interface ExtractedProfileData {
   name?: string;
+  username?: string;           // Para Instagram (@usuario)
   age?: string;
   bio?: string;
   photoDescriptions?: string[];
@@ -16,6 +17,7 @@ export interface ExtractedProfileData {
   occupation?: string;
   interests?: string[];
   additionalInfo?: string;
+  faceDescription?: string;    // Descrição facial detalhada para identificação
 }
 
 export class ProfileImageAnalyzerAgent extends BaseAgent {
@@ -36,13 +38,15 @@ Sua função é analisar a imagem fornecida e extrair TODAS as informações vis
 
 INFORMAÇÕES A EXTRAIR:
 1. **Nome**: Nome completo ou primeiro nome
-2. **Idade**: Se estiver visível
-3. **Bio/Descrição**: Todo o texto da bio, exatamente como está escrito
-4. **Fotos**: Descreva cada foto visível (ex: "na praia", "com cachorro", "selfie", etc)
-5. **Localização**: Cidade/distância se visível
-6. **Ocupação/Educação**: Trabalho, faculdade, etc
-7. **Interesses/Hobbies**: Tags, badges, ou mencionados na bio
-8. **Outras informações**: Altura, idiomas, etc
+2. **Username**: Para Instagram, o @usuario (sem o @). Para outros apps, null.
+3. **Idade**: Se estiver visível (número apenas, ex: "25")
+4. **Bio/Descrição**: Todo o texto da bio, exatamente como está escrito
+5. **Fotos**: Descreva cada foto visível (ex: "na praia", "com cachorro", "selfie", etc)
+6. **Localização**: Cidade/distância se visível
+7. **Ocupação/Educação**: Trabalho, faculdade, etc
+8. **Interesses/Hobbies**: Tags, badges, ou mencionados na bio
+9. **Outras informações**: Altura, idiomas, etc
+10. **Descrição Facial**: Descreva o rosto da pessoa na foto principal de forma detalhada para identificação futura (cor do cabelo, comprimento do cabelo, cor dos olhos se visível, formato do rosto, características marcantes como barba, óculos, piercings, tatuagens visíveis no rosto/pescoço, sorriso, expressão)
 
 FORMATO DA RESPOSTA:
 Retorne APENAS um objeto JSON válido, sem texto adicional antes ou depois.
@@ -50,13 +54,15 @@ Use null para campos não visíveis.
 
 {
   "name": "Nome extraído ou null",
-  "age": "Idade ou null",
+  "username": "username sem @ (só para Instagram) ou null",
+  "age": "Idade (número) ou null",
   "bio": "Bio completa ou null",
   "photoDescriptions": ["descrição foto 1", "descrição foto 2", ...] ou null,
   "location": "Localização ou null",
   "occupation": "Trabalho/faculdade ou null",
   "interests": ["interesse 1", "interesse 2", ...] ou null,
-  "additionalInfo": "Outras informações relevantes ou null"
+  "additionalInfo": "Outras informações relevantes ou null",
+  "faceDescription": "Descrição facial detalhada ou null"
 }
 
 IMPORTANTE:
@@ -64,6 +70,7 @@ IMPORTANTE:
 - Seja PRECISO e extraia exatamente o que está escrito
 - Se algo não estiver visível, use null
 - Nas descrições de fotos, seja específico e útil
+- A descrição facial deve ser detalhada o suficiente para identificar a pessoa visualmente
 - Capture TUDO que possa ser útil para criar uma primeira mensagem`;
   }
 
@@ -137,6 +144,7 @@ IMPORTANTE:
 
       const result: ExtractedProfileData = {
         name: parsed.name && parsed.name !== 'null' ? parsed.name : undefined,
+        username: parsed.username && parsed.username !== 'null' ? parsed.username : undefined,
         age: parsed.age && parsed.age !== 'null' ? parsed.age : undefined,
         bio: parsed.bio && parsed.bio !== 'null' ? parsed.bio : undefined,
         photoDescriptions: parsed.photoDescriptions && parsed.photoDescriptions !== 'null' ? parsed.photoDescriptions : undefined,
@@ -144,6 +152,7 @@ IMPORTANTE:
         occupation: parsed.occupation && parsed.occupation !== 'null' ? parsed.occupation : undefined,
         interests: parsed.interests && parsed.interests !== 'null' ? parsed.interests : undefined,
         additionalInfo: parsed.additionalInfo && parsed.additionalInfo !== 'null' ? parsed.additionalInfo : undefined,
+        faceDescription: parsed.faceDescription && parsed.faceDescription !== 'null' ? parsed.faceDescription : undefined,
       };
 
       console.log('Dados extraídos:', result);

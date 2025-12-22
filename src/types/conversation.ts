@@ -10,12 +10,14 @@ export interface Message {
 export interface ConversationAvatar {
   // Perfil do Match
   matchName: string;
+  username?: string;          // Para Instagram: @usuario (sem @)
   platform: 'tinder' | 'bumble' | 'hinge' | 'instagram' | 'outro';
   bio?: string;
   photoDescriptions?: string[];
   age?: string;
   location?: string;
   interests?: string[];
+  faceImageUrl?: string;      // URL da imagem do rosto no Firebase Storage
 
   // Calibragem e Aprendizado
   detectedPatterns: {
@@ -59,14 +61,17 @@ export interface Conversation {
 
 export interface CreateConversationRequest {
   matchName: string;
+  username?: string;           // Para Instagram: @usuario (sem @)
   platform: string;
   bio?: string;
   photoDescriptions?: string[];
   age?: string;
   location?: string;
   interests?: string[];
-  firstMessage?: string; // Primeira mensagem enviada (opener)
+  firstMessage?: string;       // Primeira mensagem enviada (opener)
   tone?: string;
+  faceImageBase64?: string;    // Imagem do rosto em base64 para upload
+  faceDescription?: string;    // Descrição textual do rosto
 }
 
 export interface AddMessageRequest {
@@ -87,10 +92,13 @@ export interface GenerateSuggestionsRequest {
 export interface ConversationListItem {
   id: string;
   matchName: string;
+  username?: string;          // Para Instagram
   platform: string;
   lastMessage: string;
   lastMessageAt: Date;
   unreadCount: number;
+  faceImageUrl?: string;      // URL da imagem do rosto
+  age?: string;
   avatar: {
     emotionalTone: string;
     flirtLevel: string;
