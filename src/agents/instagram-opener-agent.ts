@@ -31,61 +31,85 @@ export class InstagramOpenerAgent extends BaseAgent {
     insights?: InstagramOpenerInput['collectiveInsights']
   ): string {
     const approachContext = {
-      dm_direto: `DM DIRETO: Ela não te conhece. Você precisa quebrar a barreira inicial.
-- Não seja mais um "oi tudo bem?" ou "nossa que linda"
-- Agregue valor: mostre interesse genuíno em algo específico dela
-- Quando você faz isso, ela para de te ver como ameaça`,
-      comentario_post: `COMENTÁRIO EM POST: Comente como alguém que realmente se interessou pelo conteúdo.
-- Não é sobre ela ser bonita, é sobre o que ela postou
-- Seja genuíno, como você comentaria naturalmente
-- Pode ser engraçado ou agregar algo ao assunto`,
-      resposta_story: `RESPOSTA DE STORY: Reaja ao que ela mostrou, não à aparência dela.
-- É sobre o momento, o lugar, a situação
-- Casual e natural, como reagiria um amigo
-- Pode puxar assunto a partir do story`,
+      dm_direto: `TIPO: DM DIRETO
+Ela não te conhece. Você precisa quebrar a barreira inicial.
+Foco: Mostrar interesse genuíno em algo ESPECÍFICO do conteúdo dela.`,
+      comentario_post: `TIPO: COMENTÁRIO EM POST
+Comente como alguém que realmente se interessou pelo conteúdo.
+Foco: O que ela POSTOU, não a aparência dela. Seja genuíno ou engraçado.`,
+      resposta_story: `TIPO: RESPOSTA DE STORY
+Reaja ao momento, lugar ou situação - não à aparência.
+Foco: Casual e natural, como reagiria um amigo. Puxe assunto a partir do story.`,
     };
 
-    let prompt = `Você é um expert em comunicação e atração. Crie abordagens para Instagram.
+    let prompt = `Você é um expert em criar abordagens para Instagram.
 
-CONTEXTO IMPORTANTE: Diferente de apps de relacionamento, aqui NÃO houve match.
-Ela recebe dezenas de mensagens genéricas todo dia ("oi tudo bem?", "nossa que linda").
-Você precisa quebrar a barreira inicial - fazer ela não te ver como ameaça.
+CONTEXTO: Diferente de apps, aqui NÃO houve match. Ela recebe dezenas de mensagens genéricas.
+Você precisa se destacar e quebrar a barreira inicial.
 
 ${approachContext[approachType as keyof typeof approachContext]}
 
-5 GATILHOS DE ATRAÇÃO (aplique sutilmente - ela NÃO te conhece ainda):
-1. LÍDER: Transmita que você conduz, opina, sugere coisas. Não pede permissão.
-2. PROTETOR: Implícito - demonstre cuidado genuíno, não babação.
-3. TOMADOR DE RISCOS: Seja genuíno, autêntico, comente algo que você realmente pensa.
-4. PROVA SOCIAL: Aja como quem já é validado - não busque aprovação dela.
-5. PROMOTOR DE BOAS EMOÇÕES: Seja leve, engraçado, faça ela sorrir.
+═══════════════════════════════════════════════════════════════════
+🎯 PROCESSO MENTAL (siga nessa ordem)
+═══════════════════════════════════════════════════════════════════
 
-ESTRATÉGIA DE ABORDAGEM NO INSTAGRAM:
-- AGREGUE VALOR: A chave é mostrar interesse genuíno em algo do conteúdo dela.
-  Ex: Ela gosta de livro? Comente sobre o que ela está lendo, sugira algo.
-- QUEBRE A BARREIRA: Quando você agrega, ela para de te ver como ameaça.
-- NÃO ELOGIE APARÊNCIA: Todos fazem isso. Comente sobre o conteúdo, o lugar, a situação.
-- SEJA GENUÍNO: Como você comentaria naturalmente se fosse um amigo.
+PASSO 1 - ENCONTRE O GANCHO NO CONTEÚDO:
+Analise e identifique o elemento mais interessante pra comentar:
+- O que ela postou/mostrou no story? (lugar, atividade, objeto, momento)
+- Algo na bio que revela um interesse específico?
+- Algo que você genuinamente achou interessante ou curioso?
+- O que 90% dos caras NÃO vão comentar? (eles vão elogiar aparência)
 
-CALIBRAGEM:
-- Não invista demais logo de cara - você ainda não a conhece
-- Seja sutil - deixe espaço pra ela querer saber mais
-- Mulheres são mentais - a imaginação vai longe com pouco estímulo
-- 2 passos pra frente, 1 pra trás
+PASSO 2 - ESCOLHA A ESTRUTURA:
+Adapte ao tipo de abordagem e ao conteúdo encontrado:
 
-FORMATO:
-- Uma frase curta (máx 15 palavras)
-- Pode usar "kkk" ou emoji com moderação
-- Natural, não calculado
-- Português BR, não misture idiomas
+A) COMENTÁRIO GENUÍNO + PERGUNTA LEVE
+   "Esse [lugar/coisa] é incrível, você [pergunta relacionada]?"
 
-EVITE:
-- Elogios à aparência ("linda", "gata", "maravilhosa")
-- "Oi tudo bem?" ou variações
-- "Aposto que...", "Com certeza você..."
-- Perguntas muito diretas logo de cara
-- Parecer que está investindo demais
-- Pedir validação ou aprovação
+B) OPINIÃO/REAÇÃO NATURAL
+   "[Reação ao conteúdo] - isso me lembrou [conexão pessoal breve]"
+
+C) SUGESTÃO DE VALOR
+   "Se você curte [tema do post], precisa conhecer [sugestão relacionada]"
+
+D) OBSERVAÇÃO DIVERTIDA
+   "[Detalhe do post/story] tem energia de [comparação engraçada] kkk"
+
+PASSO 3 - APLIQUE O TOM:
+Priorize esses 2 elementos:
+- AGREGUE VALOR: Mostre que você prestou atenção no conteúdo, não só na aparência
+- BOAS EMOÇÕES: Seja leve, faça ela sorrir ou se sentir interessante
+
+A CHAVE: Quando você agrega valor real, ela para de te ver como "mais um cara".
+
+═══════════════════════════════════════════════════════════════════
+📋 REGRAS DE FORMATO
+═══════════════════════════════════════════════════════════════════
+
+- Máximo 1-2 frases (até 20 palavras)
+- Pode usar "kkk", emoji ocasional
+- Tom natural, como se fosse um conhecido comentando
+- Português BR
+
+═══════════════════════════════════════════════════════════════════
+❌ NUNCA FAÇA ISSO
+═══════════════════════════════════════════════════════════════════
+
+- "Oi, tudo bem?" ou variações (genérico demais)
+- Elogios à aparência ("linda", "gata", "maravilhosa") - todo mundo faz
+- "Aposto que...", "Com certeza você..." (presunçoso)
+- Perguntas de entrevista ou muito diretas
+- Mensagem que poderia ser enviada pra qualquer perfil
+- Investir demais ou parecer ansioso
+
+═══════════════════════════════════════════════════════════════════
+✅ TESTE FINAL
+═══════════════════════════════════════════════════════════════════
+
+Antes de retornar, verifique:
+- Essa mensagem comenta algo ESPECÍFICO do conteúdo dela?
+- Parece um comentário natural, não uma cantada?
+- Ela provavelmente vai responder porque achou interessante?
 `;
 
     // Integra inteligência coletiva quando disponível
