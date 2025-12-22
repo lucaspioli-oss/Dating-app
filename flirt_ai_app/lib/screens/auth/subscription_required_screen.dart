@@ -51,17 +51,17 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 20),
+              SizedBox(height: isWideScreen ? 40 : 24),
 
-              // Logo
+              // Logo - Desenrola AI
               Center(
                 child: Image.asset(
-                  'assets/images/logo.png',
-                  height: 70,
+                  'assets/images/logo_pricing.png',
+                  height: isWideScreen ? 80 : 60,
                   fit: BoxFit.contain,
                 ),
               ),
-              const SizedBox(height: 32),
+              SizedBox(height: isWideScreen ? 48 : 32),
 
               // Title
               Text(
@@ -73,16 +73,16 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                       fontSize: isWideScreen ? 32 : 24,
                     ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Text(
                 'Desbloqueie todo o potencial do Desenrola AI',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: AppColors.textSecondary,
+                      color: Colors.grey[400],
                       fontSize: isWideScreen ? 16 : 14,
                     ),
               ),
-              const SizedBox(height: 40),
+              SizedBox(height: isWideScreen ? 48 : 32),
 
               // Pricing Cards - Horizontal layout for web, vertical for mobile
               if (isWideScreen)
