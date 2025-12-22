@@ -21,40 +21,21 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
   final _nameController = TextEditingController();
   final _bioController = TextEditingController();
   final _photoDescController = TextEditingController();
-  final _locationController = TextEditingController();
-  final _occupationController = TextEditingController();
   final _interestsController = TextEditingController();
 
   String _selectedPlatform = 'tinder';
-  String _selectedAction = 'opener'; // opener, instagram_dm, instagram_story, instagram_post, analyze
+  String _selectedAction = 'opener';
   bool _isLoading = false;
   bool _isAnalyzingImage = false;
   List<String> _suggestions = [];
   String? _analysis;
   final ImagePicker _picker = ImagePicker();
 
-  final List<Map<String, String>> _platforms = [
-    {'value': 'tinder', 'label': '🔥 Tinder'},
-    {'value': 'bumble', 'label': '💛 Bumble'},
-    {'value': 'hinge', 'label': '💕 Hinge'},
-    {'value': 'instagram', 'label': '📸 Instagram'},
-  ];
-
-  final List<Map<String, String>> _actions = [
-    {'value': 'opener', 'label': '💬 Primeira Mensagem', 'icon': 'chat'},
-    {'value': 'instagram_dm', 'label': '📩 DM Instagram', 'icon': 'message'},
-    {'value': 'instagram_story', 'label': '📱 Resposta Story', 'icon': 'story'},
-    {'value': 'instagram_post', 'label': '❤️ Comentário Post', 'icon': 'favorite'},
-    {'value': 'analyze', 'label': '🔍 Análise Completa', 'icon': 'analytics'},
-  ];
-
   @override
   void dispose() {
     _nameController.dispose();
     _bioController.dispose();
     _photoDescController.dispose();
-    _locationController.dispose();
-    _occupationController.dispose();
     _interestsController.dispose();
     super.dispose();
   }
@@ -76,8 +57,6 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
         imageMediaType = image.mimeType!;
       } else if (image.path.toLowerCase().endsWith('.png')) {
         imageMediaType = 'image/png';
-      } else if (image.path.toLowerCase().endsWith('.jpg') || image.path.toLowerCase().endsWith('.jpeg')) {
-        imageMediaType = 'image/jpeg';
       }
 
       final appState = context.read<AppState>();
@@ -100,12 +79,6 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
           if (result.photoDescriptions != null && result.photoDescriptions!.isNotEmpty) {
             _photoDescController.text = result.photoDescriptions!.join('\n');
           }
-          if (result.location != null && result.location!.isNotEmpty) {
-            _locationController.text = result.location!;
-          }
-          if (result.occupation != null && result.occupation!.isNotEmpty) {
-            _occupationController.text = result.occupation!;
-          }
           if (result.interests != null && result.interests!.isNotEmpty) {
             _interestsController.text = result.interests!.join(', ');
           }
@@ -113,9 +86,15 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✅ Perfil extraído com sucesso!'),
-              backgroundColor: Colors.green,
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.white),
+                  SizedBox(width: 12),
+                  Text('Perfil extraído com sucesso!'),
+                ],
+              ),
+              backgroundColor: const Color(0xFF4CAF50),
             ),
           );
         }
@@ -123,7 +102,7 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('❌ ${result.errorMessage ?? 'Erro ao analisar imagem'}'),
+              content: Text(result.errorMessage ?? 'Erro ao analisar imagem'),
               backgroundColor: Colors.red,
             ),
           );
@@ -133,7 +112,7 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ Erro: ${e.toString()}'),
+            content: Text('Erro: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -160,7 +139,6 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
       final agentService = AgentService(baseUrl: appState.backendUrl);
 
       if (_selectedAction == 'analyze') {
-        // Análise completa do perfil
         final result = await agentService.analyzeProfile(
           bio: _bioController.text.trim(),
           platform: _selectedPlatform,
@@ -177,7 +155,6 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
           _showError(result.errorMessage ?? 'Erro desconhecido');
         }
       } else if (_selectedAction.startsWith('instagram_')) {
-        // Instagram openers
         String approachType = 'dm';
         if (_selectedAction == 'instagram_story') {
           approachType = 'story';
@@ -196,12 +173,10 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
           setState(() {
             _suggestions = result.suggestions!;
           });
-          _showSuccess('✨ Sugestões geradas!');
         } else {
           _showError(result.errorMessage ?? 'Erro desconhecido');
         }
       } else {
-        // Primeira mensagem (opener para dating apps)
         final result = await agentService.generateFirstMessage(
           matchName: _nameController.text.trim(),
           matchBio: _bioController.text.trim(),
@@ -214,7 +189,6 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
           setState(() {
             _suggestions = result.suggestions!;
           });
-          _showSuccess('✨ Mensagens geradas!');
         } else {
           _showError(result.errorMessage ?? 'Erro desconhecido');
         }
@@ -228,18 +202,10 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
     }
   }
 
-  void _showSuccess(String message) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: Colors.green),
-      );
-    }
-  }
-
   void _showError(String message) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ $message'), backgroundColor: Colors.red),
+        SnackBar(content: Text(message), backgroundColor: Colors.red),
       );
     }
   }
@@ -248,8 +214,15 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('📋 Copiado!'),
+        content: Row(
+          children: [
+            Icon(Icons.check, color: Colors.white, size: 18),
+            SizedBox(width: 8),
+            Text('Copiado!'),
+          ],
+        ),
         duration: Duration(seconds: 1),
+        backgroundColor: Color(0xFF4CAF50),
       ),
     );
   }
@@ -259,7 +232,6 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
       final appState = context.read<AppState>();
       final conversationService = ConversationService(baseUrl: appState.backendUrl);
 
-      // Criar nova conversa com o opener
       final conversation = await conversationService.createConversation(
         matchName: _nameController.text.trim(),
         platform: _selectedPlatform,
@@ -272,18 +244,10 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
             ? null
             : _interestsController.text.trim().split(',').map((e) => e.trim()).toList(),
         firstMessage: opener,
-        tone: 'expert', // Expert mode - calibra automaticamente
+        tone: 'expert',
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Conversa criada! Abrindo...'),
-            backgroundColor: Colors.green,
-          ),
-        );
-
-        // Navegar para a tela de conversa
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -299,44 +263,40 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Análise & Mensagens'),
-        centerTitle: true,
-      ),
+      backgroundColor: const Color(0xFF0D0D1A),
       body: SafeArea(
         child: Form(
           key: _formKey,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
             children: [
               _buildHeader(),
               const SizedBox(height: 24),
+              _buildUploadArea(),
+              const SizedBox(height: 16),
               _buildUploadButton(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
               _buildSectionTitle('Plataforma'),
               const SizedBox(height: 12),
               _buildPlatformSelector(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
               _buildSectionTitle('O que você quer fazer?'),
               const SizedBox(height: 12),
               _buildActionSelector(),
-              const SizedBox(height: 24),
-              _buildSectionTitle('Nome / Username'),
-              const SizedBox(height: 8),
-              _buildNameField(),
-              const SizedBox(height: 24),
-              _buildSectionTitle('Bio / Descrição'),
-              const SizedBox(height: 8),
-              _buildBioField(),
-              const SizedBox(height: 24),
-              _buildSectionTitle('Descrição das Fotos (Opcional)'),
-              const SizedBox(height: 8),
+              const SizedBox(height: 28),
+              _buildInputFields(),
+              const SizedBox(height: 16),
               _buildPhotoDescField(),
-              const SizedBox(height: 32),
+              const SizedBox(height: 28),
               _buildGenerateButton(),
-              const SizedBox(height: 32),
-              if (_analysis != null) _buildAnalysis(),
-              if (_suggestions.isNotEmpty) _buildSuggestions(),
+              if (_suggestions.isNotEmpty) ...[
+                const SizedBox(height: 32),
+                _buildSuggestionsSection(),
+              ],
+              if (_analysis != null) ...[
+                const SizedBox(height: 32),
+                _buildAnalysisSection(),
+              ],
             ],
           ),
         ),
@@ -345,38 +305,100 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
   }
 
   Widget _buildHeader() {
-    return Card(
-      elevation: 0,
-      color: Theme.of(context).colorScheme.primaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            Icon(
-              Icons.auto_awesome,
-              size: 48,
-              color: Theme.of(context).colorScheme.onPrimaryContainer,
+    return Row(
+      children: [
+        // Logo
+        Image.asset(
+          'assets/images/logo_pricing.png',
+          height: 32,
+          fit: BoxFit.contain,
+        ),
+        const SizedBox(width: 12),
+        const Text(
+          'Análise & Mensagens',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const Spacer(),
+        // Badge
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFE91E63), Color(0xFFFF5722)],
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Tudo em Um Lugar',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.onPrimaryContainer,
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Upload de screenshot + Geração de mensagens',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onPrimaryContainer,
-                        ),
-                  ),
-                ],
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Text(
+            'Upload de Screenshot\n+ Geração de Mensagens',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              height: 1.3,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUploadArea() {
+    return GestureDetector(
+      onTap: _isAnalyzingImage ? null : _uploadAndAnalyzeImage,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 32),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A2E),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.grey.shade700,
+            width: 1,
+            style: BorderStyle.solid,
+          ),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2A2A3E),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: _isAnalyzingImage
+                  ? const SizedBox(
+                      width: 32,
+                      height: 32,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xFFE91E63),
+                      ),
+                    )
+                  : const Icon(
+                      Icons.camera_alt_outlined,
+                      size: 32,
+                      color: Colors.grey,
+                    ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _isAnalyzingImage ? 'Analisando...' : 'Arraste e Solte o Clique',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _isAnalyzingImage ? 'Extraindo informações do perfil' : 'para Fazer Upload',
+              style: TextStyle(
+                color: Colors.grey.shade500,
+                fontSize: 14,
               ),
             ),
           ],
@@ -386,233 +408,38 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
   }
 
   Widget _buildUploadButton() {
-    return Card(
-      elevation: 0,
-      color: Colors.blue.shade50,
-      child: InkWell(
-        onTap: _isAnalyzingImage ? null : _uploadAndAnalyzeImage,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A2E),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFF2A2A3E)),
+          ),
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              if (_isAnalyzingImage)
-                const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              else
-                const Icon(Icons.upload_file, size: 32, color: Colors.blue),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _isAnalyzingImage ? 'Analisando screenshot...' : '📸 Upload de Screenshot',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _isAnalyzingImage
-                          ? 'Extraindo informações do perfil...'
-                          : 'Tire print do perfil e preencha automaticamente',
-                      style: TextStyle(fontSize: 13, color: Colors.blue.shade700),
-                    ),
-                  ],
+              Icon(Icons.cloud_upload_outlined, size: 18, color: Colors.grey.shade400),
+              const SizedBox(width: 8),
+              Text(
+                'Upload de Screenshot',
+                style: TextStyle(
+                  color: Colors.grey.shade300,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-              if (!_isAnalyzingImage)
-                Icon(Icons.arrow_forward_ios, size: 16, color: Colors.blue.shade300),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-    );
-  }
-
-  Widget _buildPlatformSelector() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: _platforms.map((platform) {
-        final isSelected = _selectedPlatform == platform['value'];
-        return ChoiceChip(
-          label: Text(platform['label']!),
-          selected: isSelected,
-          onSelected: (selected) {
-            setState(() {
-              _selectedPlatform = platform['value']!;
-              // Ajustar ação padrão baseado na plataforma
-              if (_selectedPlatform == 'instagram' && _selectedAction == 'opener') {
-                _selectedAction = 'instagram_dm';
-              } else if (_selectedPlatform != 'instagram' && _selectedAction.startsWith('instagram_')) {
-                _selectedAction = 'opener';
-              }
-            });
-          },
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildActionSelector() {
-    List<Map<String, String>> availableActions = _actions;
-
-    // Filtrar ações baseado na plataforma
-    if (_selectedPlatform == 'instagram') {
-      availableActions = _actions.where((action) =>
-        action['value'] == 'instagram_dm' ||
-        action['value'] == 'instagram_story' ||
-        action['value'] == 'instagram_post' ||
-        action['value'] == 'analyze'
-      ).toList();
-    } else {
-      availableActions = _actions.where((action) =>
-        action['value'] == 'opener' ||
-        action['value'] == 'analyze'
-      ).toList();
-    }
-
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: availableActions.map((action) {
-        final isSelected = _selectedAction == action['value'];
-        return ChoiceChip(
-          label: Text(action['label']!),
-          selected: isSelected,
-          onSelected: (selected) {
-            setState(() {
-              _selectedAction = action['value']!;
-            });
-          },
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildNameField() {
-    return TextFormField(
-      controller: _nameController,
-      decoration: InputDecoration(
-        labelText: _selectedPlatform == 'instagram' ? 'Username' : 'Nome',
-        hintText: _selectedPlatform == 'instagram' ? 'Ex: @fulana' : 'Ex: Maria, João...',
-        border: const OutlineInputBorder(),
-        prefixIcon: const Icon(Icons.person_outline),
-      ),
-      validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return _selectedPlatform == 'instagram' ? 'Digite o username' : 'Digite o nome';
-        }
-        return null;
-      },
-    );
-  }
-
-  Widget _buildBioField() {
-    return TextFormField(
-      controller: _bioController,
-      maxLines: 4,
-      decoration: const InputDecoration(
-        labelText: 'Bio',
-        hintText: 'Cole aqui a bio do perfil...',
-        border: OutlineInputBorder(),
-        alignLabelWithHint: true,
-      ),
-      validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return 'Digite a bio do perfil';
-        }
-        return null;
-      },
-    );
-  }
-
-  Widget _buildPhotoDescField() {
-    return TextFormField(
-      controller: _photoDescController,
-      maxLines: 3,
-      decoration: const InputDecoration(
-        labelText: 'Descrição',
-        hintText: 'Ex: Na praia, com cachorro, viajando...',
-        border: OutlineInputBorder(),
-        alignLabelWithHint: true,
-        helperText: 'Opcional: descreva as fotos para personalizar mais',
-      ),
-    );
-  }
-
-  Widget _buildGenerateButton() {
-    String buttonText = 'Gerar';
-    if (_selectedAction == 'analyze') {
-      buttonText = 'Analisar Perfil';
-    } else if (_selectedAction.startsWith('instagram_')) {
-      buttonText = 'Gerar Sugestões';
-    } else {
-      buttonText = 'Gerar Mensagens';
-    }
-
-    return FilledButton.icon(
-      onPressed: _isLoading ? null : _generateContent,
-      icon: _isLoading
-          ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-            )
-          : const Icon(Icons.auto_awesome),
-      label: Text(_isLoading ? 'Gerando...' : buttonText),
-      style: FilledButton.styleFrom(padding: const EdgeInsets.all(16)),
-    );
-  }
-
-  Widget _buildAnalysis() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionTitle('🔍 Análise do Perfil'),
-        const SizedBox(height: 16),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Análise Completa',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.copy),
-                      onPressed: () => _copyToClipboard(_analysis!),
-                      tooltip: 'Copiar',
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  _analysis!,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-              ],
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            'Tire print do perfil e preencha automaticamente',
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 12,
             ),
           ),
         ),
@@ -620,65 +447,613 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
     );
   }
 
-  Widget _buildSuggestions() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionTitle('💬 Sugestões Geradas'),
-        const SizedBox(height: 16),
-        ..._suggestions.asMap().entries.map((entry) {
-          final index = entry.key;
-          final suggestion = entry.value;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 16,
-                          child: Text('${index + 1}'),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'Opção ${index + 1}',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.copy),
-                          onPressed: () => _copyToClipboard(suggestion),
-                          tooltip: 'Copiar',
-                        ),
-                      ],
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+
+  Widget _buildPlatformSelector() {
+    final platforms = [
+      {'value': 'tinder', 'label': 'Tinder', 'color': const Color(0xFFFF6B6B)},
+      {'value': 'bumble', 'label': 'Bumble', 'color': const Color(0xFFFFD93D)},
+      {'value': 'hinge', 'label': 'Hinge', 'color': const Color(0xFFE91E63)},
+      {'value': 'umatch', 'label': 'Umatch', 'color': const Color(0xFF8B5CF6)},
+      {'value': 'instagram', 'label': 'Instagram', 'color': const Color(0xFFE1306C)},
+    ];
+
+    return Row(
+      children: platforms.map((platform) {
+        final isSelected = _selectedPlatform == platform['value'];
+        final color = platform['color'] as Color;
+
+        return Padding(
+          padding: const EdgeInsets.only(right: 10),
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedPlatform = platform['value'] as String;
+                if (_selectedPlatform == 'instagram' && _selectedAction == 'opener') {
+                  _selectedAction = 'instagram_dm';
+                } else if (_selectedPlatform != 'instagram' && _selectedAction.startsWith('instagram_')) {
+                  _selectedAction = 'opener';
+                }
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: isSelected ? color.withOpacity(0.2) : const Color(0xFF1A1A2E),
+                borderRadius: BorderRadius.circular(25),
+                border: Border.all(
+                  color: isSelected ? color : const Color(0xFF2A2A3E),
+                  width: isSelected ? 2 : 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(6),
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      suggestion,
-                      style: Theme.of(context).textTheme.bodyLarge,
+                    child: Icon(
+                      _getPlatformIcon(platform['value'] as String),
+                      size: 12,
+                      color: Colors.white,
                     ),
-                    const SizedBox(height: 12),
-                    FilledButton.icon(
-                      onPressed: () => _createConversationAndStart(suggestion),
-                      icon: const Icon(Icons.chat),
-                      label: const Text('Iniciar Conversa com Esta'),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.all(12),
-                      ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    platform['label'] as String,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.grey.shade400,
+                      fontSize: 13,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                     ),
-                  ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  IconData _getPlatformIcon(String platform) {
+    switch (platform) {
+      case 'tinder':
+        return Icons.local_fire_department;
+      case 'bumble':
+        return Icons.hive;
+      case 'hinge':
+        return Icons.favorite;
+      case 'umatch':
+        return Icons.school;
+      case 'instagram':
+        return Icons.camera_alt;
+      default:
+        return Icons.chat;
+    }
+  }
+
+  Widget _buildActionSelector() {
+    List<Map<String, String>> actions;
+
+    if (_selectedPlatform == 'instagram') {
+      actions = [
+        {'value': 'instagram_dm', 'label': 'DM Direto'},
+        {'value': 'instagram_story', 'label': 'Resposta Story'},
+        {'value': 'instagram_post', 'label': 'Comentário'},
+        {'value': 'analyze', 'label': 'Análise Completa'},
+      ];
+    } else {
+      actions = [
+        {'value': 'opener', 'label': 'Primeira Mensagem'},
+        {'value': 'analyze', 'label': 'Análise Completa'},
+      ];
+    }
+
+    return Row(
+      children: actions.map((action) {
+        final isSelected = _selectedAction == action['value'];
+
+        return Padding(
+          padding: const EdgeInsets.only(right: 10),
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedAction = action['value']!;
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: isSelected ? const Color(0xFFE91E63) : const Color(0xFF1A1A2E),
+                borderRadius: BorderRadius.circular(25),
+                border: Border.all(
+                  color: isSelected ? const Color(0xFFE91E63) : const Color(0xFF2A2A3E),
+                ),
+              ),
+              child: Text(
+                action['label']!,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.grey.shade400,
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 ),
               ),
             ),
-          );
-        }).toList(),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildInputFields() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _selectedPlatform == 'instagram' ? 'Nome / Username' : 'Nome / Username',
+                style: TextStyle(
+                  color: Colors.grey.shade400,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _nameController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: _selectedPlatform == 'instagram' ? '@username' : 'Lovise',
+                  hintStyle: TextStyle(color: Colors.grey.shade600),
+                  filled: true,
+                  fillColor: const Color(0xFF1A1A2E),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF2A2A3E)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF2A2A3E)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE91E63)),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Campo obrigatório';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Bio / Descrição',
+                style: TextStyle(
+                  color: Colors.grey.shade400,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _bioController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'ucla',
+                  hintStyle: TextStyle(color: Colors.grey.shade600),
+                  filled: true,
+                  fillColor: const Color(0xFF1A1A2E),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF2A2A3E)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF2A2A3E)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE91E63)),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  suffixIcon: Icon(Icons.keyboard_arrow_up, color: Colors.grey.shade600),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Campo obrigatório';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPhotoDescField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Descrição das Fotos (Opcional)',
+              style: TextStyle(
+                color: Colors.grey.shade400,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Descreva o que aparece nas fotos',
+              style: TextStyle(
+                color: Colors.grey.shade700,
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _photoDescController,
+          style: const TextStyle(color: Colors.white),
+          maxLines: 1,
+          decoration: InputDecoration(
+            hintText: 'Na praia, com cachorro, viajando...',
+            hintStyle: TextStyle(color: Colors.grey.shade700),
+            filled: true,
+            fillColor: const Color(0xFF1A1A2E),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF2A2A3E)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF2A2A3E)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE91E63)),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGenerateButton() {
+    String buttonText = _selectedAction == 'analyze' ? 'Analisar Perfil' : 'Gerar Mensagens';
+
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _generateContent,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFE91E63),
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: const Color(0xFFE91E63).withOpacity(0.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 0,
+        ),
+        child: _isLoading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.auto_awesome, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    buttonText,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  Widget _buildSuggestionsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Sugestões Geradas',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Cards horizontais
+        SizedBox(
+          height: 180,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: _suggestions.length,
+            itemBuilder: (context, index) {
+              return _buildSuggestionCard(index, _suggestions[index]);
+            },
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Lista detalhada
+        ...List.generate(_suggestions.length, (index) {
+          return _buildSuggestionDetail(index, _suggestions[index]);
+        }),
+      ],
+    );
+  }
+
+  Widget _buildSuggestionCard(int index, String suggestion) {
+    return Container(
+      width: 140,
+      margin: const EdgeInsets.only(right: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A2E),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF2A2A3E)),
+      ),
+      child: Column(
+        children: [
+          // Avatar circular
+          Stack(
+            children: [
+              CircleAvatar(
+                radius: 32,
+                backgroundColor: const Color(0xFF2A2A3E),
+                child: Text(
+                  _nameController.text.isNotEmpty
+                      ? _nameController.text[0].toUpperCase()
+                      : '?',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Positioned(
+                right: 0,
+                top: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFE91E63),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '${index + 1}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Opção ${index + 1}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const Spacer(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              GestureDetector(
+                onTap: () => _copyToClipboard(suggestion),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2A2A3E),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.copy, size: 16, color: Colors.grey),
+                ),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => _createConversationAndStart(suggestion),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE91E63),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.send, size: 16, color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuggestionDetail(int index, String suggestion) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A2E),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF2A2A3E)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE91E63),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    '${index + 1}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Opção ${index + 1}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => _copyToClipboard(suggestion),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2A2A3E),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.copy, size: 18, color: Colors.grey),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            suggestion,
+            style: TextStyle(
+              color: Colors.grey.shade300,
+              fontSize: 14,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _createConversationAndStart(suggestion),
+              icon: const Icon(Icons.chat_bubble_outline, size: 18),
+              label: const Text('Iniciar Conversa'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFE91E63),
+                side: const BorderSide(color: Color(0xFFE91E63)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnalysisSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              'Análise do Perfil',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const Spacer(),
+            GestureDetector(
+              onTap: () => _copyToClipboard(_analysis!),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2A2A3E),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.copy, size: 18, color: Colors.grey),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A2E),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFF2A2A3E)),
+          ),
+          child: Text(
+            _analysis!,
+            style: TextStyle(
+              color: Colors.grey.shade300,
+              fontSize: 14,
+              height: 1.6,
+            ),
+          ),
+        ),
       ],
     );
   }
