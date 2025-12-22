@@ -19,9 +19,15 @@ class PurchaseSuccessScreen extends StatefulWidget {
 }
 
 class _PurchaseSuccessScreenState extends State<PurchaseSuccessScreen> {
-  bool _isResending = false;
-  bool _emailSent = false;
+  final _formKey = GlobalKey<FormState>();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
   String? _userEmail;
+  bool _isLoadingEmail = true;
 
   @override
   void initState() {
@@ -29,7 +35,16 @@ class _PurchaseSuccessScreenState extends State<PurchaseSuccessScreen> {
     _userEmail = widget.email;
     if (widget.sessionId != null && _userEmail == null) {
       _fetchSessionEmail();
+    } else {
+      _isLoadingEmail = false;
     }
+  }
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchSessionEmail() async {
@@ -42,255 +57,399 @@ class _PurchaseSuccessScreenState extends State<PurchaseSuccessScreen> {
         final data = jsonDecode(response.body);
         setState(() {
           _userEmail = data['email'];
+          _isLoadingEmail = false;
         });
+      } else {
+        setState(() => _isLoadingEmail = false);
       }
     } catch (e) {
-      // Silently fail - email will be shown as null
+      setState(() => _isLoadingEmail = false);
     }
   }
 
-  Future<void> _resendPasswordEmail() async {
+  Future<void> _setPassword() async {
+    if (!_formKey.currentState!.validate()) return;
     if (_userEmail == null) return;
 
-    setState(() => _isResending = true);
+    setState(() => _isLoading = true);
 
     try {
       final appState = context.read<AppState>();
       final response = await http.post(
-        Uri.parse('${appState.backendUrl}/resend-password-email'),
+        Uri.parse('${appState.backendUrl}/set-password'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': _userEmail}),
+        body: jsonEncode({
+          'email': _userEmail,
+          'password': _passwordController.text,
+        }),
       );
 
       if (response.statusCode == 200) {
-        setState(() {
-          _emailSent = true;
-          _isResending = false;
-        });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Email reenviado com sucesso!'),
+              content: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.white),
+                  SizedBox(width: 12),
+                  Text('Conta criada com sucesso!'),
+                ],
+              ),
               backgroundColor: Color(0xFF4CAF50),
             ),
           );
+
+          await Future.delayed(const Duration(seconds: 1));
+          if (mounted) {
+            Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+          }
         }
       } else {
-        throw Exception('Erro ao reenviar');
+        final error = jsonDecode(response.body);
+        throw Exception(error['message'] ?? 'Erro ao criar conta');
       }
     } catch (e) {
-      setState(() => _isResending = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro ao reenviar: $e'),
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Erro: $e')),
+              ],
+            ),
             backgroundColor: Colors.red,
           ),
         );
       }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
-  }
-
-  void _goToLogin() {
-    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth > 800;
+
+    if (_isLoadingEmail) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF0D0D1A),
+        body: const Center(
+          child: CircularProgressIndicator(color: Color(0xFFE91E63)),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D1A),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Success icon
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [
-                        const Color(0xFF4CAF50).withOpacity(0.2),
-                        const Color(0xFF4CAF50).withOpacity(0.1),
+            padding: EdgeInsets.symmetric(
+              horizontal: isDesktop ? 48 : 24,
+              vertical: 24,
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Logo
+                    Center(
+                      child: Image.asset(
+                        'assets/images/logo_pricing.png',
+                        height: isDesktop ? 60 : 48,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Subtitle
+                    Text(
+                      'Seu assistente inteligente de conversas',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.grey[500],
+                        fontSize: isDesktop ? 16 : 14,
+                      ),
+                    ),
+                    SizedBox(height: isDesktop ? 40 : 32),
+
+                    // Success badge
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4CAF50).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: const Color(0xFF4CAF50).withOpacity(0.3),
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.check_circle,
+                              color: Color(0xFF4CAF50),
+                              size: 20,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Pagamento confirmado!',
+                              style: TextStyle(
+                                color: Color(0xFF4CAF50),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: isDesktop ? 32 : 24),
+
+                    // Welcome text
+                    Text(
+                      'Bem-vindo ao Desenrola AI!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: isDesktop ? 28 : 24,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Configure sua senha para acessar',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.grey[500],
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+
+                    // Email field (read-only)
+                    _buildTextField(
+                      controller: TextEditingController(text: _userEmail ?? ''),
+                      label: 'Email',
+                      hint: 'seu@email.com',
+                      icon: Icons.email_outlined,
+                      readOnly: true,
+                      enabled: false,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Password field
+                    _buildTextField(
+                      controller: _passwordController,
+                      label: 'Senha',
+                      hint: 'Crie sua senha',
+                      icon: Icons.lock_outlined,
+                      obscureText: _obscurePassword,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                          color: Colors.grey[600],
+                        ),
+                        onPressed: () {
+                          setState(() => _obscurePassword = !_obscurePassword);
+                        },
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Digite sua senha';
+                        }
+                        if (value.length < 6) {
+                          return 'Senha deve ter no mínimo 6 caracteres';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Confirm password field
+                    _buildTextField(
+                      controller: _confirmPasswordController,
+                      label: 'Confirmar Senha',
+                      hint: 'Digite novamente',
+                      icon: Icons.lock_outlined,
+                      obscureText: _obscureConfirmPassword,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureConfirmPassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                          color: Colors.grey[600],
+                        ),
+                        onPressed: () {
+                          setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
+                        },
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Confirme sua senha';
+                        }
+                        if (value != _passwordController.text) {
+                          return 'As senhas não coincidem';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 32),
+
+                    // Create account button
+                    SizedBox(
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _setPassword,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE91E63),
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor: const Color(0xFFE91E63).withOpacity(0.5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'Criar minha conta',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Already have account link
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Já tem uma conta?',
+                          style: TextStyle(color: Colors.grey[500]),
+                        ),
+                        TextButton(
+                          onPressed: _isLoading
+                              ? null
+                              : () {
+                                  Navigator.pushNamedAndRemoveUntil(
+                                    context,
+                                    '/login',
+                                    (route) => false,
+                                  );
+                                },
+                          child: const Text(
+                            'Fazer login',
+                            style: TextStyle(
+                              color: Color(0xFFE91E63),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                  child: const Icon(
-                    Icons.check_circle,
-                    size: 60,
-                    color: Color(0xFF4CAF50),
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // Title
-                const Text(
-                  'Pagamento Confirmado!',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-
-                Text(
-                  'Bem-vindo ao Desenrola IA',
-                  style: TextStyle(
-                    color: Colors.grey.shade400,
-                    fontSize: 16,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 40),
-
-                // Email info card
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1A1A2E),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFF2A2A3E)),
-                  ),
-                  child: Column(
-                    children: [
-                      const Icon(
-                        Icons.email_outlined,
-                        size: 40,
-                        color: Color(0xFFE91E63),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Defina sua senha',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Enviamos um email para:',
-                        style: TextStyle(
-                          color: Colors.grey.shade500,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _userEmail ?? 'seu email',
-                        style: const TextStyle(
-                          color: Color(0xFFE91E63),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Clique no link do email para criar sua senha e acessar o app.',
-                        style: TextStyle(
-                          color: Colors.grey.shade400,
-                          fontSize: 14,
-                          height: 1.5,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Resend button
-                TextButton.icon(
-                  onPressed: _isResending ? null : _resendPasswordEmail,
-                  icon: _isResending
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Color(0xFFE91E63),
-                          ),
-                        )
-                      : Icon(
-                          _emailSent ? Icons.check : Icons.refresh,
-                          size: 18,
-                          color: const Color(0xFFE91E63),
-                        ),
-                  label: Text(
-                    _emailSent ? 'Email reenviado!' : 'Reenviar email',
-                    style: const TextStyle(
-                      color: Color(0xFFE91E63),
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // Divider
-                Row(
-                  children: [
-                    Expanded(child: Divider(color: Colors.grey.shade800)),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        'Já definiu sua senha?',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                    Expanded(child: Divider(color: Colors.grey.shade800)),
                   ],
                 ),
-                const SizedBox(height: 24),
-
-                // Login button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _goToLogin,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE91E63),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'Ir para Login',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Help text
-                Text(
-                  'Não recebeu o email? Verifique a pasta de spam.',
-                  style: TextStyle(
-                    color: Colors.grey.shade600,
-                    fontSize: 12,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+              ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
+    bool obscureText = false,
+    bool readOnly = false,
+    bool enabled = true,
+    Widget? suffixIcon,
+    String? Function(String?)? validator,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.grey[400],
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          keyboardType: keyboardType,
+          obscureText: obscureText,
+          readOnly: readOnly,
+          enabled: enabled,
+          style: TextStyle(
+            color: enabled ? Colors.white : Colors.grey[500],
+          ),
+          validator: validator,
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: Colors.grey[600]),
+            prefixIcon: Icon(icon, color: Colors.grey[600]),
+            suffixIcon: suffixIcon,
+            filled: true,
+            fillColor: enabled ? const Color(0xFF1A1A2E) : const Color(0xFF1A1A2E).withOpacity(0.5),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[800]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[800]!),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[800]!.withOpacity(0.5)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE91E63)),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.red),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.red),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          ),
+        ),
+      ],
     );
   }
 }

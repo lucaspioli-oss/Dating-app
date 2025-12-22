@@ -13,7 +13,20 @@
       "WebFetch(domain:console.firebase.google.com)",
       "Bash(cat:*)",
       "Bash(timeout /t 3 /nobreak)",
-      "Bash(railway up:*)"
+      "Bash(railway up:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(flutter clean:*)",
+      "Bash(railway variables set:*)",
+      "Bash(flutter build:*)",
+      "Bash(dir \"C:\\\\Dating App\\\\flirt_ai_app\")",
+      "Bash(dir \"C:\\\\Dating App\")",
+      "Bash(xcopy:*)",
+      "Bash(robocopy:*)",
+      "Bash(dir \"C:\\\\Users\\\\lucas\\\\OneDrive\\\\Área de Trabalho\\\\Dating App\\\\flirt_ai_app\")",
+      "Bash(dir:*)",
+      "Bash(flutter pub get:*)",
+      "Bash(firebase deploy:*)",
+      "Bash(C:srcflutterbinflutter.bat build web --release)"
     ],
     "deny": [],
     "ask": []

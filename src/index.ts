@@ -665,6 +665,86 @@ fastify.get('/checkout-session/:sessionId', async (request, reply) => {
   }
 });
 
+// Set password for new user (after purchase)
+fastify.post('/set-password', async (request, reply) => {
+  try {
+    const { email, password } = request.body as { email: string; password: string };
+
+    if (!email || !password) {
+      return reply.code(400).send({ error: 'Email e senha são obrigatórios' });
+    }
+
+    if (password.length < 6) {
+      return reply.code(400).send({ error: 'Senha deve ter no mínimo 6 caracteres' });
+    }
+
+    const admin = require('firebase-admin');
+    const db = admin.firestore();
+
+    // Check if user exists and needs password setup
+    const usersSnapshot = await db.collection('users')
+      .where('email', '==', email)
+      .limit(1)
+      .get();
+
+    if (usersSnapshot.empty) {
+      return reply.code(404).send({
+        error: 'Usuário não encontrado',
+        message: 'Nenhum usuário encontrado com este email',
+      });
+    }
+
+    const userDoc = usersSnapshot.docs[0];
+    const userData = userDoc.data();
+
+    // Verify user has active subscription (purchased)
+    if (!userData.subscription || userData.subscription.status !== 'active') {
+      return reply.code(403).send({
+        error: 'Assinatura não encontrada',
+        message: 'Complete a compra primeiro',
+      });
+    }
+
+    // Get or create Firebase Auth user
+    let userRecord;
+    try {
+      userRecord = await admin.auth().getUserByEmail(email);
+    } catch (error: any) {
+      if (error.code === 'auth/user-not-found') {
+        return reply.code(404).send({
+          error: 'Usuário não encontrado',
+          message: 'Nenhum usuário encontrado com este email',
+        });
+      }
+      throw error;
+    }
+
+    // Update the user's password
+    await admin.auth().updateUser(userRecord.uid, {
+      password: password,
+    });
+
+    // Mark password as set
+    await db.collection('users').doc(userDoc.id).update({
+      needsPasswordSetup: false,
+      passwordSetAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    console.log('✅ Password set for user:', email);
+
+    return reply.code(200).send({
+      success: true,
+      message: 'Senha definida com sucesso',
+    });
+  } catch (error: any) {
+    fastify.log.error(error);
+    return reply.code(500).send({
+      error: 'Erro ao definir senha',
+      message: error.message,
+    });
+  }
+});
+
 // Resend password reset email
 fastify.post('/resend-password-email', async (request, reply) => {
   try {

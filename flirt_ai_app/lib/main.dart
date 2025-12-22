@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' if (dart.library.io) 'dart:html' as html;
 
 import 'config/app_theme.dart';
 import 'providers/app_state.dart';
@@ -47,14 +49,32 @@ class FlirtAIApp extends StatelessWidget {
         theme: AppTheme.darkTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.dark,
-        home: const AuthWrapper(),
         routes: {
           '/login': (context) => const LoginScreen(),
         },
+        home: Builder(
+          builder: (context) {
+            // Check URL on web to handle /success route
+            if (kIsWeb) {
+              final uri = Uri.parse(html.window.location.href);
+              final path = uri.path;
+
+              if (path.contains('/success') || path.contains('/subscription/success')) {
+                final sessionId = uri.queryParameters['session_id'];
+                final email = uri.queryParameters['email'];
+                return PurchaseSuccessScreen(
+                  sessionId: sessionId,
+                  email: email,
+                );
+              }
+            }
+            return const AuthWrapper();
+          },
+        ),
         onGenerateRoute: (settings) {
           final uri = Uri.parse(settings.name ?? '');
 
-          // Handle /success route with query params
+          // Handle /success route with query params (public - no auth required)
           if (uri.path == '/success' || uri.path == '/subscription/success') {
             final sessionId = uri.queryParameters['session_id'];
             final email = uri.queryParameters['email'];
@@ -66,7 +86,17 @@ class FlirtAIApp extends StatelessWidget {
             );
           }
 
-          return null;
+          // Default route - AuthWrapper
+          if (uri.path == '/' || uri.path.isEmpty) {
+            return MaterialPageRoute(
+              builder: (context) => const AuthWrapper(),
+            );
+          }
+
+          // Fallback to AuthWrapper
+          return MaterialPageRoute(
+            builder: (context) => const AuthWrapper(),
+          );
         },
       ),
     );
