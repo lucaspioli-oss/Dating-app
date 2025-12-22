@@ -529,61 +529,51 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
   }
 
   Widget _buildPlatformIcon(String platform, Color color, bool isSelected) {
-    // Ícones customizados para cada plataforma
-    Widget icon;
+    String? assetPath;
 
     switch (platform) {
       case 'tinder':
-        icon = _buildCustomIcon('🔥', color, isSelected);
+        assetPath = 'assets/images/tinder.png';
         break;
       case 'bumble':
-        icon = _buildCustomIcon('🐝', color, isSelected);
+        assetPath = 'assets/images/bumble.png';
         break;
       case 'hinge':
-        icon = _buildCustomIcon('💜', color, isSelected);
+        assetPath = 'assets/images/hinge.png';
         break;
       case 'umatch':
-        icon = _buildCustomIcon('🎓', color, isSelected);
+        assetPath = 'assets/images/umatch.png';
         break;
       case 'instagram':
-        icon = Container(
-          width: 22,
-          height: 22,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFFF58529), Color(0xFFDD2A7B), Color(0xFF8134AF)],
-              begin: Alignment.topRight,
-              end: Alignment.bottomLeft,
-            ),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: const Icon(
-            Icons.camera_alt,
-            size: 14,
-            color: Colors.white,
-          ),
-        );
+        assetPath = 'assets/images/instagram.png';
         break;
       default:
-        icon = _buildCustomIcon('💬', color, isSelected);
+        assetPath = null;
     }
 
-    return icon;
-  }
+    if (assetPath != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: Image.asset(
+          assetPath,
+          width: 22,
+          height: 22,
+          fit: BoxFit.cover,
+        ),
+      );
+    }
 
-  Widget _buildCustomIcon(String emoji, Color color, bool isSelected) {
     return Container(
       width: 22,
       height: 22,
       decoration: BoxDecoration(
-        color: isSelected ? color : color.withOpacity(0.3),
+        color: color,
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Center(
-        child: Text(
-          emoji,
-          style: const TextStyle(fontSize: 12),
-        ),
+      child: const Icon(
+        Icons.chat,
+        size: 14,
+        color: Colors.white,
       ),
     );
   }
