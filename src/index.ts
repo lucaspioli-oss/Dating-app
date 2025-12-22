@@ -652,20 +652,25 @@ fastify.post('/create-checkout-session', {
 fastify.post('/create-portal-session', {
   preHandler: verifyAuth,
 }, async (request: AuthenticatedRequest, reply) => {
-  console.log('📋 Portal session request received');
+  console.log('=== PORTAL SESSION START ===');
 
   try {
-    const user = request.user!;
-    console.log('👤 User ID:', user.uid);
+    const user = request.user;
+    if (!user) {
+      console.log('ERROR: No user in request');
+      return reply.code(401).send({ error: 'Not authenticated', message: 'No user found' });
+    }
+    console.log('User ID:', user.uid);
 
     const admin = require('firebase-admin');
     const db = admin.firestore();
 
     // Get user's Stripe customer ID from Firestore
+    console.log('Getting user doc...');
     const userDoc = await db.collection('users').doc(user.uid).get();
 
     if (!userDoc.exists) {
-      console.log('❌ User document not found');
+      console.log('ERROR: User doc not found');
       return reply.code(404).send({
         error: 'User not found',
         message: 'User document not found in database',
@@ -674,10 +679,10 @@ fastify.post('/create-portal-session', {
 
     const userData = userDoc.data();
     const customerId = userData?.subscription?.stripeCustomerId;
-    console.log('💳 Stripe Customer ID:', customerId);
+    console.log('Stripe Customer ID:', customerId || 'NOT FOUND');
 
     if (!customerId) {
-      console.log('❌ No Stripe customer ID');
+      console.log('ERROR: No Stripe customer ID');
       return reply.code(400).send({
         error: 'No subscription found',
         message: 'Usuário não possui assinatura Stripe vinculada',
@@ -686,21 +691,30 @@ fastify.post('/create-portal-session', {
 
     // Create portal session
     const returnUrl = `${process.env.FRONTEND_URL || 'https://desenrola-ia.web.app'}/`;
-    console.log('🔗 Return URL:', returnUrl);
-    console.log('🔧 Portal Config ID:', process.env.STRIPE_PORTAL_CONFIG_ID || 'not set');
+    const portalConfigId = process.env.STRIPE_PORTAL_CONFIG_ID;
+    console.log('Return URL:', returnUrl);
+    console.log('Portal Config ID:', portalConfigId || 'NOT SET');
 
+    console.log('Calling Stripe API...');
     const session = await createCustomerPortalSession(customerId, returnUrl);
-    console.log('✅ Portal session created:', session.url);
+    console.log('Portal session URL:', session.url);
+    console.log('=== PORTAL SESSION SUCCESS ===');
 
     return reply.code(200).send({
       url: session.url,
     });
   } catch (error: any) {
-    console.error('❌ Portal session error:', error);
+    console.log('=== PORTAL SESSION ERROR ===');
+    console.log('Error name:', error?.name);
+    console.log('Error message:', error?.message);
+    console.log('Error type:', error?.type);
+    console.log('Error code:', error?.code);
+    console.log('Full error:', JSON.stringify(error, null, 2));
+
     return reply.code(500).send({
       error: 'Failed to create portal session',
       message: error?.message || 'Unknown error',
-      details: error?.type || error?.code || 'no details',
+      type: error?.type || 'unknown',
     });
   }
 });
