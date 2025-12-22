@@ -80,9 +80,11 @@ class _SubscriptionRequiredScreenState
       backgroundColor: const Color(0xFF0D0D1A),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(
-            horizontal: horizontalPadding,
-            vertical: isMobile ? 12 : 16,
+          padding: EdgeInsets.only(
+            left: horizontalPadding,
+            right: horizontalPadding,
+            top: isMobile ? 8 : 4,
+            bottom: isMobile ? 16 : 24,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -100,7 +102,7 @@ class _SubscriptionRequiredScreenState
                   ),
                 ),
               ),
-              SizedBox(height: isDesktop ? 20 : (isTablet ? 16 : 16)),
+              SizedBox(height: isDesktop ? 10 : (isTablet ? 8 : 12)),
 
               // Title
               Text(
