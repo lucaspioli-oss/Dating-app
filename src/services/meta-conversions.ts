@@ -66,7 +66,7 @@ export async function trackPurchase(data: PurchaseEventData): Promise<void> {
       }
     );
 
-    const result = await response.json();
+    const result = await response.json() as { events_received?: number; error?: unknown };
 
     if (response.ok) {
       console.log('✅ Meta Conversion tracked:', {
