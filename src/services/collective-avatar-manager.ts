@@ -71,14 +71,16 @@ export class CollectiveAvatarManager {
     const { name, platform, username, age, faceImageBase64, faceDescription } = request;
 
     // Se temos imagem de face, usar o fluxo de detecção de duplicatas
-    if (faceImageBase64 && faceDescription) {
+    // Usar fallback para faceDescription se não estiver disponível
+    if (faceImageBase64) {
+      const effectiveFaceDescription = faceDescription || 'Descrição não extraída';
       try {
         const faceResult = await FaceStorageService.processProfileFace({
           name,
           age,
           platform,
           imageBase64: faceImageBase64,
-          faceDescription,
+          faceDescription: effectiveFaceDescription,
           username,
         });
 
@@ -108,7 +110,7 @@ export class CollectiveAvatarManager {
           newAvatar.faceData = {
             faceUrls: [faceResult.faceUrl],
             faceHashes: [faceHash],
-            faceDescription,
+            faceDescription: effectiveFaceDescription,
           };
 
           await docRef.set({
