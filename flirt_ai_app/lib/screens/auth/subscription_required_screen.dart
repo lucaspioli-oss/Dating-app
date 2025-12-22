@@ -83,7 +83,7 @@ class _SubscriptionRequiredScreenState
           padding: EdgeInsets.only(
             left: horizontalPadding,
             right: horizontalPadding,
-            top: isMobile ? 8 : 4,
+            top: 0,
             bottom: isMobile ? 16 : 24,
           ),
           child: Column(
@@ -91,18 +91,12 @@ class _SubscriptionRequiredScreenState
             children: [
               // Logo - Desenrola AI (responsivo)
               Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: isDesktop ? 500 : (isTablet ? 400 : 260),
-                  ),
-                  child: Image.asset(
-                    'assets/images/logo_pricing.png',
-                    height: logoHeight,
-                    fit: BoxFit.contain,
-                  ),
+                child: Image.asset(
+                  'assets/images/logo_pricing.png',
+                  height: logoHeight,
+                  fit: BoxFit.contain,
                 ),
               ),
-              SizedBox(height: isDesktop ? 10 : (isTablet ? 8 : 12)),
 
               // Title
               Text(
