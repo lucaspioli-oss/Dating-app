@@ -555,14 +555,19 @@ fastify.delete('/conversations/:id', {
   try {
     const { id } = request.params as { id: string };
     const userId = request.user!.uid;
+    console.log(`[DELETE] Deleting conversation ${id} for user ${userId}`);
+
     const deleted = await ConversationManager.deleteConversation(id, userId);
 
     if (!deleted) {
+      console.log(`[DELETE] Conversation ${id} not found or not owned by user`);
       return reply.code(404).send({ error: 'Conversa não encontrada' });
     }
 
+    console.log(`[DELETE] Conversation ${id} deleted successfully`);
     return reply.code(200).send({ success: true });
   } catch (error) {
+    console.error('[DELETE] Error:', error);
     fastify.log.error(error);
     return reply.code(500).send({
       error: 'Erro ao deletar conversa',
