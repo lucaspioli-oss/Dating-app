@@ -161,9 +161,12 @@ export async function handleCheckoutCompleted(
 
   let userId: string;
 
+  let isNewUser = false;
+
   if (usersSnapshot.empty) {
     // Create user in Firebase Auth if doesn't exist
     console.log('👤 Creating new user for email:', customerEmail);
+    isNewUser = true;
 
     let userRecord;
     try {
@@ -187,6 +190,7 @@ export async function handleCheckoutCompleted(
       email: customerEmail,
       name: session.customer_details?.name || 'Usuário',
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      needsPasswordSetup: true,
       subscription: {
         status: 'active',
         plan,
@@ -201,6 +205,19 @@ export async function handleCheckoutCompleted(
         startedAt: admin.firestore.FieldValue.serverTimestamp(),
       },
     });
+
+    // Generate password reset link and send email
+    try {
+      const resetLink = await admin.auth().generatePasswordResetLink(customerEmail, {
+        url: `${process.env.FRONTEND_URL || 'https://desenrola-ia.web.app'}/login`,
+      });
+      console.log('🔑 Password reset link generated for:', customerEmail);
+
+      // TODO: Send email with resetLink using your email service
+      // For now, user can request it from the success page
+    } catch (error) {
+      console.error('❌ Error generating password reset link:', error);
+    }
   } else {
     userId = usersSnapshot.docs[0].id;
 

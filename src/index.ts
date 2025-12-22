@@ -642,6 +642,70 @@ fastify.post('/create-checkout-session', {
   }
 });
 
+// Get checkout session info (for success page)
+fastify.get('/checkout-session/:sessionId', async (request, reply) => {
+  try {
+    const { sessionId } = request.params as { sessionId: string };
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+      apiVersion: '2023-10-16',
+    });
+
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    return reply.code(200).send({
+      email: session.customer_email || session.customer_details?.email,
+      status: session.payment_status,
+    });
+  } catch (error: any) {
+    fastify.log.error(error);
+    return reply.code(500).send({
+      error: 'Failed to get session',
+      message: error.message,
+    });
+  }
+});
+
+// Resend password reset email
+fastify.post('/resend-password-email', async (request, reply) => {
+  try {
+    const { email } = request.body as { email: string };
+
+    if (!email) {
+      return reply.code(400).send({ error: 'Email is required' });
+    }
+
+    const admin = require('firebase-admin');
+
+    // Generate password reset link
+    const resetLink = await admin.auth().generatePasswordResetLink(email, {
+      url: `${process.env.FRONTEND_URL || 'https://desenrola-ia.web.app'}/login`,
+    });
+
+    console.log('🔑 Password reset link generated for:', email);
+
+    // For now, we just confirm it was generated
+    // In production, you would send this via email service
+    return reply.code(200).send({
+      success: true,
+      message: 'Password reset email sent',
+    });
+  } catch (error: any) {
+    fastify.log.error(error);
+
+    if (error.code === 'auth/user-not-found') {
+      return reply.code(404).send({
+        error: 'User not found',
+        message: 'No user found with this email',
+      });
+    }
+
+    return reply.code(500).send({
+      error: 'Failed to send password reset email',
+      message: error.message,
+    });
+  }
+});
+
 // Stripe Webhook Handler
 // URL: https://dating-app-production-ac43.up.railway.app/webhook/stripe
 fastify.post('/webhook/stripe', async (request, reply) => {

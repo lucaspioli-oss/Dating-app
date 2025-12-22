@@ -8,6 +8,8 @@ import 'config/app_theme.dart';
 import 'providers/app_state.dart';
 import 'providers/user_profile_provider.dart';
 import 'screens/auth/auth_wrapper.dart';
+import 'screens/auth/login_screen.dart';
+import 'screens/purchase_success_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,6 +48,26 @@ class FlirtAIApp extends StatelessWidget {
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.dark,
         home: const AuthWrapper(),
+        routes: {
+          '/login': (context) => const LoginScreen(),
+        },
+        onGenerateRoute: (settings) {
+          final uri = Uri.parse(settings.name ?? '');
+
+          // Handle /success route with query params
+          if (uri.path == '/success' || uri.path == '/subscription/success') {
+            final sessionId = uri.queryParameters['session_id'];
+            final email = uri.queryParameters['email'];
+            return MaterialPageRoute(
+              builder: (context) => PurchaseSuccessScreen(
+                sessionId: sessionId,
+                email: email,
+              ),
+            );
+          }
+
+          return null;
+        },
       ),
     );
   }
