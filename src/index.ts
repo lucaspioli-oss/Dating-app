@@ -38,7 +38,10 @@ const fastify = Fastify({
 
 // Habilitar CORS
 fastify.register(cors, {
-  origin: true, // Aceita qualquer origem (para desenvolvimento)
+  origin: true, // Aceita qualquer origem
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
 });
 
 // Raw body parser for Stripe webhooks
