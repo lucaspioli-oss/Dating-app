@@ -1,3 +1,21 @@
+// Helper para parsing de data robusto
+DateTime _parseDate(dynamic value) {
+  if (value == null) return DateTime.now();
+  if (value is DateTime) return value;
+  if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+  if (value is String) {
+    // Tenta ISO 8601
+    try {
+      return DateTime.parse(value);
+    } catch (_) {}
+    // Tenta timestamp como string
+    try {
+      return DateTime.fromMillisecondsSinceEpoch(int.parse(value));
+    } catch (_) {}
+  }
+  return DateTime.now();
+}
+
 class Message {
   final String id;
   final String role; // 'user' ou 'match'
@@ -17,10 +35,10 @@ class Message {
 
   factory Message.fromJson(Map<String, dynamic> json) {
     return Message(
-      id: json['id'],
-      role: json['role'],
-      content: json['content'],
-      timestamp: DateTime.parse(json['timestamp']),
+      id: json['id'] ?? '',
+      role: json['role'] ?? 'user',
+      content: json['content'] ?? '',
+      timestamp: _parseDate(json['timestamp']),
       wasAiSuggestion: json['wasAiSuggestion'],
       tone: json['tone'],
     );
@@ -55,11 +73,11 @@ class DetectedPatterns {
 
   factory DetectedPatterns.fromJson(Map<String, dynamic> json) {
     return DetectedPatterns(
-      responseLength: json['responseLength'],
-      emotionalTone: json['emotionalTone'],
-      useEmojis: json['useEmojis'],
-      flirtLevel: json['flirtLevel'],
-      lastUpdated: DateTime.parse(json['lastUpdated']),
+      responseLength: json['responseLength'] ?? 'medium',
+      emotionalTone: json['emotionalTone'] ?? 'neutral',
+      useEmojis: json['useEmojis'] ?? false,
+      flirtLevel: json['flirtLevel'] ?? 'medium',
+      lastUpdated: _parseDate(json['lastUpdated']),
     );
   }
 
@@ -186,8 +204,8 @@ class ConversationAvatar {
 
   factory ConversationAvatar.fromJson(Map<String, dynamic> json) {
     return ConversationAvatar(
-      matchName: json['matchName'],
-      platform: json['platform'],
+      matchName: json['matchName'] ?? '',
+      platform: json['platform'] ?? 'tinder',
       bio: json['bio'],
       photoDescriptions: json['photoDescriptions'] != null
           ? List<String>.from(json['photoDescriptions'])
@@ -195,9 +213,26 @@ class ConversationAvatar {
       age: json['age'],
       location: json['location'],
       interests: json['interests'] != null ? List<String>.from(json['interests']) : null,
-      detectedPatterns: DetectedPatterns.fromJson(json['detectedPatterns']),
-      learnedInfo: LearnedInfo.fromJson(json['learnedInfo']),
-      analytics: Analytics.fromJson(json['analytics']),
+      detectedPatterns: json['detectedPatterns'] != null
+          ? DetectedPatterns.fromJson(json['detectedPatterns'])
+          : DetectedPatterns(
+              responseLength: 'medium',
+              emotionalTone: 'neutral',
+              useEmojis: false,
+              flirtLevel: 'medium',
+              lastUpdated: DateTime.now(),
+            ),
+      learnedInfo: json['learnedInfo'] != null
+          ? LearnedInfo.fromJson(json['learnedInfo'])
+          : LearnedInfo(),
+      analytics: json['analytics'] != null
+          ? Analytics.fromJson(json['analytics'])
+          : Analytics(
+              totalMessages: 0,
+              aiSuggestionsUsed: 0,
+              customMessagesUsed: 0,
+              conversationQuality: 'average',
+            ),
     );
   }
 }
@@ -223,13 +258,15 @@ class Conversation {
 
   factory Conversation.fromJson(Map<String, dynamic> json) {
     return Conversation(
-      id: json['id'],
-      avatar: ConversationAvatar.fromJson(json['avatar']),
-      messages: (json['messages'] as List).map((m) => Message.fromJson(m)).toList(),
-      currentTone: json['currentTone'],
-      status: json['status'],
-      createdAt: DateTime.parse(json['createdAt']),
-      lastMessageAt: DateTime.parse(json['lastMessageAt']),
+      id: json['id'] ?? '',
+      avatar: ConversationAvatar.fromJson(json['avatar'] ?? {}),
+      messages: json['messages'] != null
+          ? (json['messages'] as List).map((m) => Message.fromJson(m)).toList()
+          : [],
+      currentTone: json['currentTone'] ?? 'expert',
+      status: json['status'] ?? 'active',
+      createdAt: _parseDate(json['createdAt']),
+      lastMessageAt: _parseDate(json['lastMessageAt']),
     );
   }
 }
@@ -255,13 +292,13 @@ class ConversationListItem {
 
   factory ConversationListItem.fromJson(Map<String, dynamic> json) {
     return ConversationListItem(
-      id: json['id'],
-      matchName: json['matchName'],
-      platform: json['platform'],
-      lastMessage: json['lastMessage'],
-      lastMessageAt: DateTime.parse(json['lastMessageAt']),
-      unreadCount: json['unreadCount'],
-      avatar: Map<String, String>.from(json['avatar']),
+      id: json['id'] ?? '',
+      matchName: json['matchName'] ?? '',
+      platform: json['platform'] ?? 'tinder',
+      lastMessage: json['lastMessage'] ?? '',
+      lastMessageAt: _parseDate(json['lastMessageAt']),
+      unreadCount: json['unreadCount'] ?? 0,
+      avatar: json['avatar'] != null ? Map<String, String>.from(json['avatar']) : {},
     );
   }
 

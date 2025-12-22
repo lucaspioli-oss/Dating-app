@@ -831,115 +831,11 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        // Cards horizontais
-        SizedBox(
-          height: 180,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: _suggestions.length,
-            itemBuilder: (context, index) {
-              return _buildSuggestionCard(index, _suggestions[index]);
-            },
-          ),
-        ),
-        const SizedBox(height: 16),
-        // Lista detalhada
+        // Lista de sugestões em texto
         ...List.generate(_suggestions.length, (index) {
           return _buildSuggestionDetail(index, _suggestions[index]);
         }),
       ],
-    );
-  }
-
-  Widget _buildSuggestionCard(int index, String suggestion) {
-    return Container(
-      width: 140,
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF2A2A3E)),
-      ),
-      child: Column(
-        children: [
-          Stack(
-            children: [
-              CircleAvatar(
-                radius: 32,
-                backgroundColor: const Color(0xFF2A2A3E),
-                child: Text(
-                  _nameController.text.isNotEmpty
-                      ? _nameController.text[0].toUpperCase()
-                      : '?',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              Positioned(
-                right: 0,
-                top: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFE91E63),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    '${index + 1}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Opção ${index + 1}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const Spacer(),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              GestureDetector(
-                onTap: () => _copyToClipboard(suggestion),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2A2A3E),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.copy, size: 16, color: Colors.grey),
-                ),
-              ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () => _createConversationAndStart(suggestion),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE91E63),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.send, size: 16, color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 
