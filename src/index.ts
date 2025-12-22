@@ -552,12 +552,21 @@ fastify.patch('/conversations/:id/tone', {
 fastify.delete('/conversations/:id', {
   preHandler: verifyAuth,
 }, async (request: AuthenticatedRequest, reply) => {
+  console.log('[DELETE] Endpoint reached');
   try {
     const { id } = request.params as { id: string };
-    const userId = request.user!.uid;
-    console.log(`[DELETE] Deleting conversation ${id} for user ${userId}`);
+    console.log(`[DELETE] Conversation ID: ${id}`);
+
+    if (!request.user) {
+      console.log('[DELETE] No user in request');
+      return reply.code(401).send({ error: 'User not authenticated' });
+    }
+
+    const userId = request.user.uid;
+    console.log(`[DELETE] User ID: ${userId}`);
 
     const deleted = await ConversationManager.deleteConversation(id, userId);
+    console.log(`[DELETE] Delete result: ${deleted}`);
 
     if (!deleted) {
       console.log(`[DELETE] Conversation ${id} not found or not owned by user`);
@@ -568,10 +577,10 @@ fastify.delete('/conversations/:id', {
     return reply.code(200).send({ success: true });
   } catch (error) {
     console.error('[DELETE] Error:', error);
-    fastify.log.error(error);
     return reply.code(500).send({
       error: 'Erro ao deletar conversa',
-      message: error instanceof Error ? error.message : 'Erro desconhecido',
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
     });
   }
 });
