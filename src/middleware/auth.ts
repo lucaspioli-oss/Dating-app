@@ -95,7 +95,7 @@ export async function verifyAuth(
     }
 
     const userData = userDoc.data();
-    console.log('5. User data:', JSON.stringify(userData, null, 2));
+    console.log('5. User subscription status:', userData?.subscription?.status);
     const subscription = userData?.subscription;
 
     // Check for admin/developer status (stored in Firestore, not in code)
@@ -137,7 +137,8 @@ export async function verifyAuth(
       });
       return;
     }
-    console.log('=== verifyAuth SUCCESS ===');
+    console.log('=== verifyAuth SUCCESS - proceeding to handler ===');
+    // Don't return anything - let Fastify proceed to the handler
   } catch (error: any) {
     console.error('=== verifyAuth ERROR ===');
     console.error('Error name:', error.name);
