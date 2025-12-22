@@ -47,9 +47,9 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
     // Tamanhos responsivos do logo
     double logoHeight;
     if (isDesktop) {
-      logoHeight = 120;
+      logoHeight = 160;
     } else if (isTablet) {
-      logoHeight = 90;
+      logoHeight = 100;
     } else {
       logoHeight = 70;
     }
@@ -85,13 +85,13 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              SizedBox(height: isDesktop ? 60 : (isTablet ? 40 : 20)),
+              SizedBox(height: isDesktop ? 24 : (isTablet ? 20 : 16)),
 
               // Logo - Desenrola AI (responsivo)
               Center(
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
-                    maxWidth: isDesktop ? 400 : (isTablet ? 300 : 250),
+                    maxWidth: isDesktop ? 500 : (isTablet ? 350 : 260),
                   ),
                   child: Image.asset(
                     'assets/images/logo_pricing.png',
@@ -100,7 +100,7 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                   ),
                 ),
               ),
-              SizedBox(height: isDesktop ? 60 : (isTablet ? 40 : 28)),
+              SizedBox(height: isDesktop ? 32 : (isTablet ? 24 : 20)),
 
               // Title
               Text(
@@ -112,7 +112,7 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                   fontSize: titleFontSize,
                 ),
               ),
-              SizedBox(height: isDesktop ? 16 : 10),
+              SizedBox(height: isDesktop ? 12 : 8),
               Text(
                 'Desbloqueie todo o potencial do Desenrola AI',
                 textAlign: TextAlign.center,
@@ -121,7 +121,7 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                   fontSize: isDesktop ? 18 : (isTablet ? 16 : 14),
                 ),
               ),
-              SizedBox(height: isDesktop ? 60 : (isTablet ? 40 : 28)),
+              SizedBox(height: isDesktop ? 40 : (isTablet ? 32 : 24)),
 
               // Pricing Cards - Layout responsivo
               if (isDesktop || isTablet)
