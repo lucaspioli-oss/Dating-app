@@ -92,7 +92,12 @@ fastify.post<{ Body: AnalyzeRequest }>(
 );
 
 fastify.get('/health', async (request, reply) => {
-  return { status: 'ok', timestamp: new Date().toISOString() };
+  return {
+    status: 'ok',
+    version: '2.0.0',
+    timestamp: new Date().toISOString(),
+    endpoints: ['/set-password', '/webhook/stripe', '/checkout-session/:sessionId']
+  };
 });
 
 // Nova rota: Analisar perfil de apps de namoro
