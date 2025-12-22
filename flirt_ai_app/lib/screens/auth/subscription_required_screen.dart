@@ -28,28 +28,28 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
   static const double monthlyPrice = 29.90;
   static const double quarterlyPrice = 69.90;
   static const double yearlyPrice = 199.90;
-  static const double monthlyOriginalPrice = 49.90; // Anchoring
-  static const double quarterlyOriginalPrice = 89.70; // 29.90 * 3
-  static const double yearlyOriginalPrice = 358.80; // 29.90 * 12
 
-  // Calculate per day/month prices
-  double get monthlyPerDay => monthlyPrice / 30;
-  double get quarterlyPerMonth => quarterlyPrice / 3;
-  double get yearlyPerMonth => yearlyPrice / 12;
-  double get monthlyOriginalPerDay => monthlyOriginalPrice / 30;
-  double get quarterlyOriginalPerMonth => quarterlyOriginalPrice / 3;
-  double get yearlyOriginalPerMonth => yearlyOriginalPrice / 12;
+  // Calculate per day prices
+  double get monthlyPerDay => monthlyPrice / 30; // ~1.00
+  double get quarterlyPerDay => quarterlyPrice / 90; // ~0.78
+  double get yearlyPerDay => yearlyPrice / 365; // ~0.55
 
   @override
   Widget build(BuildContext context) {
     final authService = FirebaseAuthService();
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWideScreen = screenWidth > 800;
 
     return Scaffold(
+      backgroundColor: const Color(0xFF0D0D1A),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.symmetric(
+            horizontal: isWideScreen ? 48 : 20,
+            vertical: 24,
+          ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 20),
 
@@ -57,11 +57,11 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
               Center(
                 child: Image.asset(
                   'assets/images/logo.png',
-                  height: 80,
+                  height: 70,
                   fit: BoxFit.contain,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
 
               // Title
               Text(
@@ -69,6 +69,8 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      fontSize: isWideScreen ? 32 : 24,
                     ),
               ),
               const SizedBox(height: 8),
@@ -77,106 +79,86 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       color: AppColors.textSecondary,
+                      fontSize: isWideScreen ? 16 : 14,
                     ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 40),
 
-              // Monthly Plan
-              _buildPlanCard(
-                index: 0,
-                planName: 'Plano Mensal',
-                totalPrice: monthlyPrice,
-                originalPrice: monthlyOriginalPrice,
-                perUnitPrice: monthlyPerDay,
-                originalPerUnitPrice: monthlyOriginalPerDay,
-                period: '/mês',
-                perUnitLabel: 'por dia',
-                isPopular: false,
-              ),
-              const SizedBox(height: 16),
-
-              // Quarterly Plan (Most Popular)
-              _buildPlanCard(
-                index: 1,
-                planName: 'Plano Trimestral',
-                totalPrice: quarterlyPrice,
-                originalPrice: quarterlyOriginalPrice,
-                perUnitPrice: quarterlyPerMonth,
-                originalPerUnitPrice: quarterlyOriginalPerMonth,
-                period: '/3 meses',
-                perUnitLabel: 'por mês',
-                isPopular: true,
-                savingsPercent: 22,
-              ),
-              const SizedBox(height: 16),
-
-              // Yearly Plan
-              _buildPlanCard(
-                index: 2,
-                planName: 'Plano Anual',
-                totalPrice: yearlyPrice,
-                originalPrice: yearlyOriginalPrice,
-                perUnitPrice: yearlyPerMonth,
-                originalPerUnitPrice: yearlyOriginalPerMonth,
-                period: '/ano',
-                perUnitLabel: 'por mês',
-                isPopular: false,
-                savingsPercent: 44,
-              ),
-              const SizedBox(height: 32),
-
-              // Features
-              _buildFeaturesSection(),
-              const SizedBox(height: 32),
-
-              // Subscribe button
-              GradientButton(
-                text: 'Começar Agora',
-                icon: Icons.rocket_launch,
-                onPressed: () => _createStripeCheckout(context),
-              ),
-              const SizedBox(height: 16),
-
-              // Guarantee
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.cardDark,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
+              // Pricing Cards - Horizontal layout for web, vertical for mobile
+              if (isWideScreen)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.verified_user,
-                      color: AppColors.success,
-                      size: 24,
+                    Flexible(
+                      child: _buildPricingCard(
+                        index: 0,
+                        planName: 'Plano Mensal',
+                        pricePerDay: monthlyPerDay,
+                        totalPrice: monthlyPrice,
+                        period: '/mês',
+                        isPopular: false,
+                      ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Garantia de 7 dias',
-                            style: TextStyle(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            'Não gostou? Devolvemos seu dinheiro',
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
+                    const SizedBox(width: 20),
+                    Flexible(
+                      child: _buildPricingCard(
+                        index: 1,
+                        planName: 'Plano Trimestral',
+                        pricePerDay: quarterlyPerDay,
+                        totalPrice: quarterlyPrice,
+                        period: '/3 meses',
+                        isPopular: true,
+                        savingsPercent: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+                    Flexible(
+                      child: _buildPricingCard(
+                        index: 2,
+                        planName: 'Plano Anual',
+                        pricePerDay: yearlyPerDay,
+                        totalPrice: yearlyPrice,
+                        period: '/ano',
+                        isPopular: false,
                       ),
                     ),
                   ],
+                )
+              else
+                Column(
+                  children: [
+                    _buildPricingCard(
+                      index: 0,
+                      planName: 'Plano Mensal',
+                      pricePerDay: monthlyPerDay,
+                      totalPrice: monthlyPrice,
+                      period: '/mês',
+                      isPopular: false,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildPricingCard(
+                      index: 1,
+                      planName: 'Plano Trimestral',
+                      pricePerDay: quarterlyPerDay,
+                      totalPrice: quarterlyPrice,
+                      period: '/3 meses',
+                      isPopular: true,
+                      savingsPercent: 22,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildPricingCard(
+                      index: 2,
+                      planName: 'Plano Anual',
+                      pricePerDay: yearlyPerDay,
+                      totalPrice: yearlyPrice,
+                      period: '/ano',
+                      isPopular: false,
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 24),
+
+              const SizedBox(height: 40),
 
               // Logout button
               TextButton.icon(
@@ -197,52 +179,48 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
     );
   }
 
-  Widget _buildPlanCard({
+  Widget _buildPricingCard({
     required int index,
     required String planName,
+    required double pricePerDay,
     required double totalPrice,
-    required double originalPrice,
-    required double perUnitPrice,
-    required double originalPerUnitPrice,
     required String period,
-    required String perUnitLabel,
     required bool isPopular,
     int? savingsPercent,
   }) {
     final isSelected = _selectedPlan == index;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWideScreen = screenWidth > 800;
+    final cardWidth = isWideScreen ? 280.0 : double.infinity;
 
     return GestureDetector(
       onTap: () => setState(() => _selectedPlan = index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+      child: Container(
+        width: cardWidth,
+        constraints: BoxConstraints(maxWidth: 320),
         decoration: BoxDecoration(
-          gradient: isPopular
-              ? LinearGradient(
-                  colors: [
-                    AppColors.primaryCoral.withOpacity(0.1),
-                    AppColors.primaryMagenta.withOpacity(0.1),
-                  ],
-                )
-              : null,
-          color: isPopular ? null : AppColors.cardDark,
+          color: const Color(0xFF1A1A2E),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isPopular
-                ? AppColors.primary
-                : (isSelected ? AppColors.primary.withOpacity(0.5) : AppColors.elevatedDark),
+                ? const Color(0xFFE91E63)
+                : (isSelected ? const Color(0xFFE91E63).withOpacity(0.5) : const Color(0xFF2A2A3E)),
             width: isPopular ? 2 : 1,
           ),
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             // Most Popular Badge
             if (isPopular)
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFFE91E63), Color(0xFFFF5722)],
+                  ),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
                 ),
                 child: const Text(
                   'Mais Popular',
@@ -255,228 +233,149 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                 ),
               ),
 
-            // Plan content
             Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
+              padding: const EdgeInsets.all(24),
+              child: Column(
                 children: [
-                  // Radio button
-                  Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isSelected ? AppColors.primary : AppColors.textTertiary,
-                        width: 2,
-                      ),
-                    ),
-                    child: isSelected
-                        ? Center(
-                            child: Container(
-                              width: 12,
-                              height: 12,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          )
-                        : null,
-                  ),
-                  const SizedBox(width: 16),
-
-                  // Plan info
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          planName,
-                          style: TextStyle(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                  // Plan name with radio and savings badge
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Radio button
+                      Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isSelected ? const Color(0xFFE91E63) : Colors.grey,
+                            width: 2,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Text(
-                              'R\$ ${originalPrice.toStringAsFixed(2).replaceAll('.', ',')}',
-                              style: TextStyle(
-                                color: AppColors.textTertiary,
-                                fontSize: 13,
-                                decoration: TextDecoration.lineThrough,
-                              ),
+                        child: isSelected
+                            ? Center(
+                                child: Container(
+                                  width: 10,
+                                  height: 10,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Color(0xFFE91E63),
+                                  ),
+                                ),
+                              )
+                            : null,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        planName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
+                      ),
+                      if (savingsPercent != null) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF4CAF50).withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'Economize $savingsPercent%',
+                            style: const TextStyle(
+                              color: Color(0xFF4CAF50),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'R\$ ${totalPrice.toStringAsFixed(2).replaceAll('.', ',')}',
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            Text(
-                              period,
-                              style: TextStyle(
-                                color: AppColors.textTertiary,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ],
-                    ),
+                    ],
                   ),
+                  const SizedBox(height: 24),
 
-                  // Per unit price
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                  // Price per day - main highlight
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'R\$ ${originalPerUnitPrice.toStringAsFixed(2).replaceAll('.', ',')}',
-                        style: TextStyle(
-                          color: AppColors.textTertiary,
-                          fontSize: 12,
-                          decoration: TextDecoration.lineThrough,
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Text(
+                          'R\$ ',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'R\$ ',
-                            style: TextStyle(
-                              color: isPopular ? AppColors.primary : AppColors.textPrimary,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            perUnitPrice.toStringAsFixed(2).replaceAll('.', ','),
-                            style: TextStyle(
-                              color: isPopular ? AppColors.primary : AppColors.textPrimary,
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              height: 1,
-                            ),
-                          ),
-                        ],
-                      ),
                       Text(
-                        perUnitLabel,
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12,
+                        pricePerDay.toStringAsFixed(2).replaceAll('.', ','),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 48,
+                          fontWeight: FontWeight.bold,
+                          height: 1,
+                        ),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Text(
+                          ' por dia',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 8),
+
+                  // Total price
+                  Text(
+                    'R\$ ${totalPrice.toStringAsFixed(2).replaceAll('.', ',')}$period',
+                    style: TextStyle(
+                      color: Colors.grey[500],
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Subscribe button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() => _selectedPlan = index);
+                        _createStripeCheckout(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE91E63),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Assinar Agora',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
-
-            // Savings badge
-            if (savingsPercent != null)
-              Container(
-                margin: const EdgeInsets.only(bottom: 12, left: 20, right: 20),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.savings,
-                      size: 16,
-                      color: AppColors.success,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Economize $savingsPercent%',
-                      style: TextStyle(
-                        color: AppColors.success,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildFeaturesSection() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.auto_awesome, color: AppColors.primary, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'O que você recebe:',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildFeatureItem('Respostas ilimitadas da IA'),
-          _buildFeatureItem('Todos os tons de conversa'),
-          _buildFeatureItem('Análise de perfil inteligente'),
-          _buildFeatureItem('Modo Expert para situações difíceis'),
-          _buildFeatureItem('Suporte prioritário'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFeatureItem(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: AppColors.success.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Icon(
-              Icons.check,
-              size: 14,
-              color: AppColors.success,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -511,17 +410,17 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
           child: Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: AppColors.cardDark,
+              color: const Color(0xFF1A1A2E),
               borderRadius: BorderRadius.circular(16),
             ),
             child: const Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                CircularProgressIndicator(color: AppColors.primary),
+                CircularProgressIndicator(color: Color(0xFFE91E63)),
                 SizedBox(height: 16),
                 Text(
                   'Preparando checkout...',
-                  style: TextStyle(color: AppColors.textPrimary),
+                  style: TextStyle(color: Colors.white),
                 ),
               ],
             ),
