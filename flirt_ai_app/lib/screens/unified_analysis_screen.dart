@@ -315,23 +315,13 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
   }
 
   Widget _buildHeader() {
-    return Row(
-      children: [
-        Image.asset(
-          'assets/images/logo_pricing.png',
-          height: 32,
-          fit: BoxFit.contain,
-        ),
-        const SizedBox(width: 12),
-        const Text(
-          'Análise & Mensagens',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
+    return const Text(
+      'Análise & Mensagens',
+      style: TextStyle(
+        color: Colors.white,
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+      ),
     );
   }
 

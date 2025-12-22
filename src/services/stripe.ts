@@ -113,11 +113,19 @@ export async function createCustomerPortalSession(
   customerId: string,
   returnUrl: string
 ): Promise<Stripe.BillingPortal.Session> {
-  const session = await stripe.billingPortal.sessions.create({
+  const portalConfig = process.env.STRIPE_PORTAL_CONFIG_ID;
+
+  const sessionParams: Stripe.BillingPortal.SessionCreateParams = {
     customer: customerId,
     return_url: returnUrl,
-    configuration: process.env.STRIPE_PORTAL_CONFIG_ID || undefined,
-  });
+  };
+
+  // Only add configuration if it's set
+  if (portalConfig) {
+    sessionParams.configuration = portalConfig;
+  }
+
+  const session = await stripe.billingPortal.sessions.create(sessionParams);
 
   return session;
 }

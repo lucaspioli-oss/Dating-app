@@ -67,8 +67,8 @@ class AppSidebar extends StatelessWidget {
             ),
           ),
 
-          // User Section (Avatar + Name)
-          _buildUserSection(user),
+          // User Section (Avatar + Name) - clickable for logout
+          _buildUserSection(context, user),
         ],
       ),
     );
@@ -148,70 +148,127 @@ class AppSidebar extends StatelessWidget {
     );
   }
 
-  Widget _buildUserSection(User? user) {
+  Widget _buildUserSection(BuildContext context, User? user) {
     final displayName = user?.displayName ?? user?.email?.split('@').first ?? 'Usuário';
     final email = user?.email ?? '';
     final photoUrl = user?.photoURL;
+    final authService = FirebaseAuthService();
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(
-            color: AppColors.elevatedDark.withOpacity(0.5),
-            width: 1,
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          // Avatar
-          CircleAvatar(
-            radius: 20,
-            backgroundColor: AppColors.primary.withOpacity(0.2),
-            backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
-            child: photoUrl == null
-                ? Text(
-                    displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  )
-                : null,
-          ),
-          const SizedBox(width: 12),
-          // Name and Email
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  displayName,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              backgroundColor: AppColors.elevatedDark,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text(
+                'Sair da conta',
+                style: TextStyle(color: AppColors.textPrimary),
+              ),
+              content: const Text(
+                'Deseja realmente sair da sua conta?',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'Cancelar',
+                    style: TextStyle(color: AppColors.textSecondary),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
-                if (email.isNotEmpty)
-                  Text(
-                    email,
-                    style: const TextStyle(
-                      color: AppColors.textTertiary,
-                      fontSize: 11,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                TextButton(
+                  onPressed: () async {
+                    Navigator.pop(context);
+                    await authService.signOut();
+                    if (context.mounted) {
+                      Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        '/',
+                        (route) => false,
+                      );
+                    }
+                  },
+                  child: const Text(
+                    'Sair',
+                    style: TextStyle(color: AppColors.primary),
                   ),
+                ),
               ],
             ),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(
+                color: AppColors.elevatedDark.withOpacity(0.5),
+                width: 1,
+              ),
+            ),
           ),
-        ],
+          child: Row(
+            children: [
+              // Avatar
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: AppColors.primary.withOpacity(0.2),
+                backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
+                child: photoUrl == null
+                    ? Text(
+                        displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              // Name and Email
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      displayName,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (email.isNotEmpty)
+                      Text(
+                        email,
+                        style: const TextStyle(
+                          color: AppColors.textTertiary,
+                          fontSize: 11,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
+                ),
+              ),
+              // Logout icon hint
+              const Icon(
+                Icons.logout,
+                color: AppColors.textTertiary,
+                size: 18,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

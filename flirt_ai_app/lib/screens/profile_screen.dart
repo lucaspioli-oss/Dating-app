@@ -5,6 +5,7 @@ import '../providers/user_profile_provider.dart';
 import '../models/user_profile.dart';
 import '../services/firebase_auth_service.dart';
 import '../services/subscription_service.dart';
+import '../config/app_theme.dart';
 import 'settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -14,7 +15,8 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _bioController = TextEditingController();
@@ -81,6 +83,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _loadProfile();
   }
 
@@ -100,6 +103,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   void dispose() {
+    _tabController.dispose();
     _nameController.dispose();
     _bioController.dispose();
     super.dispose();
@@ -149,44 +153,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Meu Perfil'),
+        title: const Text('Minha Conta'),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: _saveProfile,
-            tooltip: 'Salvar perfil',
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: GestureDetector(
-              onTap: _showUserMenu,
-              child: CircleAvatar(
-                radius: 18,
-                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                child: Text(
-                  (FirebaseAuth.instance.currentUser?.email?.substring(0, 1) ?? 'U').toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                  ),
-                ),
-              ),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(
+              icon: Icon(Icons.person_outline),
+              text: 'Meu Perfil',
             ),
-          ),
+            Tab(
+              icon: Icon(Icons.credit_card),
+              text: 'Assinatura',
+            ),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildProfileTab(),
+          _buildSubscriptionTab(),
         ],
       ),
-      body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-            children: [
-            // Subscription info
-            _buildSubscriptionCard(),
-            const SizedBox(height: 16),
+    );
+  }
 
+  Widget _buildProfileTab() {
+    return SafeArea(
+      child: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+          children: [
             // Header
             _buildHeader(),
             const SizedBox(height: 24),
@@ -250,95 +249,269 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.all(16),
               ),
             ),
-            ],
-          ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildSubscriptionCard() {
+  Widget _buildSubscriptionTab() {
     final subscriptionService = SubscriptionService();
 
-    return FutureBuilder<SubscriptionDetails?>(
-      future: subscriptionService.getSubscriptionDetails(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const SizedBox.shrink();
-        }
+    return SafeArea(
+      child: FutureBuilder<SubscriptionDetails?>(
+        future: subscriptionService.getSubscriptionDetails(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-        final details = snapshot.data!;
-        final isActive = details.isActive;
+          final details = snapshot.data;
+          final isActive = details?.isActive ?? false;
 
-        Color cardColor;
-        IconData icon;
-        String title;
-
-        if (isActive) {
-          cardColor = Colors.green.shade50;
-          icon = Icons.verified;
-          title = 'Assinatura Ativa';
-        } else {
-          cardColor = Colors.grey.shade100;
-          icon = Icons.info_outline;
-          title = 'Sem Assinatura';
-        }
-
-        return Card(
-          elevation: 0,
-          color: cardColor,
-          child: Padding(
+          return ListView(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(icon, color: isActive ? Colors.green : Colors.grey),
-                    const SizedBox(width: 8),
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                FutureBuilder<String>(
-                  future: subscriptionService.getExpirationMessage(),
-                  builder: (context, msgSnapshot) {
-                    return Text(
-                      msgSnapshot.data ?? 'Carregando...',
-                      style: TextStyle(
-                        color: Colors.grey.shade700,
-                        fontSize: 14,
-                      ),
-                    );
-                  },
-                ),
-                if (isActive && details.plan != 'none') ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    'Plano: ${_getPlanDisplayName(details.plan)}',
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
+            children: [
+              // Status Card
+              _buildSubscriptionStatusCard(details, isActive),
+              const SizedBox(height: 24),
+
+              // Plan Details
+              if (details != null && isActive) ...[
+                _buildPlanDetailsCard(details),
+                const SizedBox(height: 24),
               ],
-            ),
-          ),
-        );
-      },
+
+              // Actions
+              _buildSubscriptionActions(details, isActive, subscriptionService),
+            ],
+          );
+        },
+      ),
     );
   }
 
-  Widget _buildAccountCard() {
-    // Removido - agora usa avatar no AppBar
-    return const SizedBox.shrink();
+  Widget _buildSubscriptionStatusCard(SubscriptionDetails? details, bool isActive) {
+    final subscriptionService = SubscriptionService();
+
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Icon(
+              isActive ? Icons.verified : Icons.info_outline,
+              size: 64,
+              color: isActive ? Colors.green : Colors.grey,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isActive ? 'Assinatura Ativa' : 'Sem Assinatura',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            FutureBuilder<String>(
+              future: subscriptionService.getExpirationMessage(),
+              builder: (context, msgSnapshot) {
+                return Text(
+                  msgSnapshot.data ?? 'Carregando...',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey.shade600,
+                  ),
+                  textAlign: TextAlign.center,
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlanDetailsCard(SubscriptionDetails details) {
+    return Card(
+      elevation: 1,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Detalhes do Plano',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const Divider(),
+            _buildDetailRow('Plano', _getPlanDisplayName(details.plan)),
+            _buildDetailRow('Status', details.status == 'active' ? 'Ativo' : details.status),
+            if (details.expiresAt != null)
+              _buildDetailRow(
+                'Próxima cobrança',
+                '${details.expiresAt!.day}/${details.expiresAt!.month}/${details.expiresAt!.year}',
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(color: Colors.grey.shade600),
+          ),
+          Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubscriptionActions(
+    SubscriptionDetails? details,
+    bool isActive,
+    SubscriptionService subscriptionService,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Gerenciar Assinatura',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        if (isActive) ...[
+          // Change Subscription Button
+          OutlinedButton.icon(
+            onPressed: () => _openPortal(subscriptionService),
+            icon: const Icon(Icons.swap_horiz),
+            label: const Text('Alterar Plano'),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.all(16),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Cancel Subscription Button
+          OutlinedButton.icon(
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Cancelar Assinatura'),
+                  content: const Text(
+                    'Tem certeza que deseja cancelar sua assinatura? Você ainda terá acesso até o fim do período pago.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Voltar'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                      child: const Text('Cancelar Assinatura'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirm == true) {
+                _openPortal(subscriptionService);
+              }
+            },
+            icon: const Icon(Icons.cancel_outlined),
+            label: const Text('Cancelar Assinatura'),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.all(16),
+              foregroundColor: Colors.red,
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Billing History Link
+          TextButton.icon(
+            onPressed: () => _openPortal(subscriptionService),
+            icon: const Icon(Icons.receipt_long),
+            label: const Text('Ver Histórico de Cobranças'),
+          ),
+        ] else ...[
+          // No subscription - show subscribe button
+          FilledButton.icon(
+            onPressed: () {
+              // Navigate to pricing/subscription page
+              // For now, show a message
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Visite desenrola-ia.web.app para assinar'),
+                ),
+              );
+            },
+            icon: const Icon(Icons.star),
+            label: const Text('Assinar Agora'),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.all(16),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _openPortal(SubscriptionService subscriptionService) async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    final result = await subscriptionService.openCustomerPortal();
+
+    // Hide loading indicator
+    if (mounted) {
+      Navigator.pop(context);
+    }
+
+    if (!result['success'] && mounted) {
+      final error = result['error'] ?? 'Erro desconhecido';
+      final url = result['url'];
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(url != null
+              ? 'Erro ao abrir. Acesse: $url'
+              : 'Erro: $error'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+          action: url != null
+              ? SnackBarAction(
+                  label: 'Copiar Link',
+                  textColor: Colors.white,
+                  onPressed: () {
+                    // Copy URL to clipboard
+                  },
+                )
+              : null,
+        ),
+      );
+    }
   }
 
   String _getPlanDisplayName(String plan) {
