@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -31,6 +32,9 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
   String? _analysis;
   final ImagePicker _picker = ImagePicker();
 
+  // Para preview da imagem
+  Uint8List? _uploadedImageBytes;
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -45,11 +49,13 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
       if (image == null) return;
 
+      final bytes = await image.readAsBytes();
+
       setState(() {
+        _uploadedImageBytes = bytes;
         _isAnalyzingImage = true;
       });
 
-      final bytes = await image.readAsBytes();
       final base64Image = base64Encode(bytes);
 
       String imageMediaType = 'image/jpeg';
@@ -260,6 +266,12 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
     }
   }
 
+  void _removeUploadedImage() {
+    setState(() {
+      _uploadedImageBytes = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -272,9 +284,7 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
             children: [
               _buildHeader(),
               const SizedBox(height: 24),
-              _buildUploadArea(),
-              const SizedBox(height: 16),
-              _buildUploadButton(),
+              _buildUploadSection(),
               const SizedBox(height: 28),
               _buildSectionTitle('Plataforma'),
               const SizedBox(height: 12),
@@ -307,7 +317,6 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
   Widget _buildHeader() {
     return Row(
       children: [
-        // Logo
         Image.asset(
           'assets/images/logo_pricing.png',
           height: 32,
@@ -322,127 +331,126 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
             fontWeight: FontWeight.w500,
           ),
         ),
-        const Spacer(),
-        // Badge
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFFE91E63), Color(0xFFFF5722)],
-            ),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: const Text(
-            'Upload de Screenshot\n+ Geração de Mensagens',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              height: 1.3,
-            ),
-          ),
-        ),
       ],
     );
   }
 
-  Widget _buildUploadArea() {
-    return GestureDetector(
-      onTap: _isAnalyzingImage ? null : _uploadAndAnalyzeImage,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 32),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A1A2E),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.grey.shade700,
-            width: 1,
-            style: BorderStyle.solid,
-          ),
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
+  Widget _buildUploadSection() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Botão de Upload
+        Expanded(
+          child: GestureDetector(
+            onTap: _isAnalyzingImage ? null : _uploadAndAnalyzeImage,
+            child: Container(
+              height: 100,
               decoration: BoxDecoration(
-                color: const Color(0xFF2A2A3E),
-                borderRadius: BorderRadius.circular(12),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFE91E63), Color(0xFFFF5722)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: _isAnalyzingImage
-                  ? const SizedBox(
-                      width: 32,
-                      height: 32,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Color(0xFFE91E63),
+                  ? const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Analisando...',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                     )
-                  : const Icon(
-                      Icons.camera_alt_outlined,
-                      size: 32,
-                      color: Colors.grey,
+                  : const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.add_photo_alternate_outlined,
+                            size: 32,
+                            color: Colors.white,
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Upload de Screenshot',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            'Preenche os campos automaticamente',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
             ),
-            const SizedBox(height: 16),
-            Text(
-              _isAnalyzingImage ? 'Analisando...' : 'Arraste e Solte o Clique',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              _isAnalyzingImage ? 'Extraindo informações do perfil' : 'para Fazer Upload',
-              style: TextStyle(
-                color: Colors.grey.shade500,
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUploadButton() {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1A1A2E),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFF2A2A3E)),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+        ),
+        // Preview da imagem (se houver)
+        if (_uploadedImageBytes != null) ...[
+          const SizedBox(width: 12),
+          Stack(
             children: [
-              Icon(Icons.cloud_upload_outlined, size: 18, color: Colors.grey.shade400),
-              const SizedBox(width: 8),
-              Text(
-                'Upload de Screenshot',
-                style: TextStyle(
-                  color: Colors.grey.shade300,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFF2A2A3E), width: 2),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Image.memory(
+                    _uploadedImageBytes!,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              Positioned(
+                top: -4,
+                right: -4,
+                child: GestureDetector(
+                  onTap: _removeUploadedImage,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE91E63),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      size: 14,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            'Tire print do perfil e preencha automaticamente',
-            style: TextStyle(
-              color: Colors.grey.shade600,
-              fontSize: 12,
-            ),
-          ),
-        ),
+        ],
       ],
     );
   }
@@ -460,90 +468,124 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
 
   Widget _buildPlatformSelector() {
     final platforms = [
-      {'value': 'tinder', 'label': 'Tinder', 'color': const Color(0xFFFF6B6B)},
-      {'value': 'bumble', 'label': 'Bumble', 'color': const Color(0xFFFFD93D)},
-      {'value': 'hinge', 'label': 'Hinge', 'color': const Color(0xFFE91E63)},
-      {'value': 'umatch', 'label': 'Umatch', 'color': const Color(0xFF8B5CF6)},
-      {'value': 'instagram', 'label': 'Instagram', 'color': const Color(0xFFE1306C)},
+      {'value': 'tinder', 'label': 'Tinder', 'color': const Color(0xFFFF6B6B), 'icon': 'tinder'},
+      {'value': 'bumble', 'label': 'Bumble', 'color': const Color(0xFFFFD93D), 'icon': 'bumble'},
+      {'value': 'hinge', 'label': 'Hinge', 'color': const Color(0xFFE91E63), 'icon': 'hinge'},
+      {'value': 'umatch', 'label': 'Umatch', 'color': const Color(0xFF8B5CF6), 'icon': 'umatch'},
+      {'value': 'instagram', 'label': 'Instagram', 'color': const Color(0xFFE1306C), 'icon': 'instagram'},
     ];
 
-    return Row(
-      children: platforms.map((platform) {
-        final isSelected = _selectedPlatform == platform['value'];
-        final color = platform['color'] as Color;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: platforms.map((platform) {
+          final isSelected = _selectedPlatform == platform['value'];
+          final color = platform['color'] as Color;
 
-        return Padding(
-          padding: const EdgeInsets.only(right: 10),
-          child: GestureDetector(
-            onTap: () {
-              setState(() {
-                _selectedPlatform = platform['value'] as String;
-                if (_selectedPlatform == 'instagram' && _selectedAction == 'opener') {
-                  _selectedAction = 'instagram_dm';
-                } else if (_selectedPlatform != 'instagram' && _selectedAction.startsWith('instagram_')) {
-                  _selectedAction = 'opener';
-                }
-              });
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: isSelected ? color.withOpacity(0.2) : const Color(0xFF1A1A2E),
-                borderRadius: BorderRadius.circular(25),
-                border: Border.all(
-                  color: isSelected ? color : const Color(0xFF2A2A3E),
-                  width: isSelected ? 2 : 1,
+          return Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedPlatform = platform['value'] as String;
+                  if (_selectedPlatform == 'instagram' && _selectedAction == 'opener') {
+                    _selectedAction = 'instagram_dm';
+                  } else if (_selectedPlatform != 'instagram' && _selectedAction.startsWith('instagram_')) {
+                    _selectedAction = 'opener';
+                  }
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isSelected ? color.withOpacity(0.2) : const Color(0xFF1A1A2E),
+                  borderRadius: BorderRadius.circular(25),
+                  border: Border.all(
+                    color: isSelected ? color : const Color(0xFF2A2A3E),
+                    width: isSelected ? 2 : 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildPlatformIcon(platform['icon'] as String, color, isSelected),
+                    const SizedBox(width: 8),
+                    Text(
+                      platform['label'] as String,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.grey.shade400,
+                        fontSize: 13,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 20,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Icon(
-                      _getPlatformIcon(platform['value'] as String),
-                      size: 12,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    platform['label'] as String,
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : Colors.grey.shade400,
-                      fontSize: 13,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
             ),
-          ),
-        );
-      }).toList(),
+          );
+        }).toList(),
+      ),
     );
   }
 
-  IconData _getPlatformIcon(String platform) {
+  Widget _buildPlatformIcon(String platform, Color color, bool isSelected) {
+    // Ícones customizados para cada plataforma
+    Widget icon;
+
     switch (platform) {
       case 'tinder':
-        return Icons.local_fire_department;
+        icon = _buildCustomIcon('🔥', color, isSelected);
+        break;
       case 'bumble':
-        return Icons.hive;
+        icon = _buildCustomIcon('🐝', color, isSelected);
+        break;
       case 'hinge':
-        return Icons.favorite;
+        icon = _buildCustomIcon('💜', color, isSelected);
+        break;
       case 'umatch':
-        return Icons.school;
+        icon = _buildCustomIcon('🎓', color, isSelected);
+        break;
       case 'instagram':
-        return Icons.camera_alt;
+        icon = Container(
+          width: 22,
+          height: 22,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFF58529), Color(0xFFDD2A7B), Color(0xFF8134AF)],
+              begin: Alignment.topRight,
+              end: Alignment.bottomLeft,
+            ),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: const Icon(
+            Icons.camera_alt,
+            size: 14,
+            color: Colors.white,
+          ),
+        );
+        break;
       default:
-        return Icons.chat;
+        icon = _buildCustomIcon('💬', color, isSelected);
     }
+
+    return icon;
+  }
+
+  Widget _buildCustomIcon(String emoji, Color color, bool isSelected) {
+    return Container(
+      width: 22,
+      height: 22,
+      decoration: BoxDecoration(
+        color: isSelected ? color : color.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Center(
+        child: Text(
+          emoji,
+          style: const TextStyle(fontSize: 12),
+        ),
+      ),
+    );
   }
 
   Widget _buildActionSelector() {
@@ -563,39 +605,42 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
       ];
     }
 
-    return Row(
-      children: actions.map((action) {
-        final isSelected = _selectedAction == action['value'];
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: actions.map((action) {
+          final isSelected = _selectedAction == action['value'];
 
-        return Padding(
-          padding: const EdgeInsets.only(right: 10),
-          child: GestureDetector(
-            onTap: () {
-              setState(() {
-                _selectedAction = action['value']!;
-              });
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFFE91E63) : const Color(0xFF1A1A2E),
-                borderRadius: BorderRadius.circular(25),
-                border: Border.all(
-                  color: isSelected ? const Color(0xFFE91E63) : const Color(0xFF2A2A3E),
+          return Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedAction = action['value']!;
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isSelected ? const Color(0xFFE91E63) : const Color(0xFF1A1A2E),
+                  borderRadius: BorderRadius.circular(25),
+                  border: Border.all(
+                    color: isSelected ? const Color(0xFFE91E63) : const Color(0xFF2A2A3E),
+                  ),
                 ),
-              ),
-              child: Text(
-                action['label']!,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.grey.shade400,
-                  fontSize: 13,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                child: Text(
+                  action['label']!,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Colors.grey.shade400,
+                    fontSize: 13,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  ),
                 ),
               ),
             ),
-          ),
-        );
-      }).toList(),
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -608,7 +653,7 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _selectedPlatform == 'instagram' ? 'Nome / Username' : 'Nome / Username',
+                'Nome / Username',
                 style: TextStyle(
                   color: Colors.grey.shade400,
                   fontSize: 13,
@@ -620,7 +665,7 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
                 controller: _nameController,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  hintText: _selectedPlatform == 'instagram' ? '@username' : 'Lovise',
+                  hintText: _selectedPlatform == 'instagram' ? '@usuario' : 'Nome',
                   hintStyle: TextStyle(color: Colors.grey.shade600),
                   filled: true,
                   fillColor: const Color(0xFF1A1A2E),
@@ -666,7 +711,7 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
                 controller: _bioController,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  hintText: 'ucla',
+                  hintText: 'Bio do perfil...',
                   hintStyle: TextStyle(color: Colors.grey.shade600),
                   filled: true,
                   fillColor: const Color(0xFF1A1A2E),
@@ -683,7 +728,6 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
                     borderSide: const BorderSide(color: Color(0xFFE91E63)),
                   ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  suffixIcon: Icon(Icons.keyboard_arrow_up, color: Colors.grey.shade600),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -703,25 +747,13 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text(
-              'Descrição das Fotos (Opcional)',
-              style: TextStyle(
-                color: Colors.grey.shade400,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'Descreva o que aparece nas fotos',
-              style: TextStyle(
-                color: Colors.grey.shade700,
-                fontSize: 11,
-              ),
-            ),
-          ],
+        Text(
+          'Descrição das Fotos (Opcional)',
+          style: TextStyle(
+            color: Colors.grey.shade400,
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
         ),
         const SizedBox(height: 8),
         TextFormField(
@@ -729,7 +761,7 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
           style: const TextStyle(color: Colors.white),
           maxLines: 1,
           decoration: InputDecoration(
-            hintText: 'Na praia, com cachorro, viajando...',
+            hintText: 'Ex: Na praia, com cachorro, viajando...',
             hintStyle: TextStyle(color: Colors.grey.shade700),
             filled: true,
             fillColor: const Color(0xFF1A1A2E),
@@ -841,7 +873,6 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
       ),
       child: Column(
         children: [
-          // Avatar circular
           Stack(
             children: [
               CircleAvatar(
