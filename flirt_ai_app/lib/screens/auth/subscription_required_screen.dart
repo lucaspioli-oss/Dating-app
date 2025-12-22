@@ -89,12 +89,18 @@ class _SubscriptionRequiredScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Logo - Desenrola AI (responsivo)
+              // Logo - Desenrola AI (responsivo) - com recorte do espaço transparente
               Center(
-                child: Image.asset(
-                  'assets/images/logo_pricing.png',
-                  height: logoHeight,
-                  fit: BoxFit.contain,
+                child: SizedBox(
+                  height: logoHeight * 0.55, // Corta espaço transparente
+                  child: OverflowBox(
+                    maxHeight: logoHeight,
+                    child: Image.asset(
+                      'assets/images/logo_pricing.png',
+                      height: logoHeight,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                 ),
               ),
 
