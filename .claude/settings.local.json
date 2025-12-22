@@ -26,7 +26,10 @@
       "Bash(dir:*)",
       "Bash(flutter pub get:*)",
       "Bash(firebase deploy:*)",
-      "Bash(C:srcflutterbinflutter.bat build web --release)"
+      "Bash(C:srcflutterbinflutter.bat build web --release)",
+      "Bash(C:/src/flutter/bin/flutter.bat build:*)",
+      "Bash(cmd.exe /c \"rmdir /s /q \"\"C:\\\\Users\\\\lucas\\\\OneDrive\\\\Área de Trabalho\\\\Dating App\\\\flirt_ai_app\\\\build\\\\web\\\\assets\\\\shaders\"\" 2>nul & mkdir \"\"C:\\\\Users\\\\lucas\\\\OneDrive\\\\Área de Trabalho\\\\Dating App\\\\flirt_ai_app\\\\build\\\\web\\\\assets\\\\shaders\"\"\")",
+      "Bash(cmd.exe:*)"
     ],
     "deny": [],
     "ask": []

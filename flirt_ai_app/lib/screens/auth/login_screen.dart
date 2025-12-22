@@ -50,6 +50,9 @@ class _LoginScreenState extends State<LoginScreen> {
             backgroundColor: const Color(0xFF4CAF50),
           ),
         );
+
+        // Navigate to home (AuthWrapper will handle the rest)
+        Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
       }
     } catch (e) {
       if (mounted) {

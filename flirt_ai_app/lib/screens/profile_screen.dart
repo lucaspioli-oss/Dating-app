@@ -321,7 +321,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 if (isActive && details.plan != 'none') ...[
                   const SizedBox(height: 4),
                   Text(
-                    'Plano: ${details.plan == 'monthly' ? 'Mensal' : 'Anual'}',
+                    'Plano: ${_getPlanDisplayName(details.plan)}',
                     style: TextStyle(
                       color: Colors.grey.shade600,
                       fontSize: 12,
@@ -339,6 +339,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildAccountCard() {
     // Removido - agora usa avatar no AppBar
     return const SizedBox.shrink();
+  }
+
+  String _getPlanDisplayName(String plan) {
+    switch (plan) {
+      case 'daily':
+        return 'Diário';
+      case 'weekly':
+        return 'Semanal';
+      case 'monthly':
+        return 'Mensal';
+      case 'quarterly':
+        return 'Trimestral';
+      case 'yearly':
+        return 'Anual';
+      default:
+        return plan;
+    }
   }
 
   void _showUserMenu() {

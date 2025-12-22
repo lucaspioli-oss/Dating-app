@@ -8,6 +8,37 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
 
+type PlanType = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+
+/**
+ * Detect plan type from Stripe price interval
+ */
+function detectPlanFromPrice(price: Stripe.Price, metadata?: Stripe.Metadata | null): PlanType {
+  // Use metadata if available (from API checkout)
+  if (metadata?.plan) {
+    return metadata.plan as PlanType;
+  }
+
+  // Detect from price interval (for Payment Links)
+  const interval = price.recurring?.interval;
+  const intervalCount = price.recurring?.interval_count || 1;
+
+  if (interval === 'day') {
+    return 'daily';
+  } else if (interval === 'week') {
+    return 'weekly';
+  } else if (interval === 'month') {
+    if (intervalCount === 3) {
+      return 'quarterly';
+    }
+    return 'monthly';
+  } else if (interval === 'year') {
+    return 'yearly';
+  }
+
+  return 'monthly'; // default
+}
+
 interface CreateCheckoutSessionParams {
   priceId: string;
   plan: 'monthly' | 'quarterly' | 'yearly';
@@ -143,12 +174,14 @@ export async function handleCheckoutCompleted(
 
   // Get subscription details
   const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-  const priceId = subscription.items.data[0].price.id;
-  const amount = subscription.items.data[0].price.unit_amount || 0;
-  const currency = subscription.items.data[0].price.currency;
+  const price = subscription.items.data[0].price;
+  const priceId = price.id;
+  const amount = price.unit_amount || 0;
+  const currency = price.currency;
 
-  // Determine plan from metadata
-  const plan = session.metadata?.plan as 'monthly' | 'quarterly' | 'yearly' || 'monthly';
+  // Determine plan from price interval (works for Payment Links too)
+  const plan = detectPlanFromPrice(price, session.metadata);
+  console.log(`📋 Detected plan: ${plan} (interval: ${price.recurring?.interval}, count: ${price.recurring?.interval_count})`);
 
   const db = admin.firestore();
 
@@ -292,10 +325,11 @@ export async function handleSubscriptionUpdated(
   const status = subscription.status;
 
   if (status === 'active') {
-    const priceId = subscription.items.data[0].price.id;
-    const amount = subscription.items.data[0].price.unit_amount || 0;
-    const currency = subscription.items.data[0].price.currency;
-    const plan = subscription.metadata?.plan as 'monthly' | 'quarterly' | 'yearly' || 'monthly';
+    const price = subscription.items.data[0].price;
+    const priceId = price.id;
+    const amount = price.unit_amount || 0;
+    const currency = price.currency;
+    const plan = detectPlanFromPrice(price, subscription.metadata);
 
     await db.collection('users').doc(userId).update({
       'subscription.status': 'active',
@@ -382,10 +416,11 @@ export async function handleInvoicePaid(
   if (usersSnapshot.empty) return;
 
   const userId = usersSnapshot.docs[0].id;
-  const priceId = subscription.items.data[0].price.id;
-  const amount = subscription.items.data[0].price.unit_amount || 0;
-  const currency = subscription.items.data[0].price.currency;
-  const plan = subscription.metadata?.plan as 'monthly' | 'quarterly' | 'yearly' || 'monthly';
+  const price = subscription.items.data[0].price;
+  const priceId = price.id;
+  const amount = price.unit_amount || 0;
+  const currency = price.currency;
+  const plan = detectPlanFromPrice(price, subscription.metadata);
 
   await db.collection('users').doc(userId).update({
     'subscription.status': 'active',
@@ -398,7 +433,7 @@ export async function handleInvoicePaid(
     ),
   });
 
-  console.log(`✅ Subscription renewed for user ${userId}`);
+  console.log(`✅ Subscription renewed for user ${userId} (plan: ${plan})`);
 }
 
 /**
