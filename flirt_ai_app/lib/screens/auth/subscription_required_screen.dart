@@ -38,54 +38,94 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
   Widget build(BuildContext context) {
     final authService = FirebaseAuthService();
     final screenWidth = MediaQuery.of(context).size.width;
-    final isWideScreen = screenWidth > 800;
+
+    // Breakpoints responsivos
+    final isDesktop = screenWidth > 1024;
+    final isTablet = screenWidth > 600 && screenWidth <= 1024;
+    final isMobile = screenWidth <= 600;
+
+    // Tamanhos responsivos do logo
+    double logoHeight;
+    if (isDesktop) {
+      logoHeight = 120;
+    } else if (isTablet) {
+      logoHeight = 90;
+    } else {
+      logoHeight = 70;
+    }
+
+    // Tamanhos responsivos de fonte do título
+    double titleFontSize;
+    if (isDesktop) {
+      titleFontSize = 36;
+    } else if (isTablet) {
+      titleFontSize = 28;
+    } else {
+      titleFontSize = 22;
+    }
+
+    // Padding horizontal responsivo
+    double horizontalPadding;
+    if (isDesktop) {
+      horizontalPadding = 64;
+    } else if (isTablet) {
+      horizontalPadding = 40;
+    } else {
+      horizontalPadding = 20;
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D1A),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(
-            horizontal: isWideScreen ? 48 : 20,
-            vertical: 24,
+            horizontal: horizontalPadding,
+            vertical: isMobile ? 16 : 32,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              SizedBox(height: isWideScreen ? 40 : 24),
+              SizedBox(height: isDesktop ? 60 : (isTablet ? 40 : 20)),
 
-              // Logo - Desenrola AI
+              // Logo - Desenrola AI (responsivo)
               Center(
-                child: Image.asset(
-                  'assets/images/logo_pricing.png',
-                  height: isWideScreen ? 80 : 60,
-                  fit: BoxFit.contain,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: isDesktop ? 400 : (isTablet ? 300 : 250),
+                  ),
+                  child: Image.asset(
+                    'assets/images/logo_pricing.png',
+                    height: logoHeight,
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
-              SizedBox(height: isWideScreen ? 48 : 32),
+              SizedBox(height: isDesktop ? 60 : (isTablet ? 40 : 28)),
 
               // Title
               Text(
                 'Escolha seu plano',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      fontSize: isWideScreen ? 32 : 24,
-                    ),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  fontSize: titleFontSize,
+                ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: isDesktop ? 16 : 10),
               Text(
                 'Desbloqueie todo o potencial do Desenrola AI',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.grey[400],
-                      fontSize: isWideScreen ? 16 : 14,
-                    ),
+                style: TextStyle(
+                  color: Colors.grey[400],
+                  fontSize: isDesktop ? 18 : (isTablet ? 16 : 14),
+                ),
               ),
-              SizedBox(height: isWideScreen ? 48 : 32),
+              SizedBox(height: isDesktop ? 60 : (isTablet ? 40 : 28)),
 
-              // Pricing Cards - Horizontal layout for web, vertical for mobile
-              if (isWideScreen)
+              // Pricing Cards - Layout responsivo
+              if (isDesktop || isTablet)
+                // Layout horizontal para desktop e tablet
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,9 +138,11 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                         totalPrice: monthlyPrice,
                         period: '/mês',
                         isPopular: false,
+                        isDesktop: isDesktop,
+                        isTablet: isTablet,
                       ),
                     ),
-                    const SizedBox(width: 20),
+                    SizedBox(width: isDesktop ? 24 : 16),
                     Flexible(
                       child: _buildPricingCard(
                         index: 1,
@@ -110,9 +152,11 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                         period: '/3 meses',
                         isPopular: true,
                         savingsPercent: 22,
+                        isDesktop: isDesktop,
+                        isTablet: isTablet,
                       ),
                     ),
-                    const SizedBox(width: 20),
+                    SizedBox(width: isDesktop ? 24 : 16),
                     Flexible(
                       child: _buildPricingCard(
                         index: 2,
@@ -121,11 +165,14 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                         totalPrice: yearlyPrice,
                         period: '/ano',
                         isPopular: false,
+                        isDesktop: isDesktop,
+                        isTablet: isTablet,
                       ),
                     ),
                   ],
                 )
               else
+                // Layout vertical para mobile
                 Column(
                   children: [
                     _buildPricingCard(
@@ -135,6 +182,8 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                       totalPrice: monthlyPrice,
                       period: '/mês',
                       isPopular: false,
+                      isDesktop: false,
+                      isTablet: false,
                     ),
                     const SizedBox(height: 16),
                     _buildPricingCard(
@@ -145,6 +194,8 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                       period: '/3 meses',
                       isPopular: true,
                       savingsPercent: 22,
+                      isDesktop: false,
+                      isTablet: false,
                     ),
                     const SizedBox(height: 16),
                     _buildPricingCard(
@@ -154,11 +205,13 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                       totalPrice: yearlyPrice,
                       period: '/ano',
                       isPopular: false,
+                      isDesktop: false,
+                      isTablet: false,
                     ),
                   ],
                 ),
 
-              const SizedBox(height: 40),
+              SizedBox(height: isDesktop ? 60 : 40),
 
               // Logout button
               TextButton.icon(
@@ -171,7 +224,7 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                   style: TextStyle(color: AppColors.textTertiary),
                 ),
               ),
-              const SizedBox(height: 40),
+              SizedBox(height: isDesktop ? 60 : 40),
             ],
           ),
         ),
@@ -186,27 +239,57 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
     required double totalPrice,
     required String period,
     required bool isPopular,
+    required bool isDesktop,
+    required bool isTablet,
     int? savingsPercent,
   }) {
     final isSelected = _selectedPlan == index;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isWideScreen = screenWidth > 800;
-    final cardWidth = isWideScreen ? 280.0 : double.infinity;
+
+    // Tamanhos responsivos do card
+    double cardMaxWidth;
+    double cardPadding;
+    double priceFontSize;
+    double buttonPadding;
+
+    if (isDesktop) {
+      cardMaxWidth = 340;
+      cardPadding = 28;
+      priceFontSize = 56;
+      buttonPadding = 16;
+    } else if (isTablet) {
+      cardMaxWidth = 280;
+      cardPadding = 20;
+      priceFontSize = 44;
+      buttonPadding = 14;
+    } else {
+      cardMaxWidth = double.infinity;
+      cardPadding = 20;
+      priceFontSize = 42;
+      buttonPadding = 14;
+    }
 
     return GestureDetector(
       onTap: () => setState(() => _selectedPlan = index),
       child: Container(
-        width: cardWidth,
-        constraints: BoxConstraints(maxWidth: 320),
+        constraints: BoxConstraints(maxWidth: cardMaxWidth),
         decoration: BoxDecoration(
           color: const Color(0xFF1A1A2E),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isPopular
                 ? const Color(0xFFE91E63)
                 : (isSelected ? const Color(0xFFE91E63).withOpacity(0.5) : const Color(0xFF2A2A3E)),
             width: isPopular ? 2 : 1,
           ),
+          boxShadow: isPopular
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFFE91E63).withOpacity(0.2),
+                    blurRadius: 20,
+                    spreadRadius: 2,
+                  ),
+                ]
+              : null,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -215,26 +298,26 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
             if (isPopular)
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 10),
+                padding: EdgeInsets.symmetric(vertical: isDesktop ? 12 : 10),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [Color(0xFFE91E63), Color(0xFFFF5722)],
                   ),
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
                 ),
-                child: const Text(
+                child: Text(
                   'Mais Popular',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: isDesktop ? 15 : 14,
                   ),
                 ),
               ),
 
             Padding(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.all(cardPadding),
               child: Column(
                 children: [
                   // Plan name with radio and savings badge
@@ -243,8 +326,8 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                     children: [
                       // Radio button
                       Container(
-                        width: 20,
-                        height: 20,
+                        width: isDesktop ? 24 : 20,
+                        height: isDesktop ? 24 : 20,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
@@ -255,8 +338,8 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                         child: isSelected
                             ? Center(
                                 child: Container(
-                                  width: 10,
-                                  height: 10,
+                                  width: isDesktop ? 12 : 10,
+                                  height: isDesktop ? 12 : 10,
                                   decoration: const BoxDecoration(
                                     shape: BoxShape.circle,
                                     color: Color(0xFFE91E63),
@@ -265,28 +348,31 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                               )
                             : null,
                       ),
-                      const SizedBox(width: 10),
+                      SizedBox(width: isDesktop ? 12 : 10),
                       Text(
                         planName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w600,
-                          fontSize: 16,
+                          fontSize: isDesktop ? 18 : 16,
                         ),
                       ),
                       if (savingsPercent != null) ...[
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isDesktop ? 10 : 8,
+                            vertical: isDesktop ? 5 : 4,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFF4CAF50).withOpacity(0.2),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
                             'Economize $savingsPercent%',
-                            style: const TextStyle(
-                              color: Color(0xFF4CAF50),
-                              fontSize: 11,
+                            style: TextStyle(
+                              color: const Color(0xFF4CAF50),
+                              fontSize: isDesktop ? 12 : 11,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -294,56 +380,56 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                       ],
                     ],
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: isDesktop ? 28 : 24),
 
                   // Price per day - main highlight
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Padding(
-                        padding: EdgeInsets.only(top: 8),
+                      Padding(
+                        padding: EdgeInsets.only(top: isDesktop ? 10 : 8),
                         child: Text(
                           'R\$ ',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 18,
+                            fontSize: isDesktop ? 22 : 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
                       Text(
                         pricePerDay.toStringAsFixed(2).replaceAll('.', ','),
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
-                          fontSize: 48,
+                          fontSize: priceFontSize,
                           fontWeight: FontWeight.bold,
                           height: 1,
                         ),
                       ),
-                      const Padding(
-                        padding: EdgeInsets.only(top: 8),
+                      Padding(
+                        padding: EdgeInsets.only(top: isDesktop ? 10 : 8),
                         child: Text(
                           ' por dia',
                           style: TextStyle(
                             color: Colors.white70,
-                            fontSize: 14,
+                            fontSize: isDesktop ? 16 : 14,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: isDesktop ? 12 : 8),
 
                   // Total price
                   Text(
                     'R\$ ${totalPrice.toStringAsFixed(2).replaceAll('.', ',')}$period',
                     style: TextStyle(
                       color: Colors.grey[500],
-                      fontSize: 14,
+                      fontSize: isDesktop ? 16 : 14,
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: isDesktop ? 28 : 24),
 
                   // Subscribe button
                   SizedBox(
@@ -356,17 +442,17 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFE91E63),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: EdgeInsets.symmetric(vertical: buttonPadding),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         elevation: 0,
                       ),
-                      child: const Text(
+                      child: Text(
                         'Assinar Agora',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 15,
+                          fontSize: isDesktop ? 16 : 15,
                         ),
                       ),
                     ),
