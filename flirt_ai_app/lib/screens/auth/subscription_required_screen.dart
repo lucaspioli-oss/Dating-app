@@ -18,10 +18,12 @@ class SubscriptionRequiredScreen extends StatefulWidget {
   });
 
   @override
-  State<SubscriptionRequiredScreen> createState() => _SubscriptionRequiredScreenState();
+  State<SubscriptionRequiredScreen> createState() =>
+      _SubscriptionRequiredScreenState();
 }
 
-class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen> {
+class _SubscriptionRequiredScreenState
+    extends State<SubscriptionRequiredScreen> {
   int _selectedPlan = 1; // 0 = monthly, 1 = quarterly (default), 2 = yearly
 
   // Pricing configuration
@@ -47,9 +49,9 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
     // Tamanhos responsivos do logo
     double logoHeight;
     if (isDesktop) {
-      logoHeight = 160;
+      logoHeight = 200;
     } else if (isTablet) {
-      logoHeight = 100;
+      logoHeight = 160;
     } else {
       logoHeight = 70;
     }
@@ -218,7 +220,8 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                 onPressed: () async {
                   await authService.signOut();
                 },
-                icon: Icon(Icons.logout, color: AppColors.textTertiary, size: 18),
+                icon:
+                    Icon(Icons.logout, color: AppColors.textTertiary, size: 18),
                 label: Text(
                   'Sair da conta',
                   style: TextStyle(color: AppColors.textTertiary),
@@ -278,7 +281,9 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
           border: Border.all(
             color: isPopular
                 ? const Color(0xFFE91E63)
-                : (isSelected ? const Color(0xFFE91E63).withOpacity(0.5) : const Color(0xFF2A2A3E)),
+                : (isSelected
+                    ? const Color(0xFFE91E63).withOpacity(0.5)
+                    : const Color(0xFF2A2A3E)),
             width: isPopular ? 2 : 1,
           ),
           boxShadow: isPopular
@@ -331,7 +336,9 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: isSelected ? const Color(0xFFE91E63) : Colors.grey,
+                            color: isSelected
+                                ? const Color(0xFFE91E63)
+                                : Colors.grey,
                             width: 2,
                           ),
                         ),
@@ -627,7 +634,8 @@ class _SubscriptionRequiredScreenState extends State<SubscriptionRequiredScreen>
                 children: [
                   const Icon(Icons.error_outline, color: Colors.white),
                   const SizedBox(width: 12),
-                  Expanded(child: Text('Erro ao criar checkout: ${response.body}')),
+                  Expanded(
+                      child: Text('Erro ao criar checkout: ${response.body}')),
                 ],
               ),
               backgroundColor: AppColors.error,
