@@ -652,8 +652,12 @@ fastify.post('/create-checkout-session', {
 fastify.post('/create-portal-session', {
   preHandler: verifyAuth,
 }, async (request: AuthenticatedRequest, reply) => {
+  console.log('📋 Portal session request received');
+
   try {
     const user = request.user!;
+    console.log('👤 User ID:', user.uid);
+
     const admin = require('firebase-admin');
     const db = admin.firestore();
 
@@ -661,6 +665,7 @@ fastify.post('/create-portal-session', {
     const userDoc = await db.collection('users').doc(user.uid).get();
 
     if (!userDoc.exists) {
+      console.log('❌ User document not found');
       return reply.code(404).send({
         error: 'User not found',
         message: 'User document not found in database',
@@ -669,26 +674,33 @@ fastify.post('/create-portal-session', {
 
     const userData = userDoc.data();
     const customerId = userData?.subscription?.stripeCustomerId;
+    console.log('💳 Stripe Customer ID:', customerId);
 
     if (!customerId) {
+      console.log('❌ No Stripe customer ID');
       return reply.code(400).send({
         error: 'No subscription found',
-        message: 'User does not have an active Stripe subscription',
+        message: 'Usuário não possui assinatura Stripe vinculada',
       });
     }
 
     // Create portal session
     const returnUrl = `${process.env.FRONTEND_URL || 'https://desenrola-ia.web.app'}/`;
+    console.log('🔗 Return URL:', returnUrl);
+    console.log('🔧 Portal Config ID:', process.env.STRIPE_PORTAL_CONFIG_ID || 'not set');
+
     const session = await createCustomerPortalSession(customerId, returnUrl);
+    console.log('✅ Portal session created:', session.url);
 
     return reply.code(200).send({
       url: session.url,
     });
-  } catch (error) {
-    fastify.log.error(error);
+  } catch (error: any) {
+    console.error('❌ Portal session error:', error);
     return reply.code(500).send({
       error: 'Failed to create portal session',
-      message: error instanceof Error ? error.message : 'Unknown error',
+      message: error?.message || 'Unknown error',
+      details: error?.type || error?.code || 'no details',
     });
   }
 });
