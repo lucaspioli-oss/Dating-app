@@ -93,7 +93,10 @@ export async function trackInitiateCheckout(data: {
   eventId: string;
   plan?: string;
 }): Promise<void> {
-  if (!PIXEL_ID || !ACCESS_TOKEN) return;
+  if (!PIXEL_ID || !ACCESS_TOKEN) {
+    console.warn('⚠️ Meta Pixel not configured for InitiateCheckout, skipping');
+    return;
+  }
 
   try {
     const payload = {
@@ -117,13 +120,25 @@ export async function trackInitiateCheckout(data: {
       access_token: ACCESS_TOKEN,
     };
 
-    await fetch(`https://graph.facebook.com/v18.0/${PIXEL_ID}/events`, {
+    const response = await fetch(`https://graph.facebook.com/v18.0/${PIXEL_ID}/events`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
 
-    console.log('✅ Meta InitiateCheckout tracked');
+    const result = await response.json() as { events_received?: number; error?: unknown };
+
+    if (response.ok) {
+      console.log('✅ Meta InitiateCheckout tracked:', {
+        eventId: data.eventId,
+        email: data.email.substring(0, 3) + '***',
+        value: data.value,
+        plan: data.plan,
+        eventsReceived: result.events_received,
+      });
+    } else {
+      console.error('❌ Meta InitiateCheckout error:', result);
+    }
   } catch (error) {
     console.error('❌ Meta InitiateCheckout error:', error);
   }

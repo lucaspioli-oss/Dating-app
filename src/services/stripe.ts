@@ -203,6 +203,20 @@ export async function handleCheckoutCompleted(
 
   // Determine plan from price interval (works for Payment Links too)
   const plan = detectPlanFromPrice(price, session.metadata);
+
+  // For Payment Links (no userId in metadata), track InitiateCheckout retroactively
+  // This ensures Facebook receives the IC event even for direct Payment Link purchases
+  const isFromPaymentLink = !session.metadata?.userId;
+  if (isFromPaymentLink && customerEmail) {
+    console.log('📊 Payment Link detected - tracking InitiateCheckout retroactively');
+    trackInitiateCheckout({
+      email: customerEmail,
+      value: amount / 100,
+      currency: currency || 'brl',
+      eventId: `ic_pl_${session.id}`, // Different eventId to avoid dedup issues
+      plan,
+    }).catch(err => console.error('Meta InitiateCheckout (Payment Link) error:', err));
+  }
   console.log(`📋 Detected plan: ${plan} (interval: ${price.recurring?.interval}, count: ${price.recurring?.interval_count})`);
 
   const db = admin.firestore();
