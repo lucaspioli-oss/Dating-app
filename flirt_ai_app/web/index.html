@@ -97,13 +97,30 @@
 
     // Meta Pixel helper functions for Flutter
     window.trackInitiateCheckout = function(value, currency, planName) {
+      console.log('trackInitiateCheckout called:', {value, currency, planName});
       if (typeof fbq !== 'undefined') {
         fbq('track', 'InitiateCheckout', {
           value: value,
           currency: currency,
           content_name: planName
         });
-        console.log('Meta Pixel: InitiateCheckout tracked', {value, currency, planName});
+        console.log('Meta Pixel: InitiateCheckout tracked successfully');
+      } else {
+        console.error('Meta Pixel: fbq is not defined!');
+      }
+    };
+
+    window.trackPurchase = function(value, currency, planName) {
+      console.log('trackPurchase called:', {value, currency, planName});
+      if (typeof fbq !== 'undefined') {
+        fbq('track', 'Purchase', {
+          value: value,
+          currency: currency,
+          content_name: planName
+        });
+        console.log('Meta Pixel: Purchase tracked successfully');
+      } else {
+        console.error('Meta Pixel: fbq is not defined!');
       }
     };
   </script>

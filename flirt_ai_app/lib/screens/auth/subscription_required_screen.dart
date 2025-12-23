@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
@@ -594,12 +594,14 @@ class _SubscriptionRequiredScreenState
       }
 
       // Track InitiateCheckout on Meta Pixel
+      debugPrint('[CHECKOUT] Tracking InitiateCheckout event...');
       MetaPixelService.trackInitiateCheckout(
         value: checkoutValue,
         currency: 'BRL',
         planName: 'Desenrola IA - $plan',
       );
 
+      debugPrint('[CHECKOUT] Calling backend /create-checkout-session...');
       final response = await http.post(
         Uri.parse('$backendUrl/create-checkout-session'),
         headers: {
@@ -612,6 +614,8 @@ class _SubscriptionRequiredScreenState
         }),
       );
 
+      debugPrint('[CHECKOUT] Backend response: ${response.statusCode}');
+
       if (context.mounted) {
         Navigator.pop(context); // Close loading
       }
@@ -619,13 +623,17 @@ class _SubscriptionRequiredScreenState
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final checkoutUrl = data['url'] as String;
+        debugPrint('[CHECKOUT] Opening Stripe URL: $checkoutUrl');
 
         // Open Stripe Checkout in browser
         final uri = Uri.parse(checkoutUrl);
         if (await canLaunchUrl(uri)) {
           await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } else {
+          debugPrint('[CHECKOUT] Cannot launch URL!');
         }
       } else {
+        debugPrint('[CHECKOUT] Error response: ${response.body}');
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -643,6 +651,7 @@ class _SubscriptionRequiredScreenState
         }
       }
     } catch (e) {
+      debugPrint('[CHECKOUT] Exception: $e');
       if (context.mounted) {
         Navigator.pop(context); // Close loading if still open
         ScaffoldMessenger.of(context).showSnackBar(
