@@ -753,11 +753,20 @@ fastify.get('/checkout-session/:sessionId', async (request, reply) => {
       apiVersion: '2023-10-16',
     });
 
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['line_items'],
+    });
+
+    // Extrair informações do plano
+    const lineItem = session.line_items?.data?.[0];
+    const amount = session.amount_total || lineItem?.amount_total || 0;
+    const plan = session.metadata?.plan || 'subscription';
 
     return reply.code(200).send({
       email: session.customer_email || session.customer_details?.email,
       status: session.payment_status,
+      amount, // em centavos
+      plan,
     });
   } catch (error: any) {
     fastify.log.error(error);

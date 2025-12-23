@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../providers/app_state.dart';
+import '../services/meta_pixel_service.dart';
 import 'package:provider/provider.dart';
 
 class PurchaseSuccessScreen extends StatefulWidget {
@@ -59,6 +60,15 @@ class _PurchaseSuccessScreenState extends State<PurchaseSuccessScreen> {
           _userEmail = data['email'];
           _isLoadingEmail = false;
         });
+
+        // Disparar evento Purchase no Meta Pixel
+        final amount = data['amount'] as num?;
+        final plan = data['plan'] as String? ?? 'subscription';
+        MetaPixelService.trackPurchase(
+          value: (amount ?? 0) / 100, // Stripe retorna em centavos
+          currency: 'BRL',
+          planName: 'Desenrola IA - $plan',
+        );
       } else {
         setState(() => _isLoadingEmail = false);
       }
