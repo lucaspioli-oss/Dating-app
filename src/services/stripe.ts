@@ -1,6 +1,6 @@
 import Stripe from 'stripe';
 import * as admin from 'firebase-admin';
-import { trackPurchase } from './meta-conversions';
+import { trackPurchase, trackInitiateCheckout } from './meta-conversions';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2023-10-16',
@@ -75,6 +75,10 @@ export async function createCheckoutSession(
     });
   }
 
+  // Get price details for tracking
+  const price = await stripe.prices.retrieve(priceId);
+  const amount = price.unit_amount || 0;
+
   // Create checkout session
   const session = await stripe.checkout.sessions.create({
     customer: customer.id,
@@ -101,6 +105,15 @@ export async function createCheckoutSession(
     allow_promotion_codes: true, // Allow discount codes
     billing_address_collection: 'required',
   });
+
+  // Track InitiateCheckout on Meta Conversions API (server-side)
+  trackInitiateCheckout({
+    email: userEmail,
+    value: amount / 100, // Convert from cents to BRL
+    currency: price.currency || 'brl',
+    eventId: `ic_${session.id}`,
+    plan,
+  }).catch(err => console.error('Meta InitiateCheckout tracking error:', err));
 
   return session;
 }
