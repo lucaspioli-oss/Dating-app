@@ -272,6 +272,27 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
       );
 
       if (mounted) {
+        // Mostrar mensagem apropriada se conversa já existia
+        if (conversation.isExisting) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.white, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Conversa com ${_nameController.text.trim()} já existe. Mensagem adicionada!',
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: const Color(0xFF2196F3),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+
         Navigator.push(
           context,
           MaterialPageRoute(

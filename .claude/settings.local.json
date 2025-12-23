@@ -31,7 +31,10 @@
       "Bash(cmd.exe /c \"rmdir /s /q \"\"C:\\\\Users\\\\lucas\\\\OneDrive\\\\Área de Trabalho\\\\Dating App\\\\flirt_ai_app\\\\build\\\\web\\\\assets\\\\shaders\"\" 2>nul & mkdir \"\"C:\\\\Users\\\\lucas\\\\OneDrive\\\\Área de Trabalho\\\\Dating App\\\\flirt_ai_app\\\\build\\\\web\\\\assets\\\\shaders\"\"\")",
       "Bash(cmd.exe:*)",
       "Bash(C:/src/flutter/bin/flutter.bat pub:*)",
-      "WebFetch(domain:dating-app-production-ac43.up.railway.app)"
+      "WebFetch(domain:dating-app-production-ac43.up.railway.app)",
+      "Bash(C:/src/flutter/bin/flutter.bat analyze:*)",
+      "Bash(C:/src/flutter/bin/flutter.bat clean:*)",
+      "Bash(node scripts/setup-cors.js:*)"
     ],
     "deny": [],
     "ask": []

@@ -251,6 +251,7 @@ class Conversation {
   final String status;
   final DateTime createdAt;
   final DateTime lastMessageAt;
+  final bool isExisting; // true se a conversa já existia (não foi criada agora)
 
   Conversation({
     required this.id,
@@ -260,6 +261,7 @@ class Conversation {
     required this.status,
     required this.createdAt,
     required this.lastMessageAt,
+    this.isExisting = false,
   });
 
   factory Conversation.fromJson(Map<String, dynamic> json) {
@@ -273,6 +275,7 @@ class Conversation {
       status: json['status'] ?? 'active',
       createdAt: _parseDate(json['createdAt']),
       lastMessageAt: _parseDate(json['lastMessageAt']),
+      isExisting: json['isExisting'] ?? false,
     );
   }
 }

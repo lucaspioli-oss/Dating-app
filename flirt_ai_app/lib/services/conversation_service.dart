@@ -62,7 +62,8 @@ class ConversationService {
       body: jsonEncode(body),
     );
 
-    if (response.statusCode == 201) {
+    // 201 = nova conversa criada, 200 = conversa existente retornada
+    if (response.statusCode == 201 || response.statusCode == 200) {
       return Conversation.fromJson(jsonDecode(response.body));
     } else {
       throw Exception('Erro ao criar conversa: ${response.body}');

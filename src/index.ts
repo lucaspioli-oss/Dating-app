@@ -370,7 +370,7 @@ fastify.post('/analyze-profile-image', async (request, reply) => {
 // 💬 ENDPOINTS DE GERENCIAMENTO DE CONVERSAS (COM AUTENTICAÇÃO)
 // ═══════════════════════════════════════════════════════════════════
 
-// Criar nova conversa
+// Criar nova conversa (ou retorna existente se já houver uma com o mesmo avatar)
 fastify.post('/conversations', {
   preHandler: verifyAuth,
 }, async (request: AuthenticatedRequest, reply) => {
@@ -378,7 +378,10 @@ fastify.post('/conversations', {
     const body = request.body as CreateConversationRequest;
     const userId = request.user!.uid;
     const conversation = await ConversationManager.createConversation({ ...body, userId });
-    return reply.code(201).send(conversation);
+
+    // Se é conversa existente, retorna 200; se nova, retorna 201
+    const statusCode = conversation.isExisting ? 200 : 201;
+    return reply.code(statusCode).send(conversation);
   } catch (error) {
     fastify.log.error(error);
     return reply.code(500).send({

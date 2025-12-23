@@ -15,10 +15,46 @@ const getDb = () => admin.firestore();
 
 export class ConversationManager {
   /**
-   * Criar nova conversa (com vínculo ao avatar coletivo)
+   * Verificar se já existe conversa ativa com o mesmo avatar coletivo
    */
-  static async createConversation(request: CreateConversationRequest & { userId: string }): Promise<Conversation> {
-    const conversationId = randomUUID();
+  static async findExistingConversation(
+    userId: string,
+    collectiveAvatarId: string
+  ): Promise<Conversation | null> {
+    const snapshot = await getDb()
+      .collection('conversations')
+      .where('userId', '==', userId)
+      .where('collectiveAvatarId', '==', collectiveAvatarId)
+      .where('status', '==', 'active')
+      .limit(1)
+      .get();
+
+    if (snapshot.empty) {
+      return null;
+    }
+
+    const doc = snapshot.docs[0];
+    const data = doc.data();
+
+    return {
+      id: doc.id,
+      userId: data.userId,
+      avatar: data.avatar,
+      messages: data.messages || [],
+      currentTone: data.currentTone,
+      status: data.status,
+      createdAt: data.createdAt?.toDate() || new Date(),
+      lastMessageAt: data.lastMessageAt?.toDate() || new Date(),
+    };
+  }
+
+  /**
+   * Criar nova conversa (com vínculo ao avatar coletivo)
+   * Retorna conversa existente se já houver uma ativa com o mesmo avatar
+   */
+  static async createConversation(
+    request: CreateConversationRequest & { userId: string }
+  ): Promise<Conversation & { isExisting?: boolean }> {
     const now = new Date();
 
     // Encontrar ou criar avatar coletivo (com detecção de face para duplicatas)
@@ -33,6 +69,42 @@ export class ConversationManager {
       faceImageBase64: request.faceImageBase64,
       faceDescription: request.faceDescription,
     });
+
+    // Verificar se já existe conversa ativa com este avatar
+    const existingConversation = await this.findExistingConversation(
+      request.userId,
+      collectiveAvatar.id
+    );
+
+    if (existingConversation) {
+      console.log(`[CONVERSATION] Found existing conversation ${existingConversation.id} for avatar ${collectiveAvatar.id}`);
+
+      // Se tiver primeira mensagem, adicionar como próxima mensagem
+      if (request.firstMessage) {
+        const newMessage: Message = {
+          id: randomUUID(),
+          role: 'user',
+          content: request.firstMessage,
+          timestamp: now,
+          wasAiSuggestion: true,
+          tone: request.tone,
+        };
+
+        existingConversation.messages.push(newMessage);
+        existingConversation.lastMessageAt = now;
+
+        // Atualizar no Firestore
+        await getDb().collection('conversations').doc(existingConversation.id).update({
+          messages: existingConversation.messages,
+          lastMessageAt: admin.firestore.Timestamp.fromDate(now),
+        });
+      }
+
+      return { ...existingConversation, isExisting: true };
+    }
+
+    // Criar nova conversa
+    const conversationId = randomUUID();
 
     const avatar: ConversationAvatar = {
       matchName: request.matchName,
