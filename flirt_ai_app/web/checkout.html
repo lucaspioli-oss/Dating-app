@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout - Desenrola IA</title>
+
+  <!-- Meta Pixel Code -->
+  <script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '1777731699725686');
+    fbq('track', 'PageView');
+  </script>
+
+  <!-- Stripe.js -->
+  <script src="https://js.stripe.com/v3/"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0D0D1A 0%, #1A1A2E 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .checkout-container {
+      background: #1A1A2E;
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .logo img {
+      height: 48px;
+    }
+
+    h1 {
+      color: #fff;
+      text-align: center;
+      font-size: 24px;
+      margin-bottom: 32px;
+    }
+
+    .plan-selector {
+      background: #252540;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .plan-option {
+      display: flex;
+      align-items: center;
+      padding: 14px 16px;
+      cursor: pointer;
+      border-bottom: 1px solid #3D3D5C;
+      transition: background 0.2s;
+    }
+
+    .plan-option:last-child {
+      border-bottom: none;
+    }
+
+    .plan-option:hover {
+      background: #2D2D4A;
+    }
+
+    .plan-option.selected {
+      background: rgba(233, 30, 99, 0.15);
+    }
+
+    .plan-radio {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #666;
+      border-radius: 50%;
+      margin-right: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .plan-option.selected .plan-radio {
+      border-color: #E91E63;
+    }
+
+    .plan-radio-inner {
+      width: 10px;
+      height: 10px;
+      background: #E91E63;
+      border-radius: 50%;
+      display: none;
+    }
+
+    .plan-option.selected .plan-radio-inner {
+      display: block;
+    }
+
+    .plan-name {
+      color: #fff;
+      flex: 1;
+    }
+
+    .plan-badge {
+      background: rgba(233, 30, 99, 0.2);
+      color: #E91E63;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+
+    .plan-price {
+      color: #888;
+      font-weight: 600;
+    }
+
+    .plan-option.selected .plan-price {
+      color: #E91E63;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      color: #888;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 14px 16px;
+      background: #252540;
+      border: 1px solid #3D3D5C;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus {
+      border-color: #E91E63;
+    }
+
+    .form-input::placeholder {
+      color: #666;
+    }
+
+    .card-section {
+      background: #252540;
+      border: 1px solid #3D3D5C;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+
+    .card-section-title {
+      color: #888;
+      font-size: 14px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #card-element {
+      padding: 12px 0;
+    }
+
+    .pay-button {
+      width: 100%;
+      padding: 16px;
+      background: #E91E63;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .pay-button:hover:not(:disabled) {
+      background: #D81B60;
+    }
+
+    .pay-button:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    .pay-button:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+
+    .pay-button.loading {
+      position: relative;
+      color: transparent;
+    }
+
+    .pay-button.loading::after {
+      content: '';
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      left: 50%;
+      top: 50%;
+      margin-left: -12px;
+      margin-top: -12px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .security-badge {
+      text-align: center;
+      color: #666;
+      font-size: 12px;
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .error-message {
+      background: rgba(255, 82, 82, 0.1);
+      border: 1px solid rgba(255, 82, 82, 0.3);
+      color: #FF5252;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="checkout-container">
+    <div class="logo">
+      <img src="assets/images/logo_pricing.png" alt="Desenrola IA" onerror="this.style.display='none'">
+    </div>
+
+    <h1>Finalizar Assinatura</h1>
+
+    <!-- Plan Selector -->
+    <div class="plan-selector">
+      <div class="plan-option" data-plan="monthly" data-price="29.90" data-price-id="price_1QQrb3AXJjpbktcIeK8SRPOK">
+        <div class="plan-radio"><div class="plan-radio-inner"></div></div>
+        <span class="plan-name">Mensal</span>
+        <span class="plan-price">R$ 29,90</span>
+      </div>
+      <div class="plan-option selected" data-plan="quarterly" data-price="69.90" data-price-id="price_1QQrcgAXJjpbktcIOWpmx4pl">
+        <div class="plan-radio"><div class="plan-radio-inner"></div></div>
+        <span class="plan-name">Trimestral</span>
+        <span class="plan-badge">Mais popular</span>
+        <span class="plan-price">R$ 69,90</span>
+      </div>
+      <div class="plan-option" data-plan="yearly" data-price="199.90" data-price-id="price_1QQrdhAXJjpbktcIL0wFqLmG">
+        <div class="plan-radio"><div class="plan-radio-inner"></div></div>
+        <span class="plan-name">Anual</span>
+        <span class="plan-badge">Melhor valor</span>
+        <span class="plan-price">R$ 199,90</span>
+      </div>
+    </div>
+
+    <!-- Email -->
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input type="email" id="email" class="form-input" placeholder="seu@email.com" required>
+    </div>
+
+    <!-- Name -->
+    <div class="form-group">
+      <label class="form-label">Nome completo</label>
+      <input type="text" id="name" class="form-input" placeholder="Seu nome" required>
+    </div>
+
+    <!-- Card -->
+    <div class="card-section">
+      <div class="card-section-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2">
+          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+          <line x1="1" y1="10" x2="23" y2="10"></line>
+        </svg>
+        Dados do Cartão
+      </div>
+      <div id="card-element"></div>
+    </div>
+
+    <!-- Error Message -->
+    <div id="error-message" class="error-message"></div>
+
+    <!-- Pay Button -->
+    <button id="pay-button" class="pay-button" disabled>
+      Pagar R$ 69,90
+    </button>
+
+    <!-- Security Badge -->
+    <div class="security-badge">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+      Pagamento 100% seguro via Stripe
+    </div>
+  </div>
+
+  <script>
+    // Config
+    const STRIPE_KEY = 'pk_live_51QQlbcAXJjpbktcIZI6zbuF7QNNtXB9Wy4xpNqfQWFLg4FD0Z1s78rPAr9B80wuiZZ46cZV1XiLkJDZbSqTXRVNQ00ghnGCRnF';
+    const BACKEND_URL = 'https://dating-app-production-ac43.up.railway.app';
+
+    // Get UTM params
+    const urlParams = new URLSearchParams(window.location.search);
+    const utmParams = {
+      utm_source: urlParams.get('utm_source') || '',
+      utm_medium: urlParams.get('utm_medium') || '',
+      utm_campaign: urlParams.get('utm_campaign') || '',
+      utm_content: urlParams.get('utm_content') || '',
+      utm_term: urlParams.get('utm_term') || ''
+    };
+
+    // Pre-fill email if provided
+    const emailParam = urlParams.get('email');
+    if (emailParam) {
+      document.getElementById('email').value = emailParam;
+    }
+
+    // Pre-select plan if provided
+    const planParam = urlParams.get('plan');
+    if (planParam) {
+      document.querySelectorAll('.plan-option').forEach(el => {
+        el.classList.remove('selected');
+        if (el.dataset.plan === planParam) {
+          el.classList.add('selected');
+          updatePayButton();
+        }
+      });
+    }
+
+    // Initialize Stripe
+    const stripe = Stripe(STRIPE_KEY);
+    const elements = stripe.elements({
+      appearance: {
+        theme: 'night',
+        variables: {
+          colorPrimary: '#E91E63',
+          colorBackground: '#252540',
+          colorText: '#ffffff',
+          colorDanger: '#FF5252',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          borderRadius: '8px'
+        },
+        rules: {
+          '.Input': {
+            backgroundColor: '#252540',
+            border: '1px solid #3D3D5C',
+            padding: '12px'
+          },
+          '.Input:focus': {
+            border: '1px solid #E91E63',
+            boxShadow: '0 0 0 1px #E91E63'
+          }
+        }
+      }
+    });
+
+    const cardElement = elements.create('card', {
+      style: {
+        base: {
+          fontSize: '16px',
+          color: '#fff',
+          '::placeholder': { color: '#666' }
+        }
+      }
+    });
+    cardElement.mount('#card-element');
+
+    // Enable pay button when card is complete
+    let cardComplete = false;
+    cardElement.on('change', function(event) {
+      cardComplete = event.complete;
+      updatePayButtonState();
+      if (event.error) {
+        showError(event.error.message);
+      } else {
+        hideError();
+      }
+    });
+
+    // Plan selection
+    document.querySelectorAll('.plan-option').forEach(option => {
+      option.addEventListener('click', function() {
+        document.querySelectorAll('.plan-option').forEach(el => el.classList.remove('selected'));
+        this.classList.add('selected');
+        updatePayButton();
+      });
+    });
+
+    function getSelectedPlan() {
+      const selected = document.querySelector('.plan-option.selected');
+      return {
+        plan: selected.dataset.plan,
+        price: parseFloat(selected.dataset.price),
+        priceId: selected.dataset.priceId
+      };
+    }
+
+    function updatePayButton() {
+      const plan = getSelectedPlan();
+      document.getElementById('pay-button').textContent = `Pagar R$ ${plan.price.toFixed(2).replace('.', ',')}`;
+    }
+
+    function updatePayButtonState() {
+      const email = document.getElementById('email').value.trim();
+      const name = document.getElementById('name').value.trim();
+      const button = document.getElementById('pay-button');
+      button.disabled = !cardComplete || !email || !name;
+    }
+
+    document.getElementById('email').addEventListener('input', updatePayButtonState);
+    document.getElementById('name').addEventListener('input', updatePayButtonState);
+
+    function showError(message) {
+      const el = document.getElementById('error-message');
+      el.textContent = message;
+      el.classList.add('show');
+    }
+
+    function hideError() {
+      document.getElementById('error-message').classList.remove('show');
+    }
+
+    // Track InitiateCheckout
+    const plan = getSelectedPlan();
+    if (typeof fbq !== 'undefined') {
+      fbq('track', 'InitiateCheckout', {
+        value: plan.price,
+        currency: 'BRL',
+        content_name: 'Desenrola IA - ' + plan.plan,
+        ...utmParams
+      });
+    }
+
+    // Handle payment
+    document.getElementById('pay-button').addEventListener('click', async function() {
+      const button = this;
+      const email = document.getElementById('email').value.trim();
+      const name = document.getElementById('name').value.trim();
+      const plan = getSelectedPlan();
+
+      if (!email || !email.includes('@')) {
+        showError('Digite um email válido');
+        return;
+      }
+      if (!name) {
+        showError('Digite seu nome');
+        return;
+      }
+
+      button.disabled = true;
+      button.classList.add('loading');
+      hideError();
+
+      try {
+        // Create PaymentIntent
+        const response = await fetch(`${BACKEND_URL}/create-embedded-checkout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            priceId: plan.priceId,
+            plan: plan.plan,
+            email: email.toLowerCase(),
+            name: name,
+            ...utmParams
+          })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Erro ao processar pagamento');
+        }
+
+        const { clientSecret } = await response.json();
+
+        // Confirm payment
+        const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+          payment_method: {
+            card: cardElement,
+            billing_details: {
+              name: name,
+              email: email.toLowerCase()
+            }
+          }
+        });
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        if (paymentIntent.status === 'succeeded') {
+          // Track Purchase
+          if (typeof fbq !== 'undefined') {
+            fbq('track', 'Purchase', {
+              value: plan.price,
+              currency: 'BRL',
+              content_name: 'Desenrola IA - ' + plan.plan,
+              ...utmParams
+            });
+          }
+
+          // Redirect to success
+          window.location.href = `/subscription/success?email=${encodeURIComponent(email)}`;
+        }
+      } catch (err) {
+        showError(err.message);
+        button.disabled = false;
+        button.classList.remove('loading');
+      }
+    });
+
+    // Initialize
+    updatePayButton();
+  </script>
+</body>
+</html>
