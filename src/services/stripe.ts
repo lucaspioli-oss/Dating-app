@@ -46,6 +46,89 @@ interface CreateCheckoutSessionParams {
   userEmail: string;
 }
 
+interface CreateEmbeddedCheckoutParams {
+  priceId: string;
+  plan: PlanType;
+  email: string;
+  name?: string;
+}
+
+interface EmbeddedCheckoutResult {
+  clientSecret: string;
+  subscriptionId: string;
+  customerId: string;
+  amount: number;
+  currency: string;
+}
+
+/**
+ * Create embedded checkout (subscription with incomplete payment)
+ * Returns clientSecret for Stripe Elements
+ */
+export async function createEmbeddedCheckout(
+  params: CreateEmbeddedCheckoutParams
+): Promise<EmbeddedCheckoutResult> {
+  const { priceId, plan, email, name } = params;
+
+  // Get or create customer
+  let customer: Stripe.Customer;
+  const existingCustomers = await stripe.customers.list({
+    email,
+    limit: 1,
+  });
+
+  if (existingCustomers.data.length > 0) {
+    customer = existingCustomers.data[0];
+  } else {
+    customer = await stripe.customers.create({
+      email,
+      name: name || undefined,
+      metadata: { source: 'embedded_checkout' },
+    });
+  }
+
+  // Get price details
+  const price = await stripe.prices.retrieve(priceId);
+  const amount = price.unit_amount || 0;
+
+  // Create subscription with incomplete payment
+  const subscription = await stripe.subscriptions.create({
+    customer: customer.id,
+    items: [{ price: priceId }],
+    payment_behavior: 'default_incomplete',
+    payment_settings: {
+      save_default_payment_method: 'on_subscription',
+    },
+    metadata: {
+      plan,
+      source: 'embedded_checkout',
+    },
+    expand: ['latest_invoice.payment_intent'],
+  });
+
+  const invoice = subscription.latest_invoice as Stripe.Invoice;
+  const paymentIntent = invoice.payment_intent as Stripe.PaymentIntent;
+
+  if (!paymentIntent?.client_secret) {
+    throw new Error('Failed to create payment intent');
+  }
+
+  console.log('💳 Embedded checkout created:', {
+    subscriptionId: subscription.id,
+    customerId: customer.id,
+    plan,
+    amount: amount / 100,
+  });
+
+  return {
+    clientSecret: paymentIntent.client_secret,
+    subscriptionId: subscription.id,
+    customerId: customer.id,
+    amount: amount / 100,
+    currency: price.currency || 'brl',
+  };
+}
+
 /**
  * Create Stripe Checkout Session
  */

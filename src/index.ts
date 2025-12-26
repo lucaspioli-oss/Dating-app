@@ -20,6 +20,7 @@ import {
 import { getSystemPromptForTone } from './prompts';
 import {
   createCheckoutSession,
+  createEmbeddedCheckout,
   createCustomerPortalSession,
   constructWebhookEvent,
   handleCheckoutCompleted,
@@ -663,6 +664,50 @@ fastify.post('/create-checkout-session', {
     fastify.log.error(error);
     return reply.code(500).send({
       error: 'Failed to create checkout session',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// Create Embedded Checkout (for custom checkout page)
+// Public endpoint - no auth required (user provides email)
+fastify.post('/create-embedded-checkout', async (request, reply) => {
+  try {
+    const { priceId, plan, email, name } = request.body as {
+      priceId: string;
+      plan: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+      email: string;
+      name?: string;
+    };
+
+    if (!priceId || !plan || !email) {
+      return reply.code(400).send({
+        error: 'Missing required fields',
+        message: 'priceId, plan, and email are required',
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return reply.code(400).send({
+        error: 'Invalid email',
+        message: 'Please provide a valid email address',
+      });
+    }
+
+    const result = await createEmbeddedCheckout({
+      priceId,
+      plan,
+      email: email.toLowerCase().trim(),
+      name,
+    });
+
+    return reply.code(200).send(result);
+  } catch (error) {
+    fastify.log.error(error);
+    return reply.code(500).send({
+      error: 'Failed to create checkout',
       message: error instanceof Error ? error.message : 'Unknown error',
     });
   }
