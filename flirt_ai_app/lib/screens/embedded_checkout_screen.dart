@@ -117,7 +117,11 @@ class _EmbeddedCheckoutScreenState extends State<EmbeddedCheckoutScreen> {
     if (renderBox != null) {
       final position = renderBox.localToGlobal(Offset.zero);
       final size = renderBox.size;
-      checkout_web.positionStripeContainer(position.dy, position.dx, size.width);
+      // Add offset for container padding (16) + header row (~36) + spacing (16) = 68
+      final topOffset = position.dy + 68;
+      final leftOffset = position.dx + 16; // Account for container padding
+      final width = size.width - 32; // Subtract left and right padding
+      checkout_web.positionStripeContainer(topOffset, leftOffset, width);
     }
   }
 
