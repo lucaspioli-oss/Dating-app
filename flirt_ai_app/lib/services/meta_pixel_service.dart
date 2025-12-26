@@ -7,6 +7,11 @@ class MetaPixelService {
     required double value,
     required String currency,
     required String planName,
+    String? utmSource,
+    String? utmMedium,
+    String? utmCampaign,
+    String? utmContent,
+    String? utmTerm,
   }) {
     if (!kIsWeb) {
       debugPrint('MetaPixel: Not running on web, skipping');
@@ -15,7 +20,16 @@ class MetaPixelService {
 
     try {
       debugPrint('MetaPixel: Calling trackInitiateCheckout with value=$value, currency=$currency, planName=$planName');
-      js.context.callMethod('trackInitiateCheckout', [value, currency, planName]);
+      js.context.callMethod('trackInitiateCheckout', [
+        value,
+        currency,
+        planName,
+        utmSource ?? '',
+        utmMedium ?? '',
+        utmCampaign ?? '',
+        utmContent ?? '',
+        utmTerm ?? '',
+      ]);
       debugPrint('MetaPixel: trackInitiateCheckout called successfully');
     } catch (e) {
       debugPrint('MetaPixel InitiateCheckout error: $e');
@@ -27,11 +41,25 @@ class MetaPixelService {
     required double value,
     required String currency,
     required String planName,
+    String? utmSource,
+    String? utmMedium,
+    String? utmCampaign,
+    String? utmContent,
+    String? utmTerm,
   }) {
     if (!kIsWeb) return;
 
     try {
-      js.context.callMethod('trackPurchase', [value, currency, planName]);
+      js.context.callMethod('trackPurchase', [
+        value,
+        currency,
+        planName,
+        utmSource ?? '',
+        utmMedium ?? '',
+        utmCampaign ?? '',
+        utmContent ?? '',
+        utmTerm ?? '',
+      ]);
     } catch (e) {
       debugPrint('MetaPixel Purchase error: $e');
     }

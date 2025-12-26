@@ -3,6 +3,9 @@ class AppConfig {
   // URL do Backend (Railway - Produção)
   static const String backendUrl = 'https://dating-app-production-ac43.up.railway.app';
 
+  // Stripe Configuration
+  static const String stripePublishableKey = 'pk_live_51SgqkDAflPjpW4DOCQ8ALttsKXKFJKSnf4vCETfk8TEhHDpeLnd0vQOVXiKLun5BB06AHnzj8WWpUKxd6N7FYEvb00im6X7YSh';
+
   // Stripe Price IDs (Live)
   static const String monthlyPriceId = 'price_1SgsCVAflPjpW4DOXIZVjcA4';
   static const String quarterlyPriceId = 'price_1SgsmgAflPjpW4DO0oID3xaW';

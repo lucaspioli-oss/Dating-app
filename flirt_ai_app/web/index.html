@@ -1,7 +1,11 @@
 <!DOCTYPE html>
+<!-- v2.0.2 - Inline Stripe Fix - 2025-12-26 -->
 <html>
 <head>
   <base href="$FLUTTER_BASE_HREF">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
 
   <!-- Meta Pixel Code -->
   <script>
@@ -21,6 +25,9 @@
       src="https://www.facebook.com/tr?id=1777731699725686&ev=PageView&noscript=1"/>
   </noscript>
   <!-- End Meta Pixel Code -->
+
+  <!-- Stripe.js -->
+  <script src="https://js.stripe.com/v3/"></script>
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
@@ -77,6 +84,17 @@
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       font-size: 16px;
     }
+
+    /* Stripe inline container - positioned by Flutter */
+    #stripe-payment-container {
+      display: none;
+      position: fixed;
+      background: transparent;
+      z-index: 9999;
+      width: 100%;
+      max-width: 448px;
+      min-height: 200px;
+    }
   </style>
 </head>
 <body>
@@ -84,6 +102,9 @@
     <div class="spinner"></div>
     <div class="loading-text">Carregando Desenrola IA...</div>
   </div>
+
+  <!-- Stripe Payment Container - will be positioned by Flutter -->
+  <div id="stripe-payment-container"></div>
 
   <script src="flutter_bootstrap.js" async></script>
 
@@ -96,32 +117,185 @@
     });
 
     // Meta Pixel helper functions for Flutter
-    window.trackInitiateCheckout = function(value, currency, planName) {
-      console.log('trackInitiateCheckout called:', {value, currency, planName});
+    window.trackInitiateCheckout = function(value, currency, planName, utmSource, utmMedium, utmCampaign, utmContent, utmTerm) {
+      console.log('trackInitiateCheckout called:', {value, currency, planName, utmSource, utmMedium, utmCampaign});
       if (typeof fbq !== 'undefined') {
-        fbq('track', 'InitiateCheckout', {
+        var eventData = {
           value: value,
           currency: currency,
           content_name: planName
-        });
+        };
+        if (utmSource) eventData.utm_source = utmSource;
+        if (utmMedium) eventData.utm_medium = utmMedium;
+        if (utmCampaign) eventData.utm_campaign = utmCampaign;
+        if (utmContent) eventData.utm_content = utmContent;
+        if (utmTerm) eventData.utm_term = utmTerm;
+        fbq('track', 'InitiateCheckout', eventData);
         console.log('Meta Pixel: InitiateCheckout tracked successfully');
-      } else {
-        console.error('Meta Pixel: fbq is not defined!');
       }
     };
 
-    window.trackPurchase = function(value, currency, planName) {
-      console.log('trackPurchase called:', {value, currency, planName});
+    window.trackPurchase = function(value, currency, planName, utmSource, utmMedium, utmCampaign, utmContent, utmTerm) {
+      console.log('trackPurchase called:', {value, currency, planName, utmSource, utmMedium, utmCampaign});
       if (typeof fbq !== 'undefined') {
-        fbq('track', 'Purchase', {
+        var eventData = {
           value: value,
           currency: currency,
           content_name: planName
-        });
+        };
+        if (utmSource) eventData.utm_source = utmSource;
+        if (utmMedium) eventData.utm_medium = utmMedium;
+        if (utmCampaign) eventData.utm_campaign = utmCampaign;
+        if (utmContent) eventData.utm_content = utmContent;
+        if (utmTerm) eventData.utm_term = utmTerm;
+        fbq('track', 'Purchase', eventData);
         console.log('Meta Pixel: Purchase tracked successfully');
-      } else {
-        console.error('Meta Pixel: fbq is not defined!');
       }
+    };
+
+    // Stripe Elements Integration - Inline version
+    var stripeInstance = null;
+    var stripeElements = null;
+    var paymentElement = null;
+    var stripeContainerId = 'stripe-payment-container';
+
+    // Position the Stripe container at specific coordinates
+    window.positionStripeContainer = function(top, left, width) {
+      var container = document.getElementById(stripeContainerId);
+      if (container) {
+        container.style.top = top + 'px';
+        container.style.left = left + 'px';
+        container.style.width = width + 'px';
+        container.style.display = 'block';
+        console.log('Stripe container positioned at:', {top, left, width});
+      }
+    };
+
+    window.hideStripeContainer = function() {
+      var container = document.getElementById(stripeContainerId);
+      if (container) {
+        container.style.display = 'none';
+      }
+    };
+
+    window.initStripeElements = function(publishableKey, clientSecret, containerId, returnUrl, amount) {
+      console.log('Initializing Stripe Elements...', {publishableKey: publishableKey.substring(0,10) + '...', containerId});
+
+      // Use fixed container
+      var mountPoint = document.getElementById(stripeContainerId);
+      if (!mountPoint) {
+        console.error('Stripe container not found');
+        return false;
+      }
+
+      try {
+        stripeInstance = Stripe(publishableKey);
+
+        var appearance = {
+          theme: 'night',
+          variables: {
+            colorPrimary: '#E91E63',
+            colorBackground: '#1A1A2E',
+            colorText: '#FFFFFF',
+            colorDanger: '#FF5252',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            spacingUnit: '4px',
+            borderRadius: '8px',
+          },
+          rules: {
+            '.Input': {
+              backgroundColor: '#252540',
+              border: '1px solid #3D3D5C',
+              padding: '12px',
+            },
+            '.Input:focus': {
+              border: '1px solid #E91E63',
+              boxShadow: '0 0 0 1px #E91E63',
+            },
+            '.Label': {
+              color: '#A0A0B0',
+              fontSize: '14px',
+              marginBottom: '8px',
+            },
+            '.Tab': {
+              backgroundColor: '#252540',
+              border: '1px solid #3D3D5C',
+            },
+            '.Tab--selected': {
+              backgroundColor: '#E91E63',
+              borderColor: '#E91E63',
+            },
+          }
+        };
+
+        stripeElements = stripeInstance.elements({
+          clientSecret: clientSecret,
+          appearance: appearance,
+        });
+
+        paymentElement = stripeElements.create('payment', {
+          layout: 'tabs',
+        });
+
+        // Clear and mount
+        mountPoint.innerHTML = '';
+        paymentElement.mount(mountPoint);
+        mountPoint.style.display = 'block';
+
+        console.log('Stripe Payment Element mounted successfully');
+        return true;
+      } catch (e) {
+        console.error('Error initializing Stripe:', e);
+        return false;
+      }
+    };
+
+    window.confirmStripePayment = function(returnUrl) {
+      return new Promise(function(resolve, reject) {
+        if (!stripeInstance || !stripeElements) {
+          reject('Stripe not initialized');
+          return;
+        }
+
+        stripeInstance.confirmPayment({
+          elements: stripeElements,
+          confirmParams: {
+            return_url: returnUrl,
+          },
+          redirect: 'if_required',
+        }).then(function(result) {
+          if (result.error) {
+            console.error('Payment failed:', result.error.message);
+            reject(result.error.message);
+          } else {
+            console.log('Payment succeeded:', result.paymentIntent.status);
+            resolve(result.paymentIntent.status);
+          }
+        }).catch(function(error) {
+          console.error('Payment error:', error);
+          reject(error.message || 'Payment failed');
+        });
+      });
+    };
+
+    window.destroyStripeElements = function() {
+      if (paymentElement) {
+        paymentElement.destroy();
+        paymentElement = null;
+      }
+      stripeElements = null;
+      stripeInstance = null;
+      var container = document.getElementById(stripeContainerId);
+      if (container) {
+        container.innerHTML = '';
+        container.style.display = 'none';
+      }
+      console.log('Stripe Elements destroyed');
+    };
+
+    // Check if Stripe is ready
+    window.isStripeReady = function() {
+      return paymentElement !== null;
     };
   </script>
 </body>

@@ -1,15 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
-import 'package:url_launcher/url_launcher.dart';
-import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
 import '../../services/firebase_auth_service.dart';
 import '../../services/subscription_service.dart';
-import '../../providers/app_state.dart';
-import '../../config/app_config.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import '../../services/meta_pixel_service.dart';
+import '../embedded_checkout_screen.dart';
 
 class SubscriptionRequiredScreen extends StatefulWidget {
   final SubscriptionStatus status;
@@ -431,7 +424,7 @@ class _SubscriptionRequiredScreenState
                     child: ElevatedButton(
                       onPressed: () {
                         setState(() => _selectedPlan = index);
-                        _createStripeCheckout(context);
+                        _navigateToCheckout(context);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFE91E63),
@@ -460,213 +453,36 @@ class _SubscriptionRequiredScreenState
     );
   }
 
-  Future<void> _createStripeCheckout(BuildContext context) async {
-    try {
-      final authService = FirebaseAuthService();
-      final user = authService.currentUser;
-      final appState = Provider.of<AppState>(context, listen: false);
-
-      if (user == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Row(
-              children: [
-                Icon(Icons.error_outline, color: Colors.white),
-                SizedBox(width: 12),
-                Text('Erro: Usuário não autenticado'),
-              ],
-            ),
-            backgroundColor: AppColors.error,
-          ),
-        );
-        return;
-      }
-
-      // Show loading
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        barrierColor: Colors.black87,
-        builder: (context) => Center(
-          child: Container(
-            width: 280,
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1A1A2E),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: const Color(0xFFE91E63).withOpacity(0.3),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFE91E63).withOpacity(0.15),
-                  blurRadius: 30,
-                  spreadRadius: 5,
-                ),
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Animated loading indicator with gradient border
-                Container(
-                  width: 70,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [
-                        const Color(0xFFE91E63).withOpacity(0.2),
-                        const Color(0xFFFF5722).withOpacity(0.1),
-                      ],
-                    ),
-                  ),
-                  child: const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: CircularProgressIndicator(
-                      color: Color(0xFFE91E63),
-                      strokeWidth: 3,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 28),
-                const Text(
-                  'Preparando checkout',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    decoration: TextDecoration.none,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Aguarde um momento...',
-                  style: TextStyle(
-                    color: Colors.grey[500],
-                    fontSize: 14,
-                    decoration: TextDecoration.none,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-
-      // Get Firebase ID token
-      final idToken = await user.getIdToken();
-
-      // Get backend URL
-      final backendUrl = appState.backendUrl;
-
-      // Determine price ID and plan based on selection
-      late final String priceId;
-      late final String plan;
-      late final double checkoutValue;
-
-      switch (_selectedPlan) {
-        case 0:
-          priceId = AppConfig.monthlyPriceId;
-          plan = 'monthly';
-          checkoutValue = monthlyPrice;
-          break;
-        case 1:
-          priceId = AppConfig.quarterlyPriceId;
-          plan = 'quarterly';
-          checkoutValue = quarterlyPrice;
-          break;
-        case 2:
-          priceId = AppConfig.yearlyPriceId;
-          plan = 'yearly';
-          checkoutValue = yearlyPrice;
-          break;
-        default:
-          priceId = AppConfig.quarterlyPriceId;
-          plan = 'quarterly';
-          checkoutValue = quarterlyPrice;
-      }
-
-      // Track InitiateCheckout on Meta Pixel
-      debugPrint('[CHECKOUT] Tracking InitiateCheckout event...');
-      MetaPixelService.trackInitiateCheckout(
-        value: checkoutValue,
-        currency: 'BRL',
-        planName: 'Desenrola IA - $plan',
-      );
-
-      debugPrint('[CHECKOUT] Calling backend /create-checkout-session...');
-      final response = await http.post(
-        Uri.parse('$backendUrl/create-checkout-session'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $idToken',
-        },
-        body: jsonEncode({
-          'priceId': priceId,
-          'plan': plan,
-        }),
-      );
-
-      debugPrint('[CHECKOUT] Backend response: ${response.statusCode}');
-
-      if (context.mounted) {
-        Navigator.pop(context); // Close loading
-      }
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final checkoutUrl = data['url'] as String;
-        debugPrint('[CHECKOUT] Opening Stripe URL: $checkoutUrl');
-
-        // Open Stripe Checkout in browser
-        final uri = Uri.parse(checkoutUrl);
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        } else {
-          debugPrint('[CHECKOUT] Cannot launch URL!');
-        }
-      } else {
-        debugPrint('[CHECKOUT] Error response: ${response.body}');
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.error_outline, color: Colors.white),
-                  const SizedBox(width: 12),
-                  Expanded(
-                      child: Text('Erro ao criar checkout: ${response.body}')),
-                ],
-              ),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint('[CHECKOUT] Exception: $e');
-      if (context.mounted) {
-        Navigator.pop(context); // Close loading if still open
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error_outline, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(child: Text('Erro: $e')),
-              ],
-            ),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
+  void _navigateToCheckout(BuildContext context) {
+    // Determine plan based on selection
+    String plan;
+    switch (_selectedPlan) {
+      case 0:
+        plan = 'monthly';
+        break;
+      case 1:
+        plan = 'quarterly';
+        break;
+      case 2:
+        plan = 'yearly';
+        break;
+      default:
+        plan = 'quarterly';
     }
+
+    // Get user email if authenticated
+    final authService = FirebaseAuthService();
+    final userEmail = authService.currentUser?.email;
+
+    // Navigate to embedded checkout screen
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EmbeddedCheckoutScreen(
+          plan: plan,
+          email: userEmail,
+        ),
+      ),
+    );
   }
 }

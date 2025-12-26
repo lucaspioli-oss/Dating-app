@@ -1,17 +1,16 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' if (dart.library.io) 'dart:html' as html;
 
 import 'config/app_theme.dart';
+import 'utils/web_url_helper.dart';
 import 'providers/app_state.dart';
 import 'providers/user_profile_provider.dart';
 import 'screens/auth/auth_wrapper.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/purchase_success_screen.dart';
+import 'screens/embedded_checkout_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,12 +53,34 @@ class FlirtAIApp extends StatelessWidget {
         },
         home: Builder(
           builder: (context) {
-            // Check URL on web to handle /success route
+            // Check URL on web to handle public routes
             if (kIsWeb) {
-              final uri = Uri.parse(html.window.location.href);
-              final path = uri.path;
+              final uri = WebUrlHelper.getCurrentUri();
+              final path = uri?.path ?? '';
 
-              if (path.contains('/success') || path.contains('/subscription/success')) {
+              // Handle /checkout route
+              if (path.contains('/checkout') && uri != null) {
+                final plan = uri.queryParameters['plan'];
+                final email = uri.queryParameters['email'];
+                // Capture UTM parameters
+                final utmSource = uri.queryParameters['utm_source'];
+                final utmMedium = uri.queryParameters['utm_medium'];
+                final utmCampaign = uri.queryParameters['utm_campaign'];
+                final utmContent = uri.queryParameters['utm_content'];
+                final utmTerm = uri.queryParameters['utm_term'];
+                return EmbeddedCheckoutScreen(
+                  plan: plan,
+                  email: email,
+                  utmSource: utmSource,
+                  utmMedium: utmMedium,
+                  utmCampaign: utmCampaign,
+                  utmContent: utmContent,
+                  utmTerm: utmTerm,
+                );
+              }
+
+              // Handle /success route
+              if ((path.contains('/success') || path.contains('/subscription/success')) && uri != null) {
                 final sessionId = uri.queryParameters['session_id'];
                 final email = uri.queryParameters['email'];
                 return PurchaseSuccessScreen(
@@ -73,6 +94,28 @@ class FlirtAIApp extends StatelessWidget {
         ),
         onGenerateRoute: (settings) {
           final uri = Uri.parse(settings.name ?? '');
+
+          // Handle /checkout route (public - for embedded checkout)
+          if (uri.path == '/checkout') {
+            final plan = uri.queryParameters['plan'];
+            final email = uri.queryParameters['email'];
+            final utmSource = uri.queryParameters['utm_source'];
+            final utmMedium = uri.queryParameters['utm_medium'];
+            final utmCampaign = uri.queryParameters['utm_campaign'];
+            final utmContent = uri.queryParameters['utm_content'];
+            final utmTerm = uri.queryParameters['utm_term'];
+            return MaterialPageRoute(
+              builder: (context) => EmbeddedCheckoutScreen(
+                plan: plan,
+                email: email,
+                utmSource: utmSource,
+                utmMedium: utmMedium,
+                utmCampaign: utmCampaign,
+                utmContent: utmContent,
+                utmTerm: utmTerm,
+              ),
+            );
+          }
 
           // Handle /success route with query params (public - no auth required)
           if (uri.path == '/success' || uri.path == '/subscription/success') {
