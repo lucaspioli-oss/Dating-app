@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Checkout - Desenrola IA</title>
 
   <!-- Meta Pixel Code -->
@@ -29,45 +29,61 @@
       box-sizing: border-box;
     }
 
+    html, body {
+      width: 100%;
+      overflow-x: hidden;
+    }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #0D0D1A 0%, #1A1A2E 100%);
+      background: linear-gradient(180deg, #0D0D1A 0%, #1A1A2E 100%);
       min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
       padding: 20px;
+    }
+
+    .checkout-wrapper {
+      max-width: 480px;
+      margin: 0 auto;
     }
 
     .checkout-container {
       background: #1A1A2E;
       border-radius: 16px;
-      padding: 32px;
-      width: 100%;
-      max-width: 420px;
+      padding: 24px;
       box-shadow: 0 20px 60px rgba(0,0,0,0.5);
     }
 
     .logo {
       text-align: center;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
 
     .logo img {
-      height: 48px;
+      height: 40px;
     }
 
     h1 {
       color: #fff;
       text-align: center;
-      font-size: 24px;
-      margin-bottom: 32px;
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 24px;
     }
 
+    .section-title {
+      color: #888;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+
+    /* Plan Selector - Vertical */
     .plan-selector {
-      background: #252540;
-      border-radius: 12px;
-      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
       margin-bottom: 24px;
     }
 
@@ -75,21 +91,20 @@
       display: flex;
       align-items: center;
       padding: 14px 16px;
+      background: #252540;
+      border: 2px solid #3D3D5C;
+      border-radius: 12px;
       cursor: pointer;
-      border-bottom: 1px solid #3D3D5C;
-      transition: background 0.2s;
-    }
-
-    .plan-option:last-child {
-      border-bottom: none;
+      transition: all 0.2s;
     }
 
     .plan-option:hover {
-      background: #2D2D4A;
+      border-color: #555;
     }
 
     .plan-option.selected {
-      background: rgba(233, 30, 99, 0.15);
+      border-color: #E91E63;
+      background: rgba(233, 30, 99, 0.1);
     }
 
     .plan-radio {
@@ -101,6 +116,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-shrink: 0;
     }
 
     .plan-option.selected .plan-radio {
@@ -119,12 +135,18 @@
       display: block;
     }
 
-    .plan-name {
-      color: #fff;
+    .plan-info {
       flex: 1;
     }
 
+    .plan-name {
+      color: #fff;
+      font-weight: 500;
+      font-size: 15px;
+    }
+
     .plan-badge {
+      display: inline-block;
       background: rgba(233, 30, 99, 0.2);
       color: #E91E63;
       padding: 2px 8px;
@@ -132,15 +154,23 @@
       font-size: 10px;
       font-weight: 600;
       margin-left: 8px;
+      vertical-align: middle;
     }
 
     .plan-price {
-      color: #888;
-      font-weight: 600;
+      color: #E91E63;
+      font-weight: 700;
+      font-size: 16px;
+      flex-shrink: 0;
     }
 
-    .plan-option.selected .plan-price {
-      color: #E91E63;
+    .plan-option:not(.selected) .plan-price {
+      color: #888;
+    }
+
+    /* Form Fields */
+    .form-section {
+      margin-bottom: 24px;
     }
 
     .form-group {
@@ -150,7 +180,8 @@
     .form-label {
       display: block;
       color: #888;
-      font-size: 14px;
+      font-size: 13px;
+      font-weight: 500;
       margin-bottom: 8px;
     }
 
@@ -159,65 +190,75 @@
       padding: 14px 16px;
       background: #252540;
       border: 1px solid #3D3D5C;
-      border-radius: 8px;
+      border-radius: 10px;
       color: #fff;
       font-size: 16px;
       outline: none;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
 
     .form-input:focus {
       border-color: #E91E63;
+      box-shadow: 0 0 0 3px rgba(233, 30, 99, 0.1);
     }
 
     .form-input::placeholder {
       color: #666;
     }
 
-    .card-section {
+    /* Payment Section */
+    .payment-section {
       background: #252540;
-      border: 1px solid #3D3D5C;
-      border-radius: 8px;
-      padding: 16px;
+      border-radius: 12px;
+      padding: 20px;
       margin-bottom: 24px;
     }
 
-    .card-section-title {
-      color: #888;
+    .payment-title {
+      color: #fff;
       font-size: 14px;
-      margin-bottom: 12px;
+      font-weight: 600;
+      margin-bottom: 16px;
       display: flex;
       align-items: center;
       gap: 8px;
     }
 
-    #card-element {
-      padding: 12px 0;
+    .payment-title svg {
+      color: #E91E63;
     }
 
+    #payment-element {
+      min-height: 200px;
+    }
+
+    /* Pay Button */
     .pay-button {
       width: 100%;
-      padding: 16px;
-      background: #E91E63;
+      padding: 18px;
+      background: linear-gradient(135deg, #E91E63 0%, #C2185B 100%);
       color: #fff;
       border: none;
       border-radius: 12px;
       font-size: 18px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
+      transition: transform 0.1s, box-shadow 0.2s;
+      box-shadow: 0 4px 15px rgba(233, 30, 99, 0.3);
     }
 
     .pay-button:hover:not(:disabled) {
-      background: #D81B60;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(233, 30, 99, 0.4);
     }
 
     .pay-button:active:not(:disabled) {
-      transform: scale(0.98);
+      transform: translateY(0);
     }
 
     .pay-button:disabled {
-      background: #555;
+      background: #444;
+      box-shadow: none;
       cursor: not-allowed;
     }
 
@@ -245,6 +286,7 @@
       to { transform: rotate(360deg); }
     }
 
+    /* Security Badge */
     .security-badge {
       text-align: center;
       color: #666;
@@ -256,90 +298,163 @@
       gap: 6px;
     }
 
+    /* Error Message */
     .error-message {
       background: rgba(255, 82, 82, 0.1);
       border: 1px solid rgba(255, 82, 82, 0.3);
       color: #FF5252;
-      padding: 12px;
-      border-radius: 8px;
+      padding: 12px 16px;
+      border-radius: 10px;
       margin-bottom: 16px;
       font-size: 14px;
       display: none;
     }
 
     .error-message.show {
-      display: block;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Loading State */
+    .loading-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(13, 13, 26, 0.9);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .loading-overlay.show {
+      display: flex;
+    }
+
+    .loading-spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(233, 30, 99, 0.2);
+      border-top-color: #E91E63;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    .loading-text {
+      color: #fff;
+      font-size: 16px;
+    }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      body {
+        padding: 12px;
+      }
+
+      .checkout-container {
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: 20px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="checkout-container">
-    <div class="logo">
-      <img src="assets/images/logo_pricing.png" alt="Desenrola IA" onerror="this.style.display='none'">
-    </div>
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Processando pagamento...</div>
+  </div>
 
-    <h1>Finalizar Assinatura</h1>
-
-    <!-- Plan Selector -->
-    <div class="plan-selector">
-      <div class="plan-option" data-plan="monthly" data-price="29.90" data-price-id="price_1QQrb3AXJjpbktcIeK8SRPOK">
-        <div class="plan-radio"><div class="plan-radio-inner"></div></div>
-        <span class="plan-name">Mensal</span>
-        <span class="plan-price">R$ 29,90</span>
+  <div class="checkout-wrapper">
+    <div class="checkout-container">
+      <div class="logo">
+        <img src="assets/images/logo_pricing.png" alt="Desenrola IA" onerror="this.style.display='none'">
       </div>
-      <div class="plan-option selected" data-plan="quarterly" data-price="69.90" data-price-id="price_1QQrcgAXJjpbktcIOWpmx4pl">
-        <div class="plan-radio"><div class="plan-radio-inner"></div></div>
-        <span class="plan-name">Trimestral</span>
-        <span class="plan-badge">Mais popular</span>
-        <span class="plan-price">R$ 69,90</span>
+
+      <h1>Finalizar Assinatura</h1>
+
+      <!-- Plan Selector -->
+      <div class="section-title">Escolha seu plano</div>
+      <div class="plan-selector">
+        <div class="plan-option" data-plan="monthly" data-price="29.90" data-price-id="price_1QQrb3AXJjpbktcIeK8SRPOK">
+          <div class="plan-radio"><div class="plan-radio-inner"></div></div>
+          <div class="plan-info">
+            <span class="plan-name">Mensal</span>
+          </div>
+          <span class="plan-price">R$ 29,90</span>
+        </div>
+        <div class="plan-option selected" data-plan="quarterly" data-price="69.90" data-price-id="price_1QQrcgAXJjpbktcIOWpmx4pl">
+          <div class="plan-radio"><div class="plan-radio-inner"></div></div>
+          <div class="plan-info">
+            <span class="plan-name">Trimestral</span>
+            <span class="plan-badge">Mais popular</span>
+          </div>
+          <span class="plan-price">R$ 69,90</span>
+        </div>
+        <div class="plan-option" data-plan="yearly" data-price="199.90" data-price-id="price_1QQrdhAXJjpbktcIL0wFqLmG">
+          <div class="plan-radio"><div class="plan-radio-inner"></div></div>
+          <div class="plan-info">
+            <span class="plan-name">Anual</span>
+            <span class="plan-badge">Melhor valor</span>
+          </div>
+          <span class="plan-price">R$ 199,90</span>
+        </div>
       </div>
-      <div class="plan-option" data-plan="yearly" data-price="199.90" data-price-id="price_1QQrdhAXJjpbktcIL0wFqLmG">
-        <div class="plan-radio"><div class="plan-radio-inner"></div></div>
-        <span class="plan-name">Anual</span>
-        <span class="plan-badge">Melhor valor</span>
-        <span class="plan-price">R$ 199,90</span>
+
+      <!-- Customer Info -->
+      <div class="section-title">Seus dados</div>
+      <div class="form-section">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" id="email" class="form-input" placeholder="seu@email.com" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nome completo</label>
+          <input type="text" id="name" class="form-input" placeholder="Como está no cartão" required>
+        </div>
       </div>
-    </div>
 
-    <!-- Email -->
-    <div class="form-group">
-      <label class="form-label">Email</label>
-      <input type="email" id="email" class="form-input" placeholder="seu@email.com" required>
-    </div>
+      <!-- Payment -->
+      <div class="section-title">Forma de pagamento</div>
+      <div class="payment-section">
+        <div id="payment-element">
+          <div style="text-align: center; padding: 40px; color: #666;">
+            <div class="loading-spinner" style="margin: 0 auto 16px;"></div>
+            Carregando opções de pagamento...
+          </div>
+        </div>
+      </div>
 
-    <!-- Name -->
-    <div class="form-group">
-      <label class="form-label">Nome completo</label>
-      <input type="text" id="name" class="form-input" placeholder="Seu nome" required>
-    </div>
-
-    <!-- Card -->
-    <div class="card-section">
-      <div class="card-section-title">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2">
-          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-          <line x1="1" y1="10" x2="23" y2="10"></line>
+      <!-- Error Message -->
+      <div id="error-message" class="error-message">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
         </svg>
-        Dados do Cartão
+        <span id="error-text"></span>
       </div>
-      <div id="card-element"></div>
-    </div>
 
-    <!-- Error Message -->
-    <div id="error-message" class="error-message"></div>
+      <!-- Pay Button -->
+      <button id="pay-button" class="pay-button" disabled>
+        Pagar R$ 69,90
+      </button>
 
-    <!-- Pay Button -->
-    <button id="pay-button" class="pay-button" disabled>
-      Pagar R$ 69,90
-    </button>
-
-    <!-- Security Badge -->
-    <div class="security-badge">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-      </svg>
-      Pagamento 100% seguro via Stripe
+      <!-- Security Badge -->
+      <div class="security-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        Pagamento 100% seguro via Stripe
+      </div>
     </div>
   </div>
 
@@ -371,60 +486,15 @@
         el.classList.remove('selected');
         if (el.dataset.plan === planParam) {
           el.classList.add('selected');
-          updatePayButton();
         }
       });
     }
 
     // Initialize Stripe
     const stripe = Stripe(STRIPE_KEY);
-    const elements = stripe.elements({
-      appearance: {
-        theme: 'night',
-        variables: {
-          colorPrimary: '#E91E63',
-          colorBackground: '#252540',
-          colorText: '#ffffff',
-          colorDanger: '#FF5252',
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          borderRadius: '8px'
-        },
-        rules: {
-          '.Input': {
-            backgroundColor: '#252540',
-            border: '1px solid #3D3D5C',
-            padding: '12px'
-          },
-          '.Input:focus': {
-            border: '1px solid #E91E63',
-            boxShadow: '0 0 0 1px #E91E63'
-          }
-        }
-      }
-    });
-
-    const cardElement = elements.create('card', {
-      style: {
-        base: {
-          fontSize: '16px',
-          color: '#fff',
-          '::placeholder': { color: '#666' }
-        }
-      }
-    });
-    cardElement.mount('#card-element');
-
-    // Enable pay button when card is complete
-    let cardComplete = false;
-    cardElement.on('change', function(event) {
-      cardComplete = event.complete;
-      updatePayButtonState();
-      if (event.error) {
-        showError(event.error.message);
-      } else {
-        hideError();
-      }
-    });
+    let elements;
+    let paymentElement;
+    let clientSecret;
 
     // Plan selection
     document.querySelectorAll('.plan-option').forEach(option => {
@@ -432,6 +502,8 @@
         document.querySelectorAll('.plan-option').forEach(el => el.classList.remove('selected'));
         this.classList.add('selected');
         updatePayButton();
+        // Reinitialize payment element with new amount
+        initializePayment();
       });
     });
 
@@ -449,19 +521,9 @@
       document.getElementById('pay-button').textContent = `Pagar R$ ${plan.price.toFixed(2).replace('.', ',')}`;
     }
 
-    function updatePayButtonState() {
-      const email = document.getElementById('email').value.trim();
-      const name = document.getElementById('name').value.trim();
-      const button = document.getElementById('pay-button');
-      button.disabled = !cardComplete || !email || !name;
-    }
-
-    document.getElementById('email').addEventListener('input', updatePayButtonState);
-    document.getElementById('name').addEventListener('input', updatePayButtonState);
-
     function showError(message) {
       const el = document.getElementById('error-message');
-      el.textContent = message;
+      document.getElementById('error-text').textContent = message;
       el.classList.add('show');
     }
 
@@ -469,13 +531,150 @@
       document.getElementById('error-message').classList.remove('show');
     }
 
+    function showLoading() {
+      document.getElementById('loading-overlay').classList.add('show');
+    }
+
+    function hideLoading() {
+      document.getElementById('loading-overlay').classList.remove('show');
+    }
+
+    // Initialize payment
+    async function initializePayment() {
+      const plan = getSelectedPlan();
+      const email = document.getElementById('email').value.trim() || 'pending@checkout.temp';
+      const name = document.getElementById('name').value.trim() || 'Pending';
+
+      try {
+        const response = await fetch(`${BACKEND_URL}/create-embedded-checkout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            priceId: plan.priceId,
+            plan: plan.plan,
+            email: email,
+            name: name,
+            ...utmParams
+          })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Erro ao carregar pagamento');
+        }
+
+        const data = await response.json();
+        clientSecret = data.clientSecret;
+
+        // Create Payment Element with all payment methods
+        const appearance = {
+          theme: 'night',
+          variables: {
+            colorPrimary: '#E91E63',
+            colorBackground: '#1A1A2E',
+            colorText: '#ffffff',
+            colorDanger: '#FF5252',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            borderRadius: '10px',
+            spacingUnit: '4px'
+          },
+          rules: {
+            '.Input': {
+              backgroundColor: '#252540',
+              border: '1px solid #3D3D5C',
+              padding: '14px'
+            },
+            '.Input:focus': {
+              border: '1px solid #E91E63',
+              boxShadow: '0 0 0 3px rgba(233, 30, 99, 0.1)'
+            },
+            '.Label': {
+              color: '#888',
+              fontSize: '13px',
+              fontWeight: '500'
+            },
+            '.Tab': {
+              backgroundColor: '#252540',
+              border: '1px solid #3D3D5C',
+              borderRadius: '10px'
+            },
+            '.Tab:hover': {
+              backgroundColor: '#2D2D4A'
+            },
+            '.Tab--selected': {
+              backgroundColor: 'rgba(233, 30, 99, 0.15)',
+              borderColor: '#E91E63'
+            },
+            '.TabIcon': {
+              color: '#888'
+            },
+            '.TabIcon--selected': {
+              color: '#E91E63'
+            },
+            '.TabLabel': {
+              color: '#888'
+            },
+            '.TabLabel--selected': {
+              color: '#fff'
+            }
+          }
+        };
+
+        elements = stripe.elements({ clientSecret, appearance });
+
+        // Clear previous element
+        document.getElementById('payment-element').innerHTML = '';
+
+        paymentElement = elements.create('payment', {
+          layout: {
+            type: 'tabs',
+            defaultCollapsed: false
+          },
+          paymentMethodOrder: ['card', 'pix'],
+          fields: {
+            billingDetails: {
+              name: 'auto',
+              email: 'auto'
+            }
+          }
+        });
+
+        paymentElement.mount('#payment-element');
+
+        paymentElement.on('ready', function() {
+          document.getElementById('pay-button').disabled = false;
+        });
+
+        paymentElement.on('change', function(event) {
+          if (event.complete) {
+            document.getElementById('pay-button').disabled = false;
+          }
+          if (event.error) {
+            showError(event.error.message);
+          } else {
+            hideError();
+          }
+        });
+
+      } catch (err) {
+        document.getElementById('payment-element').innerHTML = `
+          <div style="text-align: center; padding: 40px; color: #FF5252;">
+            <p>Erro ao carregar: ${err.message}</p>
+            <button onclick="initializePayment()" style="margin-top: 16px; padding: 10px 20px; background: #E91E63; color: #fff; border: none; border-radius: 8px; cursor: pointer;">
+              Tentar novamente
+            </button>
+          </div>
+        `;
+      }
+    }
+
     // Track InitiateCheckout
-    const plan = getSelectedPlan();
+    const initialPlan = getSelectedPlan();
     if (typeof fbq !== 'undefined') {
       fbq('track', 'InitiateCheckout', {
-        value: plan.price,
+        value: initialPlan.price,
         currency: 'BRL',
-        content_name: 'Desenrola IA - ' + plan.plan,
+        content_name: 'Desenrola IA - ' + initialPlan.plan,
         ...utmParams
       });
     }
@@ -492,51 +691,35 @@
         return;
       }
       if (!name) {
-        showError('Digite seu nome');
+        showError('Digite seu nome completo');
         return;
       }
 
       button.disabled = true;
       button.classList.add('loading');
+      showLoading();
       hideError();
 
       try {
-        // Create PaymentIntent
-        const response = await fetch(`${BACKEND_URL}/create-embedded-checkout`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            priceId: plan.priceId,
-            plan: plan.plan,
-            email: email.toLowerCase(),
-            name: name,
-            ...utmParams
-          })
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.message || 'Erro ao processar pagamento');
-        }
-
-        const { clientSecret } = await response.json();
-
-        // Confirm payment
-        const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
-          payment_method: {
-            card: cardElement,
-            billing_details: {
-              name: name,
-              email: email.toLowerCase()
+        const { error, paymentIntent } = await stripe.confirmPayment({
+          elements,
+          confirmParams: {
+            return_url: `${window.location.origin}/subscription/success?email=${encodeURIComponent(email)}`,
+            payment_method_data: {
+              billing_details: {
+                name: name,
+                email: email.toLowerCase()
+              }
             }
-          }
+          },
+          redirect: 'if_required'
         });
 
         if (error) {
           throw new Error(error.message);
         }
 
-        if (paymentIntent.status === 'succeeded') {
+        if (paymentIntent && paymentIntent.status === 'succeeded') {
           // Track Purchase
           if (typeof fbq !== 'undefined') {
             fbq('track', 'Purchase', {
@@ -549,16 +732,21 @@
 
           // Redirect to success
           window.location.href = `/subscription/success?email=${encodeURIComponent(email)}`;
+        } else if (paymentIntent && paymentIntent.status === 'processing') {
+          // PIX or other async payment
+          window.location.href = `/subscription/success?email=${encodeURIComponent(email)}&status=processing`;
         }
       } catch (err) {
         showError(err.message);
         button.disabled = false;
         button.classList.remove('loading');
+        hideLoading();
       }
     });
 
     // Initialize
     updatePayButton();
+    initializePayment();
   </script>
 </body>
 </html>
