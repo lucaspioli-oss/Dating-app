@@ -9,6 +9,7 @@ import {
   InstagramOpenerAgent,
   ConversationReplyAgent,
   ProfileImageAnalyzerAgent,
+  ConversationImageAnalyzerAgent,
   UserContext,
 } from './agents';
 import { ConversationManager } from './services/conversation-manager';
@@ -31,10 +32,13 @@ import {
 } from './services/stripe';
 import { verifyAuth, verifyAuthOnly, AuthenticatedRequest } from './middleware/auth';
 import { CollectiveAvatarManager } from './services/collective-avatar-manager';
+import { TrainingFeedbackService } from './services/training-feedback-service';
+import { CreateTrainingFeedbackRequest, UpdateTrainingFeedbackRequest } from './types/training-feedback';
 import Stripe from 'stripe';
 
 const fastify = Fastify({
   logger: true,
+  bodyLimit: 50 * 1024 * 1024, // 50MB para suportar imagens grandes em base64
 });
 
 // Habilitar CORS
@@ -99,9 +103,9 @@ fastify.post<{ Body: AnalyzeRequest }>(
 fastify.get('/health', async (request, reply) => {
   return {
     status: 'ok',
-    version: '2.0.0',
+    version: '2.2.0',
     timestamp: new Date().toISOString(),
-    endpoints: ['/set-password', '/webhook/stripe', '/checkout-session/:sessionId']
+    endpoints: ['/set-password', '/webhook/stripe', '/checkout-session/:sessionId', '/create-embedded-checkout', '/create-stripe-embedded-session']
   };
 });
 
@@ -309,20 +313,167 @@ fastify.post('/generate-instagram-opener', async (request, reply) => {
 // Nova rota: Responder mensagem (expert mode - calibra automaticamente)
 fastify.post('/reply', async (request, reply) => {
   try {
-    const { receivedMessage, conversationHistory, matchName, context, platform, userContext } =
-      request.body as any;
+    // APENAS receivedMessage importa - ignorar perfil/bio/contexto
+    const { receivedMessage, conversationHistory } = request.body as any;
 
     const agent = new ConversationReplyAgent();
-    const result = await agent.execute(
-      { receivedMessage, conversationHistory, matchName, context, platform },
-      userContext as UserContext
-    );
+    const result = await agent.execute({
+      receivedMessage,
+      conversationHistory,
+      // NÃO passa matchName, context, platform - foco 100% na mensagem
+    });
 
     return reply.code(200).send({ suggestions: result });
   } catch (error) {
     fastify.log.error(error);
     return reply.code(500).send({
       error: 'Erro ao gerar resposta',
+      message: error instanceof Error ? error.message : 'Erro desconhecido',
+    });
+  }
+});
+
+// Nova rota: Responder mensagem COM RACIOCÍNIO (para desenvolvedores)
+fastify.post('/reply-with-reasoning', async (request, reply) => {
+  try {
+    // APENAS receivedMessage importa - ignorar perfil/bio/contexto
+    const { receivedMessage, conversationHistory } = request.body as any;
+
+    const agent = new ConversationReplyAgent();
+    const result = await agent.executeWithReasoning({
+      receivedMessage,
+      conversationHistory,
+      // NÃO passa matchName, context, platform - foco 100% na mensagem
+    });
+
+    return reply.code(200).send({
+      analysis: result.analysis,
+      suggestions: result.suggestions,
+      rawResponse: result.rawResponse,
+    });
+  } catch (error) {
+    fastify.log.error(error);
+    return reply.code(500).send({
+      error: 'Erro ao gerar resposta com raciocínio',
+      message: error instanceof Error ? error.message : 'Erro desconhecido',
+    });
+  }
+});
+
+// Salvar feedback do desenvolvedor sobre sugestões
+fastify.post('/developer-feedback', async (request, reply) => {
+  try {
+    const {
+      inputData,       // Dados de entrada (mensagem recebida, contexto, etc)
+      analysis,        // Análise gerada pela IA
+      suggestions,     // Sugestões geradas
+      selectedIndex,   // Qual sugestão foi escolhida (se alguma)
+      feedbackType,    // 'good' | 'bad' | 'partial'
+      feedbackNote,    // Nota do desenvolvedor explicando o problema
+      correctedSuggestion, // Sugestão corrigida (se houver)
+    } = request.body as any;
+
+    const admin = require('firebase-admin');
+    const db = admin.firestore();
+
+    // Salvar no Firestore
+    const feedbackRef = await db.collection('developerFeedback').add({
+      inputData,
+      analysis,
+      suggestions,
+      selectedIndex,
+      feedbackType,
+      feedbackNote,
+      correctedSuggestion,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      processed: false, // Flag para saber se já foi processado para retraining
+    });
+
+    console.log('📝 Developer feedback saved:', feedbackRef.id);
+
+    return reply.code(201).send({
+      success: true,
+      id: feedbackRef.id,
+    });
+  } catch (error) {
+    fastify.log.error(error);
+    return reply.code(500).send({
+      error: 'Erro ao salvar feedback',
+      message: error instanceof Error ? error.message : 'Erro desconhecido',
+    });
+  }
+});
+
+// Listar feedbacks do desenvolvedor (para análise)
+fastify.get('/developer-feedback', async (request, reply) => {
+  try {
+    const { processed, limit: limitParam } = request.query as { processed?: string; limit?: string };
+    const admin = require('firebase-admin');
+    const db = admin.firestore();
+
+    let query = db.collection('developerFeedback').orderBy('createdAt', 'desc');
+
+    if (processed !== undefined) {
+      query = query.where('processed', '==', processed === 'true');
+    }
+
+    const limitNum = parseInt(limitParam || '50', 10);
+    query = query.limit(limitNum);
+
+    const snapshot = await query.get();
+    const feedbacks = snapshot.docs.map((doc: any) => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || null,
+    }));
+
+    return reply.send(feedbacks);
+  } catch (error) {
+    fastify.log.error(error);
+    return reply.code(500).send({
+      error: 'Erro ao listar feedbacks',
+      message: error instanceof Error ? error.message : 'Erro desconhecido',
+    });
+  }
+});
+
+// Exportar feedbacks para arquivo (para retraining)
+fastify.get('/developer-feedback/export', async (request, reply) => {
+  try {
+    const admin = require('firebase-admin');
+    const db = admin.firestore();
+
+    const snapshot = await db.collection('developerFeedback')
+      .where('processed', '==', false)
+      .orderBy('createdAt', 'asc')
+      .get();
+
+    const feedbacks = snapshot.docs.map((doc: any) => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || null,
+    }));
+
+    // Formato para retraining
+    const trainingData = feedbacks.map((fb: any) => ({
+      input: fb.inputData,
+      analysis: fb.analysis,
+      suggestions: fb.suggestions,
+      feedback: {
+        type: fb.feedbackType,
+        note: fb.feedbackNote,
+        corrected: fb.correctedSuggestion,
+      },
+    }));
+
+    return reply.send({
+      count: trainingData.length,
+      data: trainingData,
+    });
+  } catch (error) {
+    fastify.log.error(error);
+    return reply.code(500).send({
+      error: 'Erro ao exportar feedbacks',
       message: error instanceof Error ? error.message : 'Erro desconhecido',
     });
   }
@@ -363,6 +514,44 @@ fastify.post('/analyze-profile-image', async (request, reply) => {
       error: 'Erro ao analisar imagem',
       message: error instanceof Error ? error.message : 'Erro desconhecido',
       stack: error instanceof Error ? error.stack : undefined,
+    });
+  }
+});
+
+// Nova rota: Analisar screenshot de conversa (OCR para extrair mensagem)
+fastify.post('/analyze-conversation-image', async (request, reply) => {
+  try {
+    const { imageBase64, imageMediaType, platform } = request.body as any;
+
+    console.log('💬 Recebendo requisição de análise de screenshot de conversa');
+    console.log('Platform:', platform);
+    console.log('Media Type:', imageMediaType);
+    console.log('Image Base64 length:', imageBase64?.length);
+
+    if (!imageBase64) {
+      return reply.code(400).send({
+        error: 'Imagem não fornecida',
+        message: 'O campo imageBase64 é obrigatório',
+      });
+    }
+
+    const agent = new ConversationImageAnalyzerAgent();
+    console.log('🤖 Iniciando análise de conversa com Claude Vision...');
+
+    const result = await agent.analyzeAndExtract({
+      imageBase64,
+      imageMediaType: imageMediaType || 'image/jpeg',
+      platform,
+    });
+
+    console.log('✅ Análise de conversa concluída');
+    return reply.code(200).send({ extractedData: result });
+  } catch (error) {
+    console.error('❌ Erro ao analisar screenshot de conversa:', error);
+    fastify.log.error(error);
+    return reply.code(500).send({
+      error: 'Erro ao analisar screenshot',
+      message: error instanceof Error ? error.message : 'Erro desconhecido',
     });
   }
 });
@@ -464,7 +653,7 @@ fastify.post('/conversations/:id/suggestions', {
   try {
     const { id } = request.params as { id: string };
     const userId = request.user!.uid;
-    const { receivedMessage, tone, userContext } = request.body as Omit<
+    const { receivedMessage } = request.body as Omit<
       GenerateSuggestionsRequest,
       'conversationId'
     >;
@@ -474,7 +663,7 @@ fastify.post('/conversations/:id/suggestions', {
       return reply.code(404).send({ error: 'Conversa não encontrada' });
     }
 
-    // Primeiro, adicionar a mensagem recebida ao histórico
+    // Adicionar a mensagem recebida ao histórico
     await ConversationManager.addMessage({
       conversationId: id,
       userId,
@@ -482,43 +671,25 @@ fastify.post('/conversations/:id/suggestions', {
       content: receivedMessage,
     });
 
-    // Obter histórico formatado com calibragem
-    const formattedHistory = await ConversationManager.getFormattedHistory(id, userId);
-
-    // Selecionar prompt baseado no tom
-    const systemPrompt = getSystemPromptForTone(tone);
-
-    // Construir contexto do usuário
-    let userContextStr = '';
-    if (userContext) {
-      userContextStr = `
-═══════════════════════════════════════════════════════════════════
-👤 SEU PERFIL
-═══════════════════════════════════════════════════════════════════
-${userContext.name ? `Nome: ${userContext.name}` : ''}
-${userContext.age ? `Idade: ${userContext.age}` : ''}
-${userContext.interests && userContext.interests.length > 0 ? `Interesses: ${userContext.interests.join(', ')}` : ''}
-${userContext.dislikes && userContext.dislikes.length > 0 ? `⚠️ EVITE mencionar: ${userContext.dislikes.join(', ')}` : ''}
-${userContext.humorStyle ? `Estilo de humor: ${userContext.humorStyle}` : ''}
-${userContext.relationshipGoal ? `Objetivo: ${userContext.relationshipGoal}` : ''}
-`;
+    // Pegar APENAS as últimas mensagens para contexto de fluxo
+    const conversationHistory: Array<{ sender: 'user' | 'match'; message: string }> = [];
+    if (conversation.messages) {
+      // Só as últimas 4 mensagens - sem perfil, sem bio, só o papo
+      const recentMessages = conversation.messages.slice(-4);
+      for (const msg of recentMessages) {
+        conversationHistory.push({
+          sender: msg.role === 'user' ? 'user' : 'match',
+          message: msg.content,
+        });
+      }
     }
 
-    // Gerar sugestões usando Claude
-    const fullPrompt = `${systemPrompt}\n\n${formattedHistory}\n${userContextStr}
-
-A mensagem mais recente que você acabou de receber foi:
-"${receivedMessage}"
-
-Com base em TODO o contexto acima (perfil do match, calibragem detectada, histórico completo), gere APENAS 3 sugestões de resposta que:
-1. ESPELHEM o tamanho de resposta detectado
-2. ADAPTEM ao tom emocional detectado
-3. MANTENHAM a qualidade da conversa
-4. AVANCEM a interação de forma natural`;
-
-    const response = await analyzeMessage({
-      text: fullPrompt,
-      tone: tone as any,
+    // Usar o ConversationReplyAgent - SEM CONTEXTO DE PERFIL
+    const replyAgent = new ConversationReplyAgent();
+    const response = await replyAgent.execute({
+      receivedMessage,
+      conversationHistory,
+      // NÃO passa context, matchName, platform - foco 100% na mensagem
     });
 
     return reply.code(200).send({ suggestions: response });
@@ -708,6 +879,85 @@ fastify.post('/create-embedded-checkout', async (request, reply) => {
     fastify.log.error(error);
     return reply.code(500).send({
       error: 'Failed to create checkout',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// Create Stripe Embedded Checkout Session (ui_mode: 'embedded')
+// This is the most reliable embedded checkout method
+fastify.post('/create-stripe-embedded-session', async (request, reply) => {
+  try {
+    const { priceId, plan, email, name } = request.body as {
+      priceId: string;
+      plan: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+      email: string;
+      name?: string;
+    };
+
+    if (!priceId || !plan || !email) {
+      return reply.code(400).send({
+        error: 'Missing required fields',
+        message: 'priceId, plan, and email are required',
+      });
+    }
+
+    const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+      apiVersion: '2023-10-16',
+    });
+
+    const frontendUrl = process.env.FRONTEND_URL || 'https://desenrola-ia.web.app';
+
+    // Get or create customer
+    let customer: Stripe.Customer;
+    const existingCustomers = await stripeClient.customers.list({
+      email: email.toLowerCase().trim(),
+      limit: 1,
+    });
+
+    if (existingCustomers.data.length > 0) {
+      customer = existingCustomers.data[0];
+      // Update name if provided
+      if (name && !customer.name) {
+        await stripeClient.customers.update(customer.id, { name });
+      }
+    } else {
+      customer = await stripeClient.customers.create({
+        email: email.toLowerCase().trim(),
+        name: name || undefined,
+        metadata: { source: 'embedded_checkout_session' },
+      });
+    }
+
+    // Create embedded checkout session
+    const session = await stripeClient.checkout.sessions.create({
+      ui_mode: 'embedded',
+      customer: customer.id,
+      mode: 'subscription',
+      line_items: [{ price: priceId, quantity: 1 }],
+      return_url: `${frontendUrl}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+      metadata: { plan, email: email.toLowerCase().trim(), source: 'embedded_checkout_session' },
+      subscription_data: {
+        metadata: { plan, source: 'embedded_checkout_session' }
+      },
+      allow_promotion_codes: true,
+    });
+
+    console.log('💳 Stripe embedded session created:', {
+      sessionId: session.id,
+      customerId: customer.id,
+      plan,
+      priceId,
+    });
+
+    return reply.code(200).send({
+      clientSecret: session.client_secret,
+      sessionId: session.id,
+    });
+  } catch (error) {
+    fastify.log.error(error);
+    return reply.code(500).send({
+      error: 'Failed to create checkout session',
       message: error instanceof Error ? error.message : 'Unknown error',
     });
   }
@@ -998,6 +1248,105 @@ fastify.post('/webhook/stripe', async (request, reply) => {
       error: 'Internal server error',
       message: error.message,
     });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// 📚 TRAINING FEEDBACK ENDPOINTS
+// ═══════════════════════════════════════════════════════════════════
+
+// Criar novo feedback de treinamento
+fastify.post('/training-feedback', async (request, reply) => {
+  try {
+    const body = request.body as CreateTrainingFeedbackRequest;
+
+    if (!body.category || !body.instruction) {
+      return reply.code(400).send({
+        error: 'category e instruction são obrigatórios',
+      });
+    }
+
+    const feedback = await TrainingFeedbackService.create(body);
+    return reply.code(201).send(feedback);
+  } catch (error: any) {
+    console.error('Erro ao criar training feedback:', error);
+    return reply.code(500).send({ error: error.message });
+  }
+});
+
+// Listar todos os feedbacks
+fastify.get('/training-feedback', async (request, reply) => {
+  try {
+    const { active } = request.query as { active?: string };
+
+    const feedbacks = active === 'true'
+      ? await TrainingFeedbackService.getAllActive()
+      : await TrainingFeedbackService.getAll();
+
+    return reply.send(feedbacks);
+  } catch (error: any) {
+    console.error('Erro ao listar training feedback:', error);
+    return reply.code(500).send({ error: error.message });
+  }
+});
+
+// Buscar feedbacks por categoria
+fastify.get('/training-feedback/category/:category', async (request, reply) => {
+  try {
+    const { category } = request.params as { category: string };
+    const feedbacks = await TrainingFeedbackService.getByCategory(category as any);
+    return reply.send(feedbacks);
+  } catch (error: any) {
+    console.error('Erro ao buscar training feedback por categoria:', error);
+    return reply.code(500).send({ error: error.message });
+  }
+});
+
+// Obter contexto de treinamento para prompts
+fastify.get('/training-feedback/context', async (request, reply) => {
+  try {
+    const { category } = request.query as { category?: string };
+    const context = await TrainingFeedbackService.generatePromptContext(category as any);
+    return reply.send({ context });
+  } catch (error: any) {
+    console.error('Erro ao gerar contexto de treinamento:', error);
+    return reply.code(500).send({ error: error.message });
+  }
+});
+
+// Atualizar feedback
+fastify.patch('/training-feedback/:id', async (request, reply) => {
+  try {
+    const { id } = request.params as { id: string };
+    const body = request.body as Partial<UpdateTrainingFeedbackRequest>;
+
+    const feedback = await TrainingFeedbackService.update({ id, ...body });
+
+    if (!feedback) {
+      return reply.code(404).send({ error: 'Feedback não encontrado' });
+    }
+
+    return reply.send(feedback);
+  } catch (error: any) {
+    console.error('Erro ao atualizar training feedback:', error);
+    return reply.code(500).send({ error: error.message });
+  }
+});
+
+// Deletar feedback
+fastify.delete('/training-feedback/:id', async (request, reply) => {
+  try {
+    const { id } = request.params as { id: string };
+    const deleted = await TrainingFeedbackService.delete(id);
+
+    if (!deleted) {
+      return reply.code(404).send({ error: 'Feedback não encontrado' });
+    }
+
+    return reply.send({ success: true });
+  } catch (error: any) {
+    console.error('Erro ao deletar training feedback:', error);
+    return reply.code(500).send({ error: error.message });
   }
 });
 
