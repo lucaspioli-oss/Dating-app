@@ -63,6 +63,7 @@ export interface CreateConversationRequest {
   matchName: string;
   username?: string;           // Para Instagram: @usuario (sem @)
   platform: string;
+  profileId?: string;          // ID do perfil associado (para agrupar conversas)
   bio?: string;
   photoDescriptions?: string[];
   age?: string;

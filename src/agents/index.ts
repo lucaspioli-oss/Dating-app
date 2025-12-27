@@ -8,3 +8,8 @@ export {
   ProfileImageAnalysisInput,
   ExtractedProfileData,
 } from './profile-image-analyzer-agent';
+export {
+  ConversationImageAnalyzerAgent,
+  ConversationImageAnalysisInput,
+  ExtractedConversationData,
+} from './conversation-image-analyzer-agent';

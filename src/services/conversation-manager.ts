@@ -15,19 +15,53 @@ const getDb = () => admin.firestore();
 
 export class ConversationManager {
   /**
-   * Verificar se já existe conversa ativa com o mesmo avatar coletivo
+   * Verificar se já existe conversa ativa com o mesmo perfil e plataforma
    */
   static async findExistingConversation(
     userId: string,
-    collectiveAvatarId: string
+    collectiveAvatarId: string,
+    profileId?: string,
+    platform?: string
   ): Promise<Conversation | null> {
-    const snapshot = await getDb()
+    // Se tiver profileId e platform, buscar por eles (mais preciso)
+    if (profileId && platform) {
+      const snapshot = await getDb()
+        .collection('conversations')
+        .where('userId', '==', userId)
+        .where('profileId', '==', profileId)
+        .where('platform', '==', platform)
+        .where('status', '==', 'active')
+        .limit(1)
+        .get();
+
+      if (!snapshot.empty) {
+        const doc = snapshot.docs[0];
+        const data = doc.data();
+        return {
+          id: doc.id,
+          userId: data.userId,
+          avatar: data.avatar,
+          messages: data.messages || [],
+          currentTone: data.currentTone,
+          status: data.status,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          lastMessageAt: data.lastMessageAt?.toDate() || new Date(),
+        };
+      }
+    }
+
+    // Fallback: buscar por collectiveAvatarId e platform
+    let query = getDb()
       .collection('conversations')
       .where('userId', '==', userId)
       .where('collectiveAvatarId', '==', collectiveAvatarId)
-      .where('status', '==', 'active')
-      .limit(1)
-      .get();
+      .where('status', '==', 'active');
+
+    if (platform) {
+      query = query.where('platform', '==', platform);
+    }
+
+    const snapshot = await query.limit(1).get();
 
     if (snapshot.empty) {
       return null;
@@ -70,10 +104,12 @@ export class ConversationManager {
       faceDescription: request.faceDescription,
     });
 
-    // Verificar se já existe conversa ativa com este avatar
+    // Verificar se já existe conversa ativa com este avatar e plataforma
     const existingConversation = await this.findExistingConversation(
       request.userId,
-      collectiveAvatar.id
+      collectiveAvatar.id,
+      request.profileId,
+      request.platform
     );
 
     if (existingConversation) {
@@ -166,10 +202,12 @@ export class ConversationManager {
       lastMessageAt: now,
     };
 
-    // Salvar no Firestore (incluindo referência ao avatar coletivo)
+    // Salvar no Firestore (incluindo referência ao avatar coletivo e profile)
     await getDb().collection('conversations').doc(conversationId).set({
       ...conversation,
       collectiveAvatarId: collectiveAvatar.id, // Link para inteligência coletiva
+      profileId: request.profileId || null, // Link para o perfil (se fornecido)
+      platform: request.platform, // Salvar plataforma para filtragem
       createdAt: admin.firestore.Timestamp.fromDate(now),
       lastMessageAt: admin.firestore.Timestamp.fromDate(now),
     });

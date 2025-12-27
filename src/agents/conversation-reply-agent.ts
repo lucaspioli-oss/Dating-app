@@ -4,108 +4,215 @@ export interface ConversationReplyInput {
   receivedMessage: string;
   conversationHistory?: Array<{ sender: 'user' | 'match'; message: string }>;
   matchName?: string;
-  context?: string; // Contexto adicional sobre a conversa
+  context?: string; // NÃO USAR - ignorado propositalmente
   platform?: 'tinder' | 'bumble' | 'hinge' | 'instagram' | 'outro';
+  includeReasoning?: boolean;
+}
+
+export interface ReplyWithReasoning {
+  analysis: {
+    messageTemperature: 'hot' | 'warm' | 'cold';
+    keyElements: string[];
+    detectedIntent: string;
+    conversationPhase: string;
+  };
+  suggestions: Array<{
+    text: string;
+    reasoning: string;
+    strategy: string;
+  }>;
+  rawResponse: string;
 }
 
 export class ConversationReplyAgent extends BaseAgent {
   async execute(input: ConversationReplyInput, userContext?: UserContext): Promise<string> {
-    const systemPrompt = this.buildSystemPrompt(input.conversationHistory);
-    const userPrompt = this.buildUserPrompt(input, userContext);
+    const systemPrompt = this.buildSystemPrompt();
+    const userPrompt = this.buildUserPrompt(input);
 
     return await this.callClaude(systemPrompt, userPrompt);
   }
 
-  private buildSystemPrompt(history?: ConversationReplyInput['conversationHistory']): string {
-    // Detecta fase da conversa baseado no histórico
-    const messageCount = history?.length || 0;
-    const phase = messageCount < 4 ? 'inicial' : messageCount < 10 ? 'desenvolvimento' : 'avancada';
+  async executeWithReasoning(input: ConversationReplyInput, userContext?: UserContext): Promise<ReplyWithReasoning> {
+    const systemPrompt = this.buildReasoningPrompt();
+    const userPrompt = this.buildUserPrompt(input);
 
-    const phaseContext = {
-      inicial: `FASE INICIAL: Foco em criar conexão e curiosidade. Ainda se conhecendo.`,
-      desenvolvimento: `FASE DESENVOLVIMENTO: Já há alguma conexão. Pode ser mais pessoal, começar a plantar ideias de encontro.`,
-      avancada: `FASE AVANÇADA: Conexão estabelecida. Pode ser mais direto, sugerir encontro, criar tensão quando apropriado.`,
-    };
-
-    return `Você é um expert em comunicação e atração. Crie respostas para conversas de dating.
-
-${phaseContext[phase]}
-
-OBJETIVO PRINCIPAL: O objetivo final de qualquer interação online é o encontro físico.
-Você precisa conduzir a conversa nessa direção de forma natural e calibrada.
-
-5 GATILHOS DE ATRAÇÃO (aplique naturalmente):
-1. LÍDER: Conduza a conversa, sugira coisas, tome iniciativa. Não fique só reagindo.
-2. PROTETOR: Demonstre cuidado genuíno, interesse real (sem ser carente).
-3. TOMADOR DE RISCOS: Seja autêntico, brinque, não tenha medo de se expor.
-4. PROVA SOCIAL: Aja como quem já é validado - mencione amigos, planos, vida social.
-5. PROMOTOR DE BOAS EMOÇÕES: Seja leve, faça ela rir, crie momentos bons.
-
-CALIBRAGEM (conceito chave):
-- 2 passos pra frente, 1 pra trás
-- Avance se ela demonstrar interesse positivo
-- Recue um pouco se houver resistência ou resposta fria
-- Mulheres são mentais - a imaginação delas vai longe com pouco estímulo
-- Seja sutil mas permita a coisa avançar
-
-TRANSIÇÃO PARA ENCONTRO (quando a fase permitir):
-- Não pergunte "quer sair?" diretamente
-- Plante a ideia de vocês fazendo algo juntos
-- Ex: "desse jeito não vou nem te convidar pra [atividade], vai ser problema kkk"
-- Dê duas opções de data quando for marcar ("quinta ou sexta fica bom?")
-
-TENSÃO SEXUAL (use com calibragem - só se ela der abertura):
-- Seja sutil, deixe a imaginação trabalhar
-- Se ela responder bem a algo mais picante, pode avançar um pouco
-- Se não, puxa o freio naturalmente
-- Nunca seja vulgar ou desrespeitoso
-
-FORMATO:
-- Mensagens curtas (1-3 frases)
-- Pode usar "kkk" ou "haha" pra leveza
-- Natural, não calculado
-- Português BR
-
-EVITE:
-- Ser monótono ou previsível
-- Ficar só reagindo (conduza a conversa)
-- Investir demais ou parecer carente
-- Ignorar sinais dela (positivos ou negativos)
-- Forçar assuntos que ela evitou`;
+    const rawResponse = await this.callClaude(systemPrompt, userPrompt);
+    return this.parseReasoningResponse(rawResponse);
   }
 
-  private buildUserPrompt(input: ConversationReplyInput, userContext?: UserContext): string {
+  private parseReasoningResponse(response: string): ReplyWithReasoning {
+    try {
+      const jsonMatch = response.match(/```json\n?([\s\S]*?)\n?```/);
+      if (jsonMatch) {
+        return { ...JSON.parse(jsonMatch[1]), rawResponse: response };
+      }
+
+      const result: ReplyWithReasoning = {
+        analysis: {
+          messageTemperature: 'warm',
+          keyElements: [],
+          detectedIntent: '',
+          conversationPhase: 'inicial',
+        },
+        suggestions: [],
+        rawResponse: response,
+      };
+
+      if (response.includes('🔥') || response.toLowerCase().includes('quente')) {
+        result.analysis.messageTemperature = 'hot';
+      } else if (response.includes('❄️') || response.toLowerCase().includes('fria')) {
+        result.analysis.messageTemperature = 'cold';
+      }
+
+      const lines = response.split('\n');
+      let currentSuggestion: { text: string; reasoning: string; strategy: string } | null = null;
+
+      for (const line of lines) {
+        const suggestionMatch = line.match(/^(\d+)\.\s*(.+)/);
+        if (suggestionMatch) {
+          if (currentSuggestion) {
+            result.suggestions.push(currentSuggestion);
+          }
+          currentSuggestion = {
+            text: suggestionMatch[2].trim(),
+            reasoning: '',
+            strategy: '',
+          };
+        } else if (currentSuggestion && line.includes('Raciocínio:')) {
+          currentSuggestion.reasoning = line.replace('Raciocínio:', '').trim();
+        } else if (currentSuggestion && line.includes('Estratégia:')) {
+          currentSuggestion.strategy = line.replace('Estratégia:', '').trim();
+        }
+      }
+
+      if (currentSuggestion) {
+        result.suggestions.push(currentSuggestion);
+      }
+
+      return result;
+    } catch (error) {
+      return {
+        analysis: {
+          messageTemperature: 'warm',
+          keyElements: [],
+          detectedIntent: 'unknown',
+          conversationPhase: 'unknown',
+        },
+        suggestions: [],
+        rawResponse: response,
+      };
+    }
+  }
+
+  private buildReasoningPrompt(): string {
+    return `Você analisa A ÚLTIMA MENSAGEM que ela enviou e gera respostas.
+
+FOCO ABSOLUTO: A mensagem dela. IGNORE qualquer informação de perfil/bio/fotos.
+
+FORMATO JSON:
+\`\`\`json
+{
+  "analysis": {
+    "messageTemperature": "hot|warm|cold",
+    "keyElements": ["palavras-chave do que ela disse"],
+    "detectedIntent": "o que ela quis comunicar",
+    "conversationPhase": "inicial|desenvolvimento|avancada"
+  },
+  "suggestions": [
+    {
+      "text": "resposta curta reagindo ao que ela disse",
+      "reasoning": "por que essa resposta funciona",
+      "strategy": "callback|roleplay|provocacao|conducao|espelhamento"
+    }
+  ]
+}
+\`\`\`
+
+TEMPERATURA:
+- HOT 🔥: perguntou algo, brincou, emoji/kkk, texto maior
+- WARM 😐: respondeu ok, mas curto
+- COLD ❄️: monossilábica, seca
+
+Gere 3 sugestões que REAGEM especificamente ao que ela acabou de dizer.`;
+  }
+
+  private buildSystemPrompt(): string {
+    return `Você gera respostas para conversas de dating.
+
+██████████████████████████████████████████████████████████████████
+█  REGRA ÚNICA: RESPONDA AO QUE ELA DISSE, NÃO AO PERFIL DELA   █
+██████████████████████████████████████████████████████████████████
+
+Você vai receber A ÚLTIMA MENSAGEM que ela enviou.
+Sua tarefa é REAGIR a essa mensagem específica.
+
+❌ PROIBIDO:
+- Mencionar perfil, bio, fotos, trabalho, hobbies do PERFIL
+- Fazer perguntas genéricas ("e você?", "o que você curte?")
+- Ignorar o que ela disse pra falar de outra coisa
+
+✅ OBRIGATÓRIO:
+- Pegar um GANCHO do que ela DISSE
+- Brincar/reagir/provocar com base nas PALAVRAS DELA
+- Ser criativo com o que ELA ACABOU DE FALAR
+
+EXEMPLOS DE COMO REAGIR:
+
+Ela disse: "kkk você é engraçado"
+→ "engraçado é elogio ou preocupação? kkk"
+→ "já recebi piores, vou aceitar"
+→ "espera até me conhecer pessoalmente"
+
+Ela disse: "to cansada do trabalho"
+→ "precisa de um resgate então... café ou sequestro?"
+→ "workaholic detectada, vou ter que intervir"
+→ "descansar é pra fracos, bora sair"
+
+Ela disse: "talvez a gente se veja"
+→ "talvez é quase um sim, já to contando"
+→ "vou interpretar como confirmado"
+→ "gostei da animação kkk"
+
+Ela disse: "nossa que calor"
+→ "aproveitando pra dar em cima de mim né"
+→ "isso foi cantada? aceitando"
+→ "tá difícil mesmo, bora tomar um açaí"
+
+FORMATO:
+- 1-2 frases curtas (máx 15 palavras)
+- "kkk" ou emoji se fizer sentido
+- Português BR natural
+
+Retorne APENAS 3 opções numeradas. Sem explicações.`;
+  }
+
+  private buildUserPrompt(input: ConversationReplyInput): string {
     const parts: string[] = [];
 
-    // Contexto do usuário
-    if (userContext) {
-      parts.push(this.buildUserContext(userContext));
-    }
-
-    // Histórico da conversa
+    // Histórico MÍNIMO - só pra saber o fluxo
     if (input.conversationHistory && input.conversationHistory.length > 0) {
-      parts.push('=== HISTÓRICO DA CONVERSA ===');
-      input.conversationHistory.forEach((msg) => {
-        const label = msg.sender === 'user' ? 'Você' : input.matchName || 'Match';
-        parts.push(`${label}: ${msg.message}`);
-      });
-      parts.push('');
+      const lastFew = input.conversationHistory.slice(-3);
+      if (lastFew.length > 0) {
+        parts.push('Últimas mensagens:');
+        lastFew.forEach((msg) => {
+          const label = msg.sender === 'user' ? 'Você' : 'Ela';
+          parts.push(`${label}: "${msg.message}"`);
+        });
+        parts.push('');
+      }
     }
 
-    // Mensagem recebida
-    parts.push('=== MENSAGEM RECEBIDA ===');
-    const matchLabel = input.matchName || 'Match';
-    parts.push(`${matchLabel}: ${input.receivedMessage}`);
+    // A MENSAGEM DELA - único foco
+    parts.push('████████████████████████████████████████');
+    parts.push('ELA ACABOU DE MANDAR:');
+    parts.push('');
+    parts.push(`"${input.receivedMessage}"`);
+    parts.push('');
+    parts.push('████████████████████████████████████████');
+    parts.push('');
+    parts.push('Gere 3 respostas que REAGEM a isso que ela disse.');
 
-    // Contexto adicional
-    if (input.context) {
-      parts.push(`\nContexto: ${input.context}`);
-    }
-
-    parts.push('\n=== SUA TAREFA ===');
-    parts.push('Crie 3 opções de resposta aplicando os princípios.');
-    parts.push('Considere a fase da conversa, o histórico e conduza para o objetivo.');
-    parts.push('\nFormato: Apenas as 3 respostas numeradas, sem explicações.');
+    // NÃO inclui context/perfil - propositalmente ignorado
 
     return parts.join('\n');
   }
