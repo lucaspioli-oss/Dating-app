@@ -117,8 +117,13 @@ class _FirstMessageScreenState extends State<FirstMessageScreen> {
 
   Future<void> _uploadAndAnalyzeImage() async {
     try {
-      // Selecionar imagem
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      // Selecionar e comprimir imagem para evitar erros com fotos grandes
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
 
       if (image == null) return;
 
@@ -126,23 +131,12 @@ class _FirstMessageScreenState extends State<FirstMessageScreen> {
         _isAnalyzingImage = true;
       });
 
-      // Ler bytes da imagem
+      // Ler bytes da imagem comprimida
       final bytes = await image.readAsBytes();
       final base64Image = base64Encode(bytes);
 
-      // Detectar tipo de imagem do arquivo
-      String imageMediaType = 'image/jpeg';
-      if (image.mimeType != null) {
-        imageMediaType = image.mimeType!;
-      } else if (image.path.toLowerCase().endsWith('.png')) {
-        imageMediaType = 'image/png';
-      } else if (image.path.toLowerCase().endsWith('.jpg') || image.path.toLowerCase().endsWith('.jpeg')) {
-        imageMediaType = 'image/jpeg';
-      } else if (image.path.toLowerCase().endsWith('.gif')) {
-        imageMediaType = 'image/gif';
-      } else if (image.path.toLowerCase().endsWith('.webp')) {
-        imageMediaType = 'image/webp';
-      }
+      // Sempre usar JPEG após compressão do image_picker
+      const String imageMediaType = 'image/jpeg';
 
       // Chamar API para análise
       final appState = context.read<AppState>();

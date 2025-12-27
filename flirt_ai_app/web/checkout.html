@@ -56,35 +56,76 @@
       align-items: center;
       gap: 8px;
     }
-    .plans { display: flex; gap: 8px; }
+    .plans { display: flex; flex-direction: column; gap: 10px; }
     .plan-option {
-      flex: 1;
-      padding: 12px 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
       background: #0D0D1A;
       border: 2px solid #2A2A3E;
-      border-radius: 10px;
+      border-radius: 12px;
       cursor: pointer;
       transition: all 0.2s;
-      text-align: center;
     }
     .plan-option:hover { border-color: #E91E63; }
     .plan-option.selected {
       border-color: #E91E63;
       background: rgba(233, 30, 99, 0.1);
     }
-    .plan-name { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
-    .plan-price { color: #E91E63; font-weight: 700; font-size: 16px; }
-    .plan-period { font-size: 10px; color: #666; }
+    .plan-option.disabled {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    .plan-left { display: flex; align-items: center; gap: 12px; }
+    .plan-radio {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #444;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .plan-option.selected .plan-radio {
+      border-color: #E91E63;
+    }
+    .plan-option.selected .plan-radio::after {
+      content: '';
+      width: 10px;
+      height: 10px;
+      background: #E91E63;
+      border-radius: 50%;
+    }
+    .plan-info { text-align: left; }
+    .plan-name-row { display: flex; align-items: center; gap: 8px; }
+    .plan-name { font-weight: 600; font-size: 15px; color: #fff; }
     .plan-badge {
       background: linear-gradient(135deg, #E91E63, #FF5722);
       color: #fff;
-      padding: 2px 6px;
-      border-radius: 8px;
-      font-size: 8px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 9px;
       font-weight: 700;
       text-transform: uppercase;
-      display: inline-block;
-      margin-bottom: 4px;
+    }
+    .plan-daily {
+      font-size: 12px;
+      color: #888;
+      margin-top: 2px;
+    }
+    .plan-daily strong {
+      color: #4CAF50;
+      font-weight: 600;
+    }
+    .plan-right { text-align: right; }
+    .plan-price { color: #E91E63; font-weight: 700; font-size: 18px; }
+    .plan-period { font-size: 11px; color: #666; }
+    .plan-savings {
+      font-size: 10px;
+      color: #4CAF50;
+      font-weight: 600;
+      margin-top: 2px;
     }
     .form-row { display: flex; gap: 10px; }
     .form-group { flex: 1; margin-bottom: 12px; }
@@ -109,8 +150,12 @@
     }
     .form-group input:focus { outline: none; border-color: #E91E63; }
     .form-group input::placeholder { color: #555; }
+    .form-group input:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
     #checkout-container {
-      min-height: 300px;
+      min-height: 200px;
       background: #0D0D1A;
       border-radius: 10px;
     }
@@ -142,16 +187,16 @@
       margin-bottom: 12px;
       display: none;
     }
-    .card-waiting {
+    .waiting-message {
       color: #666;
       font-size: 13px;
       text-align: center;
-      padding: 40px 20px;
+      padding: 30px 20px;
     }
-    .card-waiting svg {
+    .waiting-message svg {
       display: block;
       margin: 0 auto 12px;
-      opacity: 0.5;
+      opacity: 0.4;
     }
     .security-badge {
       text-align: center;
@@ -163,26 +208,7 @@
       justify-content: center;
       gap: 6px;
     }
-    .continue-btn {
-      width: 100%;
-      padding: 16px;
-      background: linear-gradient(135deg, #E91E63, #FF5722);
-      border: none;
-      border-radius: 12px;
-      color: #fff;
-      font-size: 17px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
-      margin-bottom: 12px;
-    }
-    .continue-btn:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(233, 30, 99, 0.35);
-    }
-    .continue-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-    .step { display: none; }
-    .step.active { display: block; }
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -191,68 +217,104 @@
       <h1>Desenrola IA</h1>
     </div>
 
-    <!-- Step 1: Plan and Data -->
-    <div class="step active" id="step1">
-      <div class="card">
-        <div class="section-title">Escolha seu plano</div>
-        <div class="plans">
-          <div class="plan-option" data-plan="weekly" data-price="19.90" data-price-id="price_1Sh4QiAflPjpW4DOHBOYRwXJ">
-            <div class="plan-name">Semanal</div>
+    <!-- Planos -->
+    <div class="card" id="plans-card">
+      <div class="section-title">Escolha seu plano</div>
+      <div class="plans">
+        <div class="plan-option" data-plan="weekly" data-price="19.90" data-price-id="price_1Sh4QiAflPjpW4DOHBOYRwXJ">
+          <div class="plan-left">
+            <div class="plan-radio"></div>
+            <div class="plan-info">
+              <div class="plan-name-row">
+                <div class="plan-name">Semanal</div>
+              </div>
+              <div class="plan-daily">R$2,84/dia</div>
+            </div>
+          </div>
+          <div class="plan-right">
             <div class="plan-price">R$19,90</div>
             <div class="plan-period">/semana</div>
           </div>
-          <div class="plan-option" data-plan="monthly" data-price="29.90" data-price-id="price_1SgsCVAflPjpW4DOXIZVjcA4">
-            <div class="plan-name">Mensal</div>
+        </div>
+        <div class="plan-option" data-plan="monthly" data-price="29.90" data-price-id="price_1SgsCVAflPjpW4DOXIZVjcA4">
+          <div class="plan-left">
+            <div class="plan-radio"></div>
+            <div class="plan-info">
+              <div class="plan-name-row">
+                <div class="plan-name">Mensal</div>
+              </div>
+              <div class="plan-daily"><strong>R$1,00/dia</strong></div>
+            </div>
+          </div>
+          <div class="plan-right">
             <div class="plan-price">R$29,90</div>
             <div class="plan-period">/mes</div>
+            <div class="plan-savings">Economize 65%</div>
           </div>
-          <div class="plan-option selected" data-plan="quarterly" data-price="69.90" data-price-id="price_1SgsmgAflPjpW4DO0oID3xaW">
-            <div class="plan-badge">Popular</div>
-            <div class="plan-name">Trimestral</div>
+        </div>
+        <div class="plan-option selected" data-plan="quarterly" data-price="69.90" data-price-id="price_1SgsmgAflPjpW4DO0oID3xaW">
+          <div class="plan-left">
+            <div class="plan-radio"></div>
+            <div class="plan-info">
+              <div class="plan-name-row">
+                <div class="plan-name">Trimestral</div>
+                <div class="plan-badge">Melhor valor</div>
+              </div>
+              <div class="plan-daily"><strong>R$0,78/dia</strong></div>
+            </div>
+          </div>
+          <div class="plan-right">
             <div class="plan-price">R$69,90</div>
             <div class="plan-period">/3 meses</div>
+            <div class="plan-savings">Economize 73%</div>
           </div>
         </div>
       </div>
-
-      <div class="card">
-        <div class="section-title">Seus dados</div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Nome</label>
-            <input type="text" id="name" placeholder="Seu nome" required>
-          </div>
-          <div class="form-group">
-            <label>Email</label>
-            <input type="email" id="email" placeholder="seu@email.com" required>
-          </div>
-        </div>
-      </div>
-
-      <div class="error-message" id="error-message"></div>
-
-      <button class="continue-btn" id="continue-btn">
-        Continuar para pagamento
-      </button>
     </div>
 
-    <!-- Step 2: Stripe Checkout -->
-    <div class="step" id="step2">
-      <div class="card" id="checkout-card">
-        <div class="section-title">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-            <line x1="1" y1="10" x2="23" y2="10"></line>
-          </svg>
-          Pagamento seguro
+    <!-- Dados do usuario -->
+    <div class="card">
+      <div class="section-title">Seus dados</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nome</label>
+          <input type="text" id="name" placeholder="Seu nome" required>
         </div>
-        <div id="checkout-container">
-          <div class="loading" id="checkout-loading">
-            <div class="spinner"></div>
-            Carregando checkout seguro...
-          </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="email" placeholder="seu@email.com" required>
         </div>
       </div>
+    </div>
+
+    <div class="error-message" id="error-message"></div>
+
+    <!-- Pagamento Stripe -->
+    <div class="card" id="payment-card">
+      <div class="section-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+          <line x1="1" y1="10" x2="23" y2="10"></line>
+        </svg>
+        Pagamento seguro
+      </div>
+
+      <!-- Mensagem inicial (antes de preencher dados) -->
+      <div class="waiting-message" id="waiting-message">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+        </svg>
+        Preencha seu nome e email acima para carregar o pagamento
+      </div>
+
+      <!-- Loading -->
+      <div class="loading hidden" id="checkout-loading">
+        <div class="spinner"></div>
+        Carregando checkout seguro...
+      </div>
+
+      <!-- Container do Stripe (vazio inicialmente) -->
+      <div id="checkout-container" class="hidden"></div>
     </div>
 
     <div class="security-badge">
@@ -270,6 +332,7 @@
 
     let stripe;
     let checkout;
+    let checkoutLoaded = false;
     let selectedPlan = 'quarterly';
     let selectedPrice = 69.90;
     let selectedPriceId = 'price_1SgsmgAflPjpW4DO0oID3xaW';
@@ -300,6 +363,7 @@
     // Plan selection
     document.querySelectorAll('.plan-option').forEach(option => {
       option.addEventListener('click', function() {
+        if (checkoutLoaded) return;
         document.querySelectorAll('.plan-option').forEach(o => o.classList.remove('selected'));
         this.classList.add('selected');
         selectedPlan = this.dataset.plan;
@@ -308,24 +372,35 @@
       });
     });
 
-    // Continue button - load Stripe Embedded Checkout
-    document.getElementById('continue-btn').addEventListener('click', async () => {
+    // Debounce para evitar multiplas requisicoes
+    let loadTimeout;
+    function scheduleCheckoutLoad() {
+      clearTimeout(loadTimeout);
+      loadTimeout = setTimeout(tryLoadCheckout, 500);
+    }
+
+    // Input listeners
+    document.getElementById('name').addEventListener('input', scheduleCheckoutLoad);
+    document.getElementById('email').addEventListener('input', scheduleCheckoutLoad);
+
+    async function tryLoadCheckout() {
+      if (checkoutLoaded) return;
+
       const name = document.getElementById('name').value.trim();
       const email = document.getElementById('email').value.trim();
 
-      if (!name || name.length < 2) {
-        showError('Digite seu nome');
-        return;
-      }
-      if (!email || !email.includes('@')) {
-        showError('Digite um email valido');
-        return;
-      }
+      // Validar
+      if (!name || name.length < 2) return;
+      if (!email || !email.includes('@') || !email.includes('.')) return;
 
-      hideError();
-      const btn = document.getElementById('continue-btn');
-      btn.disabled = true;
-      btn.textContent = 'Carregando...';
+      // Mostrar loading
+      document.getElementById('waiting-message').classList.add('hidden');
+      document.getElementById('checkout-loading').classList.remove('hidden');
+
+      // Desabilitar campos
+      document.getElementById('name').disabled = true;
+      document.getElementById('email').disabled = true;
+      document.querySelectorAll('.plan-option').forEach(o => o.classList.add('disabled'));
 
       try {
         // Initialize Stripe
@@ -348,26 +423,33 @@
           throw new Error(data.message || 'Erro ao criar checkout');
         }
 
-        // Show step 2
-        document.getElementById('step1').classList.remove('active');
-        document.getElementById('step2').classList.add('active');
-
         // Initialize Embedded Checkout
         checkout = await stripe.initEmbeddedCheckout({
           clientSecret: data.clientSecret
         });
 
-        // Clear loading and mount checkout
-        document.getElementById('checkout-loading').style.display = 'none';
+        // Esconder loading e mostrar container
+        document.getElementById('checkout-loading').classList.add('hidden');
+        document.getElementById('checkout-container').classList.remove('hidden');
+
+        // Mount checkout
         checkout.mount('#checkout-container');
+        checkoutLoaded = true;
 
       } catch (error) {
         console.error('Error:', error);
         showError(error.message || 'Erro ao carregar checkout. Tente novamente.');
-        btn.disabled = false;
-        btn.textContent = 'Continuar para pagamento';
+
+        // Reabilitar campos
+        document.getElementById('name').disabled = false;
+        document.getElementById('email').disabled = false;
+        document.querySelectorAll('.plan-option').forEach(o => o.classList.remove('disabled'));
+
+        // Mostrar waiting novamente
+        document.getElementById('checkout-loading').classList.add('hidden');
+        document.getElementById('waiting-message').classList.remove('hidden');
       }
-    });
+    }
 
     function showError(msg) {
       const el = document.getElementById('error-message');

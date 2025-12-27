@@ -62,11 +62,11 @@ Future<String> confirmStripePayment(String returnUrl) async {
     final promise = js.context.callMethod('confirmStripePayment', [returnUrl]);
 
     promise.callMethod('then', [
-      js.allowInterop((result) {
+      js.JsFunction.withThis((thisArg, result) {
         completer.complete(result.toString());
       })
     ]).callMethod('catch', [
-      js.allowInterop((error) {
+      js.JsFunction.withThis((thisArg, error) {
         completer.completeError(error.toString());
       })
     ]);

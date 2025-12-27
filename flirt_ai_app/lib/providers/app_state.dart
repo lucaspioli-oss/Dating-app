@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../config/app_config.dart';
 
 class AppState extends ChangeNotifier {
@@ -13,6 +13,7 @@ class AppState extends ChangeNotifier {
   String get backendUrl => AppConfig.backendUrl;
   List<ConversationMessage> get messages => _messages;
   bool get isLoading => _isLoading;
+  String? get userId => FirebaseAuth.instance.currentUser?.uid;
 
   AppState() {
     _loadPreferences();

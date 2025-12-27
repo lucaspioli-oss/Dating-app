@@ -13,11 +13,11 @@ class AppColors {
   static const Color primaryLight = Color(0xFFFF5C8D);
   static const Color primaryDark = Color(0xFFC2185B);
 
-  // Cores de fundo (dark theme)
-  static const Color backgroundDark = Color(0xFF0D0D0D);
-  static const Color surfaceDark = Color(0xFF1A1A1A);
-  static const Color cardDark = Color(0xFF242424);
-  static const Color elevatedDark = Color(0xFF2D2D2D);
+  // Cores de fundo (dark theme com tom azulado)
+  static const Color backgroundDark = Color(0xFF0D0D1A);
+  static const Color surfaceDark = Color(0xFF1A1A2E);
+  static const Color cardDark = Color(0xFF1A1A2E);
+  static const Color elevatedDark = Color(0xFF2A2A3E);
 
   // Cores de texto
   static const Color textPrimary = Color(0xFFFFFFFF);
@@ -44,7 +44,7 @@ class AppColors {
   );
 
   static const LinearGradient cardGradient = LinearGradient(
-    colors: [Color(0xFF2D2D2D), Color(0xFF1A1A1A)],
+    colors: [Color(0xFF2A2A3E), Color(0xFF1A1A2E)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );

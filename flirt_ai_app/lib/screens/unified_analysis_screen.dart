@@ -8,6 +8,7 @@ import '../providers/app_state.dart';
 import '../providers/user_profile_provider.dart';
 import '../services/agent_service.dart';
 import '../services/conversation_service.dart';
+import '../services/subscription_service.dart';
 import 'conversation_detail_screen.dart';
 
 class UnifiedAnalysisScreen extends StatefulWidget {
@@ -39,6 +40,30 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
   String? _extractedUsername;
   String? _extractedFaceDescription;
 
+  // Para responder mensagem
+  final _lastMessageController = TextEditingController();
+
+  // Developer mode - feedback com reasoning
+  bool _isDeveloper = false;
+  ReplyAnalysis? _replyAnalysis;
+  List<SuggestionWithReasoning>? _suggestionsWithReasoning;
+  final _feedbackNoteController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _checkDeveloperStatus();
+  }
+
+  Future<void> _checkDeveloperStatus() async {
+    final isDev = await SubscriptionService().isDeveloper();
+    if (mounted) {
+      setState(() {
+        _isDeveloper = isDev;
+      });
+    }
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -46,12 +71,20 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
     _bioController.dispose();
     _photoDescController.dispose();
     _interestsController.dispose();
+    _lastMessageController.dispose();
+    _feedbackNoteController.dispose();
     super.dispose();
   }
 
   Future<void> _uploadAndAnalyzeImage() async {
     try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      // Comprimir imagem para evitar erros com fotos grandes do celular
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
       if (image == null) return;
 
       final bytes = await image.readAsBytes();
@@ -63,12 +96,8 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
 
       final base64Image = base64Encode(bytes);
 
+      // Sempre usar JPEG após compressão do image_picker
       String imageMediaType = 'image/jpeg';
-      if (image.mimeType != null) {
-        imageMediaType = image.mimeType!;
-      } else if (image.path.toLowerCase().endsWith('.png')) {
-        imageMediaType = 'image/png';
-      }
 
       final appState = context.read<AppState>();
       final agentService = AgentService(baseUrl: appState.backendUrl);
@@ -152,6 +181,8 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
       _isLoading = true;
       _suggestions = [];
       _analysis = null;
+      _replyAnalysis = null;
+      _suggestionsWithReasoning = null;
     });
 
     try {
@@ -196,6 +227,46 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
           });
         } else {
           _showError(result.errorMessage ?? 'Erro desconhecido');
+        }
+      } else if (_selectedAction == 'reply') {
+        // Gerar resposta para mensagem recebida
+        if (_isDeveloper) {
+          // Modo desenvolvedor: usa endpoint com reasoning
+          final result = await agentService.generateReplyWithReasoning(
+            receivedMessage: _lastMessageController.text.trim(),
+            matchName: _nameController.text.trim(),
+            platform: _selectedPlatform,
+            context: _bioController.text.trim().isEmpty ? null : _bioController.text.trim(),
+            userProfile: profileProvider.profile,
+          );
+
+          if (result.success && result.suggestions != null) {
+            setState(() {
+              _replyAnalysis = result.analysis;
+              _suggestionsWithReasoning = result.suggestions;
+              // Também preenche a lista simples para compatibilidade
+              _suggestions = result.suggestions!.map((s) => s.text).toList();
+            });
+          } else {
+            _showError(result.errorMessage ?? 'Erro desconhecido');
+          }
+        } else {
+          // Modo normal: endpoint simples
+          final result = await agentService.generateReply(
+            receivedMessage: _lastMessageController.text.trim(),
+            matchName: _nameController.text.trim(),
+            platform: _selectedPlatform,
+            context: _bioController.text.trim().isEmpty ? null : _bioController.text.trim(),
+            userProfile: profileProvider.profile,
+          );
+
+          if (result.success && result.suggestions != null) {
+            setState(() {
+              _suggestions = result.suggestions!;
+            });
+          } else {
+            _showError(result.errorMessage ?? 'Erro desconhecido');
+          }
         }
       } else {
         final result = await agentService.generateFirstMessage(
@@ -334,13 +405,30 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
               _buildActionSelector(),
               const SizedBox(height: 28),
               _buildInputFields(),
+              if (_selectedAction == 'reply') ...[
+                const SizedBox(height: 16),
+                _buildLastMessageField(),
+              ],
               const SizedBox(height: 16),
               _buildPhotoDescField(),
               const SizedBox(height: 28),
               _buildGenerateButton(),
+              // Seção de análise para desenvolvedores (antes das sugestões)
+              if (_isDeveloper && _replyAnalysis != null) ...[
+                const SizedBox(height: 32),
+                _buildDeveloperAnalysisSection(),
+              ],
               if (_suggestions.isNotEmpty) ...[
                 const SizedBox(height: 32),
-                _buildSuggestionsSection(),
+                if (_isDeveloper && _suggestionsWithReasoning != null)
+                  _buildSuggestionsWithReasoningSection()
+                else
+                  _buildSuggestionsSection(),
+                // Seção de feedback para desenvolvedores - logo abaixo das sugestões
+                if (_isDeveloper) ...[
+                  const SizedBox(height: 20),
+                  _buildDeveloperFeedbackSection(),
+                ],
               ],
               if (_analysis != null) ...[
                 const SizedBox(height: 32),
@@ -620,6 +708,7 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
     } else {
       actions = [
         {'value': 'opener', 'label': 'Primeira Mensagem'},
+        {'value': 'reply', 'label': 'Responder'},
         {'value': 'analyze', 'label': 'Análise Completa'},
       ];
     }
@@ -809,12 +898,79 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
     );
   }
 
+  Widget _buildLastMessageField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Ultima mensagem dela',
+              style: TextStyle(
+                color: Colors.grey.shade400,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE91E63),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                'OBRIGATORIO',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _lastMessageController,
+          style: const TextStyle(color: Colors.white),
+          maxLines: 3,
+          decoration: InputDecoration(
+            hintText: 'Cole aqui a mensagem que ela mandou...',
+            hintStyle: TextStyle(color: Colors.grey.shade600),
+            filled: true,
+            fillColor: const Color(0xFF1A1A2E),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF2A2A3E)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF2A2A3E)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE91E63)),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          ),
+          validator: (value) {
+            if (_selectedAction == 'reply' && (value == null || value.trim().isEmpty)) {
+              return 'Cole a mensagem dela para gerar resposta';
+            }
+            return null;
+          },
+        ),
+      ],
+    );
+  }
+
   Widget _buildPhotoDescField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Descrição das Fotos (Opcional)',
+          'Descricao das Fotos (Opcional)',
           style: TextStyle(
             color: Colors.grey.shade400,
             fontSize: 13,
@@ -851,7 +1007,14 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
   }
 
   Widget _buildGenerateButton() {
-    String buttonText = _selectedAction == 'analyze' ? 'Analisar Perfil' : 'Gerar Mensagens';
+    String buttonText;
+    if (_selectedAction == 'analyze') {
+      buttonText = 'Analisar Perfil';
+    } else if (_selectedAction == 'reply') {
+      buttonText = 'Gerar Resposta';
+    } else {
+      buttonText = 'Gerar Mensagens';
+    }
 
     return SizedBox(
       width: double.infinity,
@@ -1049,5 +1212,525 @@ class _UnifiedAnalysisScreenState extends State<UnifiedAnalysisScreen> {
         ),
       ],
     );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // DEVELOPER MODE WIDGETS
+  // ═══════════════════════════════════════════════════════════════════
+
+  Widget _buildDeveloperAnalysisSection() {
+    final analysis = _replyAnalysis!;
+
+    String tempEmoji;
+    Color tempColor;
+    switch (analysis.messageTemperature) {
+      case 'hot':
+        tempEmoji = '🔥';
+        tempColor = Colors.red;
+        break;
+      case 'cold':
+        tempEmoji = '❄️';
+        tempColor = Colors.blue;
+        break;
+      default:
+        tempEmoji = '😐';
+        tempColor = Colors.orange;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A2E),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF8B5CF6), width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF8B5CF6),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  'DEV MODE',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Análise da IA',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Temperatura da mensagem
+          Row(
+            children: [
+              Text(tempEmoji, style: const TextStyle(fontSize: 24)),
+              const SizedBox(width: 8),
+              Text(
+                'Temperatura: ${analysis.messageTemperature.toUpperCase()}',
+                style: TextStyle(
+                  color: tempColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Fase da conversa
+          Row(
+            children: [
+              const Icon(Icons.trending_up, color: Colors.grey, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Fase: ${analysis.conversationPhase}',
+                style: TextStyle(
+                  color: Colors.grey.shade400,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Intenção detectada
+          if (analysis.detectedIntent.isNotEmpty) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.psychology, color: Colors.grey, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Intenção: ${analysis.detectedIntent}',
+                    style: TextStyle(
+                      color: Colors.grey.shade400,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // Elementos-chave
+          if (analysis.keyElements.isNotEmpty) ...[
+            const Text(
+              'Elementos-chave:',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: analysis.keyElements.map((elem) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2A2A3E),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  elem,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11,
+                  ),
+                ),
+              )).toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuggestionsWithReasoningSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Sugestões com Raciocínio',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 16),
+        ...List.generate(_suggestionsWithReasoning!.length, (index) {
+          return _buildSuggestionWithReasoningCard(index, _suggestionsWithReasoning![index]);
+        }),
+      ],
+    );
+  }
+
+  Widget _buildSuggestionWithReasoningCard(int index, SuggestionWithReasoning suggestion) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A2E),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF2A2A3E)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header com número e botões
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE91E63),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    '${index + 1}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              if (suggestion.strategy.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2196F3).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: const Color(0xFF2196F3)),
+                  ),
+                  child: Text(
+                    suggestion.strategy,
+                    style: const TextStyle(
+                      color: Color(0xFF2196F3),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => _copyToClipboard(suggestion.text),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2A2A3E),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.copy, size: 18, color: Colors.grey),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Texto da sugestão
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0D0D1A),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              suggestion.text,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
+          ),
+
+          // Raciocínio
+          if (suggestion.reasoning.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.lightbulb_outline, color: Colors.amber, size: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    suggestion.reasoning,
+                    style: TextStyle(
+                      color: Colors.grey.shade400,
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _createConversationAndStart(suggestion.text),
+              icon: const Icon(Icons.chat_bubble_outline, size: 18),
+              label: const Text('Iniciar Conversa'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFE91E63),
+                side: const BorderSide(color: Color(0xFFE91E63)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeveloperFeedbackSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A2E),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF8B5CF6)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.feedback_outlined, color: Color(0xFF8B5CF6), size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'Feedback de Desenvolvimento',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Como você avalia estas sugestões?',
+            style: TextStyle(
+              color: Colors.grey.shade400,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Botões de feedback
+          Row(
+            children: [
+              Expanded(
+                child: _buildFeedbackButton(
+                  'Bom',
+                  Icons.thumb_up,
+                  Colors.green,
+                  () => _submitFeedback('good'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildFeedbackButton(
+                  'Parcial',
+                  Icons.thumbs_up_down,
+                  Colors.orange,
+                  () => _showFeedbackDialog('partial'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildFeedbackButton(
+                  'Ruim',
+                  Icons.thumb_down,
+                  Colors.red,
+                  () => _showFeedbackDialog('bad'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeedbackButton(String label, IconData icon, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withOpacity(0.5)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showFeedbackDialog(String type) {
+    _feedbackNoteController.clear();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        title: Text(
+          type == 'bad' ? 'O que está errado?' : 'O que pode melhorar?',
+          style: const TextStyle(color: Colors.white),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _feedbackNoteController,
+              style: const TextStyle(color: Colors.white),
+              maxLines: 4,
+              decoration: InputDecoration(
+                hintText: 'Descreva o problema ou sugestão de melhoria...',
+                hintStyle: TextStyle(color: Colors.grey.shade600),
+                filled: true,
+                fillColor: const Color(0xFF0D0D1A),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _submitFeedback(type, note: _feedbackNoteController.text);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF8B5CF6),
+            ),
+            child: const Text('Enviar', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _submitFeedback(String type, {String? note}) async {
+    final appState = context.read<AppState>();
+    final agentService = AgentService(baseUrl: appState.backendUrl);
+
+    // Preparar dados de entrada
+    final inputData = {
+      'action': _selectedAction,
+      'matchName': _nameController.text.trim(),
+      'platform': _selectedPlatform,
+      'bio': _bioController.text.trim(),
+      'photoDescription': _photoDescController.text.trim(),
+      if (_selectedAction == 'reply') 'receivedMessage': _lastMessageController.text.trim(),
+    };
+
+    // Preparar análise
+    Map<String, dynamic>? analysisData;
+    if (_replyAnalysis != null) {
+      analysisData = {
+        'messageTemperature': _replyAnalysis!.messageTemperature,
+        'keyElements': _replyAnalysis!.keyElements,
+        'detectedIntent': _replyAnalysis!.detectedIntent,
+        'conversationPhase': _replyAnalysis!.conversationPhase,
+      };
+    }
+
+    // Preparar sugestões
+    List<Map<String, dynamic>> suggestionsData = [];
+    if (_suggestionsWithReasoning != null) {
+      suggestionsData = _suggestionsWithReasoning!.map((s) => {
+        'text': s.text,
+        'reasoning': s.reasoning,
+        'strategy': s.strategy,
+      }).toList();
+    } else {
+      suggestionsData = _suggestions.map((s) => {
+        'text': s,
+        'reasoning': '',
+        'strategy': '',
+      }).toList();
+    }
+
+    final success = await agentService.submitDeveloperFeedback(
+      inputData: inputData,
+      analysis: analysisData,
+      suggestions: suggestionsData,
+      feedbackType: type,
+      feedbackNote: note,
+    );
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(
+                success ? Icons.check_circle : Icons.error,
+                color: Colors.white,
+              ),
+              const SizedBox(width: 8),
+              Text(success ? 'Feedback enviado!' : 'Erro ao enviar feedback'),
+            ],
+          ),
+          backgroundColor: success ? Colors.green : Colors.red,
+        ),
+      );
+    }
   }
 }

@@ -1,13 +1,60 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/conversation.dart';
 
 class ConversationService {
-  final String baseUrl;
+  final String? baseUrl;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  ConversationService({required this.baseUrl});
+  ConversationService({this.baseUrl});
+
+  /// Buscar conversas de um perfil específico
+  Stream<List<ConversationListItem>> getConversationsForProfile(String profileId) {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) {
+      print('[ConversationService] No user logged in');
+      return Stream.value([]);
+    }
+
+    print('[ConversationService] Fetching conversations for profileId: $profileId, userId: $userId');
+
+    return _firestore
+        .collection('conversations')
+        .where('userId', isEqualTo: userId)
+        .where('profileId', isEqualTo: profileId)
+        .orderBy('lastMessageAt', descending: true)
+        .snapshots()
+        .handleError((error) {
+          print('[ConversationService] Error fetching conversations: $error');
+        })
+        .map((snapshot) {
+      print('[ConversationService] Found ${snapshot.docs.length} conversations');
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        print('[ConversationService] Conversation ${doc.id}: profileId=${data['profileId']}, platform=${data['platform']}');
+        return ConversationListItem(
+          id: doc.id,
+          matchName: data['avatar']?['matchName'] ?? '',
+          username: data['avatar']?['username'],
+          platform: data['platform'] ?? data['avatar']?['platform'] ?? 'outro',
+          lastMessage: data['lastMessage'] ?? '',
+          lastMessageAt: data['lastMessageAt'] != null
+              ? (data['lastMessageAt'] as Timestamp).toDate()
+              : DateTime.now(),
+          unreadCount: data['unreadCount'] ?? 0,
+          faceImageUrl: data['avatar']?['faceImageUrl'],
+          age: data['avatar']?['age'],
+          avatar: data['avatar'] != null
+              ? Map<String, String>.from(
+                  (data['avatar'] as Map).map((k, v) => MapEntry(k.toString(), v?.toString() ?? '')))
+              : {},
+        );
+      }).toList();
+    });
+  }
 
   /// Obter token de autenticação
   Future<String?> _getAuthToken() async {
@@ -30,6 +77,7 @@ class ConversationService {
     required String matchName,
     String? username,
     required String platform,
+    String? profileId,
     String? bio,
     List<String>? photoDescriptions,
     String? age,
@@ -46,6 +94,7 @@ class ConversationService {
       'matchName': matchName,
       if (username != null) 'username': username,
       'platform': platform,
+      if (profileId != null) 'profileId': profileId,
       if (bio != null) 'bio': bio,
       if (photoDescriptions != null) 'photoDescriptions': photoDescriptions,
       if (age != null) 'age': age,

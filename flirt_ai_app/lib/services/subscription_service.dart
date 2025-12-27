@@ -93,6 +93,22 @@ class SubscriptionService {
     return status == SubscriptionStatus.active;
   }
 
+  // Check if user is a developer
+  Future<bool> isDeveloper() async {
+    if (_currentUser == null) return false;
+
+    final userDoc = await _firestore
+        .collection('users')
+        .doc(_currentUser!.uid)
+        .get();
+
+    if (!userDoc.exists) return false;
+
+    final data = userDoc.data();
+    return (data?['isDeveloper'] as bool? ?? false) ||
+           (data?['isAdmin'] as bool? ?? false);
+  }
+
   // Get days remaining in subscription/trial
   Future<int?> getDaysRemaining() async {
     final details = await getSubscriptionDetails();

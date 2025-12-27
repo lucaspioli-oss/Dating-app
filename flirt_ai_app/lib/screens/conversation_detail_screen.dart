@@ -1,9 +1,14 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../providers/user_profile_provider.dart';
 import '../services/conversation_service.dart';
+import '../services/agent_service.dart';
+import '../services/subscription_service.dart';
 import '../models/conversation.dart';
 
 class ConversationDetailScreen extends StatefulWidget {
@@ -20,22 +25,39 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
   bool _isLoading = true;
   bool _isGeneratingSuggestions = false;
 
-  final _receivedMessageController = TextEditingController();
-  final _customMessageController = TextEditingController();
+  final _messageInputController = TextEditingController();
+  final _herMessageController = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
+
   List<String> _suggestions = [];
   String _analysisText = '';
   List<String> _responseOptions = [];
+
+  // Developer mode
+  bool _isDeveloper = false;
+  final _feedbackNoteController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadConversation();
+    _checkDeveloperStatus();
+  }
+
+  Future<void> _checkDeveloperStatus() async {
+    final isDev = await SubscriptionService().isDeveloper();
+    if (mounted) {
+      setState(() {
+        _isDeveloper = isDev;
+      });
+    }
   }
 
   @override
   void dispose() {
-    _receivedMessageController.dispose();
-    _customMessageController.dispose();
+    _messageInputController.dispose();
+    _herMessageController.dispose();
+    _feedbackNoteController.dispose();
     super.dispose();
   }
 
@@ -59,14 +81,409 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
     }
   }
 
-  Future<void> _generateSuggestions() async {
-    if (_receivedMessageController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Digite a mensagem recebida')),
-      );
-      return;
-    }
+  // ═══════════════════════════════════════════════════════════════════
+  // GENERATE SUGGESTIONS
+  // ═══════════════════════════════════════════════════════════════════
 
+  void _showGenerateOptionsMenu() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1A1A2E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade700,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Como você quer informar a mensagem dela?',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'A IA vai analisar e sugerir respostas',
+                style: TextStyle(
+                  color: Colors.grey.shade500,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Option 1: Upload screenshot
+              _buildOptionTile(
+                icon: Icons.photo_camera,
+                title: 'Upload do print',
+                subtitle: 'Envie um screenshot da conversa',
+                color: const Color(0xFFE91E63),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickAndAnalyzeImage();
+                },
+              ),
+              const SizedBox(height: 12),
+
+              // Option 2: Type message
+              _buildOptionTile(
+                icon: Icons.keyboard,
+                title: 'Digitar a mensagem',
+                subtitle: 'Cole ou digite o que ela enviou',
+                color: const Color(0xFF8B5CF6),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showTypeMessageDialog();
+                },
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildOptionTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios, color: color, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAndAnalyzeImage() async {
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      if (image == null) return;
+
+      final bytes = await image.readAsBytes();
+      final base64Image = base64Encode(bytes);
+
+      // Show loading dialog while analyzing
+      if (!mounted) return;
+      _showAnalyzingDialog(bytes);
+
+      // Call OCR endpoint
+      final appState = context.read<AppState>();
+      final agentService = AgentService(baseUrl: appState.backendUrl);
+
+      final result = await agentService.analyzeConversationImage(
+        imageBase64: base64Image,
+        platform: _conversation?.avatar.platform,
+      );
+
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+
+      if (result.success && result.lastMessage != null && result.lastMessage!.isNotEmpty) {
+        // Pre-fill with extracted message
+        _showImageWithMessageInput(bytes, extractedMessage: result.lastMessage);
+      } else {
+        // OCR failed, let user type manually
+        _showImageWithMessageInput(bytes, errorMessage: result.errorMessage ?? 'Não foi possível extrair o texto');
+      }
+    } catch (e) {
+      // Close loading dialog if open
+      if (mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst || route.settings.name == '/conversation');
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  void _showAnalyzingDialog(Uint8List imageBytes) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Show thumbnail
+            Container(
+              height: 120,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.memory(imageBytes, fit: BoxFit.contain),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const CircularProgressIndicator(color: Color(0xFFE91E63)),
+            const SizedBox(height: 16),
+            const Text(
+              'Analisando imagem...',
+              style: TextStyle(color: Colors.white, fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Extraindo texto da conversa',
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showImageWithMessageInput(Uint8List imageBytes, {String? extractedMessage, String? errorMessage}) {
+    _herMessageController.text = extractedMessage ?? '';
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        contentPadding: const EdgeInsets.all(16),
+        title: Text(
+          extractedMessage != null ? 'Confirme a mensagem' : 'Digite a mensagem',
+          style: const TextStyle(color: Colors.white, fontSize: 18),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Show the image
+              Container(
+                constraints: const BoxConstraints(maxHeight: 150),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF2A2A3E)),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(11),
+                  child: Image.memory(imageBytes, fit: BoxFit.contain),
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (extractedMessage != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF4CAF50).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFF4CAF50).withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.check_circle, color: Color(0xFF4CAF50), size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Texto extraído automaticamente',
+                        style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                )
+              else if (errorMessage != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber, color: Colors.orange, size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Digite manualmente',
+                          style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 12),
+              Text(
+                extractedMessage != null
+                  ? 'Edite se necessário:'
+                  : 'Digite a última mensagem que ela enviou:',
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _herMessageController,
+                style: const TextStyle(color: Colors.white),
+                maxLines: 3,
+                autofocus: extractedMessage == null,
+                decoration: InputDecoration(
+                  hintText: 'Cole ou digite a mensagem...',
+                  hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                  filled: true,
+                  fillColor: const Color(0xFF0D0D1A),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancelar', style: TextStyle(color: Colors.grey.shade500)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (_herMessageController.text.trim().isNotEmpty) {
+                Navigator.pop(context);
+                _generateSuggestionsFromText(_herMessageController.text.trim());
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE91E63),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Gerar Sugestões', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showTypeMessageDialog() {
+    _herMessageController.clear();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        title: const Text(
+          'O que ela disse?',
+          style: TextStyle(color: Colors.white, fontSize: 18),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Cole ou digite a última mensagem que ela enviou',
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _herMessageController,
+              style: const TextStyle(color: Colors.white),
+              maxLines: 4,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: 'Ex: "Haha verdade! E você, o que gosta de fazer?"',
+                hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                filled: true,
+                fillColor: const Color(0xFF0D0D1A),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancelar', style: TextStyle(color: Colors.grey.shade500)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (_herMessageController.text.trim().isNotEmpty) {
+                Navigator.pop(context);
+                _generateSuggestionsFromText(_herMessageController.text.trim());
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE91E63),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Gerar Sugestões', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _generateSuggestionsFromText(String herMessage) async {
     setState(() {
       _isGeneratingSuggestions = true;
       _suggestions = [];
@@ -76,37 +493,33 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
 
     try {
       final appState = context.read<AppState>();
-      final profileProvider = context.read<UserProfileProvider>();
-      final service = ConversationService(baseUrl: appState.backendUrl);
+      final agentService = AgentService(baseUrl: appState.backendUrl);
 
-      final suggestions = await service.generateSuggestions(
-        conversationId: widget.conversationId,
-        receivedMessage: _receivedMessageController.text.trim(),
-        tone: 'expert',
-        userContext: profileProvider.profile.isComplete
-            ? {
-                'name': profileProvider.profile.name,
-                'age': profileProvider.profile.age,
-                'interests': profileProvider.profile.interests,
-                'dislikes': profileProvider.profile.dislikes,
-                'humorStyle': profileProvider.profile.humorStyle,
-                'relationshipGoal': profileProvider.profile.relationshipGoal,
-              }
-            : null,
+      // Use the reply endpoint that focuses on her message
+      final result = await agentService.generateReply(
+        receivedMessage: herMessage,
+        conversationHistory: _conversation?.messages.map((m) => {
+          'role': m.role,
+          'content': m.content,
+        }).toList(),
       );
 
-      // Parse suggestions to separate analysis from options
-      final parsed = _parseSuggestions(suggestions);
-
       setState(() {
-        _suggestions = suggestions;
-        _analysisText = parsed['analysis'] ?? '';
-        _responseOptions = List<String>.from(parsed['options'] ?? []);
+        _suggestions = result.suggestions ?? [];
+        _responseOptions = result.suggestions ?? [];
         _isGeneratingSuggestions = false;
       });
 
-      _receivedMessageController.clear();
-      await _loadConversation();
+      // Save her message to conversation history
+      if (_conversation != null) {
+        final service = ConversationService(baseUrl: appState.backendUrl);
+        await service.addMessage(
+          conversationId: widget.conversationId,
+          role: 'match',
+          content: herMessage,
+        );
+        await _loadConversation();
+      }
     } catch (e) {
       setState(() => _isGeneratingSuggestions = false);
       if (mounted) {
@@ -115,55 +528,6 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         );
       }
     }
-  }
-
-  Map<String, dynamic> _parseSuggestions(List<String> rawSuggestions) {
-    final analysisLines = <String>[];
-    final options = <String>[];
-
-    for (final line in rawSuggestions) {
-      final trimmed = line.trim();
-      if (trimmed.isEmpty) continue;
-
-      final lower = trimmed.toLowerCase();
-
-      // Check if it's analysis/metadata
-      final isAnalysis = trimmed.startsWith('---') ||
-          trimmed.startsWith('**') ||
-          lower.startsWith('análise') ||
-          lower.startsWith('analise') ||
-          lower.startsWith('contexto') ||
-          lower.startsWith('tipo de mensagem') ||
-          lower.contains('tipo de mensagem:') ||
-          lower.startsWith('estratégia') ||
-          lower.startsWith('estrategia') ||
-          lower.startsWith('observação') ||
-          lower.startsWith('observacao') ||
-          lower.startsWith('dica') ||
-          lower.startsWith('nota') ||
-          RegExp(r'^opção\s*\d+', caseSensitive: false).hasMatch(lower) ||
-          RegExp(r'^sugestão\s*\d+', caseSensitive: false).hasMatch(lower) ||
-          (trimmed.contains(':') && trimmed.indexOf(':') < 20);
-
-      if (isAnalysis) {
-        // Clean up the line for analysis display
-        String cleaned = trimmed
-            .replaceAll(RegExp(r'^\*+|\*+$'), '')
-            .replaceAll(RegExp(r'^-+|-+$'), '')
-            .trim();
-        if (cleaned.isNotEmpty) {
-          analysisLines.add(cleaned);
-        }
-      } else {
-        // It's an actual response option
-        options.add(trimmed);
-      }
-    }
-
-    return {
-      'analysis': analysisLines.join('\n'),
-      'options': options,
-    };
   }
 
   Future<void> _sendMessage(String content, {bool wasAiSuggestion = false}) async {
@@ -183,7 +547,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         _suggestions = [];
         _analysisText = '';
         _responseOptions = [];
-        _customMessageController.clear();
+        _messageInputController.clear();
       });
 
       await _loadConversation();
@@ -223,36 +587,9 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
     );
   }
 
-  Future<void> _submitFeedback(String messageId, bool gotResponse, String? quality) async {
-    try {
-      final appState = context.read<AppState>();
-      final service = ConversationService(baseUrl: appState.backendUrl);
-
-      await service.submitFeedback(
-        conversationId: widget.conversationId,
-        messageId: messageId,
-        gotResponse: gotResponse,
-        responseQuality: quality,
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Feedback registrado!'),
-            backgroundColor: Color(0xFF4CAF50),
-            duration: Duration(seconds: 1),
-          ),
-        );
-        await _loadConversation();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
-        );
-      }
-    }
-  }
+  // ═══════════════════════════════════════════════════════════════════
+  // BUILD UI
+  // ═══════════════════════════════════════════════════════════════════
 
   @override
   Widget build(BuildContext context) {
@@ -285,8 +622,8 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
       body: Column(
         children: [
           Expanded(child: _buildMessageHistory()),
+          if (_responseOptions.isNotEmpty) _buildSuggestionsSection(),
           _buildInputSection(),
-          if (_analysisText.isNotEmpty || _responseOptions.isNotEmpty) _buildSuggestionsSection(),
         ],
       ),
     );
@@ -365,6 +702,50 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
   }
 
   Widget _buildMessageHistory() {
+    if (_conversation!.messages.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1A2E),
+                  borderRadius: BorderRadius.circular(40),
+                ),
+                child: const Icon(
+                  Icons.chat_bubble_outline,
+                  color: Color(0xFF888888),
+                  size: 36,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Comece a conversa!',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Clique no botão ✨ para gerar\nsugestões de resposta',
+                style: TextStyle(
+                  color: Colors.grey.shade500,
+                  fontSize: 14,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return ListView.builder(
       reverse: false,
       padding: const EdgeInsets.all(16),
@@ -372,16 +753,14 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
       itemBuilder: (context, index) {
         final message = _conversation!.messages[index];
         final isUser = message.role == 'user';
-        final isLastUserMessage = isUser &&
-            (index == _conversation!.messages.length - 1 ||
-             _conversation!.messages.skip(index + 1).every((m) => m.role == 'user'));
+        final isMatch = message.role == 'match';
 
-        return _buildMessageBubble(message, isUser, isLastUserMessage);
+        return _buildMessageBubble(message, isUser, isMatch);
       },
     );
   }
 
-  Widget _buildMessageBubble(Message message, bool isUser, bool showFeedback) {
+  Widget _buildMessageBubble(Message message, bool isUser, bool isMatch) {
     return Column(
       crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
       children: [
@@ -390,7 +769,11 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
           decoration: BoxDecoration(
-            color: isUser ? const Color(0xFFE91E63) : const Color(0xFF1A1A2E),
+            color: isUser
+                ? const Color(0xFFE91E63)
+                : isMatch
+                    ? const Color(0xFF2A2A3E)
+                    : const Color(0xFF1A1A2E),
             borderRadius: BorderRadius.only(
               topLeft: const Radius.circular(16),
               topRight: const Radius.circular(16),
@@ -401,6 +784,18 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (isMatch)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    'Ela disse:',
+                    style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               Text(
                 message.content,
                 style: TextStyle(
@@ -430,50 +825,8 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
             ],
           ),
         ),
-        // Feedback sutil abaixo da mensagem
-        if (showFeedback && message.wasAiSuggestion == true)
-          _buildSubtleFeedback(message.id),
         const SizedBox(height: 12),
       ],
-    );
-  }
-
-  Widget _buildSubtleFeedback(String messageId) {
-    return Container(
-      margin: const EdgeInsets.only(top: 4, right: 8),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          Text(
-            'Ela respondeu?',
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
-          ),
-          const SizedBox(width: 8),
-          _buildFeedbackChip('❄️', messageId, true, 'cold'),
-          const SizedBox(width: 4),
-          _buildFeedbackChip('😐', messageId, true, 'neutral'),
-          const SizedBox(width: 4),
-          _buildFeedbackChip('🔥', messageId, true, 'warm'),
-          const SizedBox(width: 4),
-          _buildFeedbackChip('✕', messageId, false, null),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFeedbackChip(String emoji, String messageId, bool gotResponse, String? quality) {
-    return GestureDetector(
-      onTap: () => _submitFeedback(messageId, gotResponse, quality),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A1A2E),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF2A2A3E)),
-        ),
-        child: Text(emoji, style: const TextStyle(fontSize: 12)),
-      ),
     );
   }
 
@@ -484,60 +837,91 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         color: Color(0xFF1A1A2E),
         border: Border(top: BorderSide(color: Color(0xFF2A2A3E))),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF0D0D1A),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: const Color(0xFF2A2A3E)),
-              ),
-              child: TextField(
-                controller: _receivedMessageController,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-                decoration: InputDecoration(
-                  hintText: 'Cole a mensagem que ela enviou...',
-                  hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 14),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: SafeArea(
+        child: Row(
+          children: [
+            // Magic button - generate suggestions
+            GestureDetector(
+              onTap: _isGeneratingSuggestions ? null : _showGenerateOptionsMenu,
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFE91E63), Color(0xFFFF5722)],
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFE91E63).withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-                maxLines: 2,
-                minLines: 1,
+                child: _isGeneratingSuggestions
+                    ? const Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        ),
+                      )
+                    : const Icon(Icons.auto_awesome, color: Colors.white, size: 22),
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: _isGeneratingSuggestions ? null : _generateSuggestions,
-            child: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFE91E63), Color(0xFFFF5722)],
+            const SizedBox(width: 12),
+
+            // Text input for direct message
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0D0D1A),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFF2A2A3E)),
                 ),
-                borderRadius: BorderRadius.circular(24),
+                child: TextField(
+                  controller: _messageInputController,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  decoration: InputDecoration(
+                    hintText: 'Sua mensagem...',
+                    hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                  maxLines: 2,
+                  minLines: 1,
+                ),
               ),
-              child: _isGeneratingSuggestions
-                  ? const Center(
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      ),
-                    )
-                  : const Icon(Icons.auto_awesome, color: Colors.white, size: 22),
             ),
-          ),
-        ],
+            const SizedBox(width: 8),
+
+            // Send button
+            GestureDetector(
+              onTap: () {
+                if (_messageInputController.text.trim().isNotEmpty) {
+                  _sendMessage(_messageInputController.text.trim(), wasAiSuggestion: false);
+                }
+              },
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2A2A3E),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: const Icon(Icons.send, color: Colors.white, size: 20),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildSuggestionsSection() {
     return Container(
-      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.55),
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.45),
       decoration: const BoxDecoration(
         color: Color(0xFF1A1A2E),
         border: Border(top: BorderSide(color: Color(0xFF2A2A3E))),
@@ -546,16 +930,25 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Header with close button
+          // Header
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Row(
               children: [
+                const Icon(Icons.lightbulb, color: Color(0xFFFFD93D), size: 18),
+                const SizedBox(width: 8),
+                const Text(
+                  'Sugestões de resposta',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const Spacer(),
                 GestureDetector(
                   onTap: () => setState(() {
                     _suggestions = [];
-                    _analysisText = '';
                     _responseOptions = [];
                   }),
                   child: Container(
@@ -570,87 +963,25 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
               ],
             ),
           ),
-          // Scrollable content
+
+          // Suggestions list
           Flexible(
-            child: SingleChildScrollView(
+            child: ListView.builder(
+              shrinkWrap: true,
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Analysis Section - plain text, no box
-                  if (_analysisText.isNotEmpty) ...[
-                    Text(
-                      _analysisText,
-                      style: TextStyle(
-                        color: Colors.grey.shade500,
-                        fontSize: 13,
-                        height: 1.5,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                  // Response Options Section
-                  if (_responseOptions.isNotEmpty) ...[
-                    Text(
-                      'Sugestões de resposta:',
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    ...List.generate(_responseOptions.length, (index) {
-                      return _buildSuggestionCard(index, _responseOptions[index]);
-                    }),
-                  ],
-                ],
-              ),
+              itemCount: _responseOptions.length,
+              itemBuilder: (context, index) {
+                return _buildSuggestionCard(index, _responseOptions[index]);
+              },
             ),
           ),
-          // Custom message input
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0D0D1A),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF2A2A3E)),
-                    ),
-                    child: TextField(
-                      controller: _customMessageController,
-                      style: const TextStyle(color: Colors.white, fontSize: 13),
-                      decoration: InputDecoration(
-                        hintText: 'Ou escreva sua própria...',
-                        hintStyle: TextStyle(color: Colors.grey.shade700, fontSize: 13),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () {
-                    if (_customMessageController.text.trim().isNotEmpty) {
-                      _sendMessage(_customMessageController.text.trim(), wasAiSuggestion: false);
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2A2A3E),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.send, color: Colors.grey, size: 18),
-                  ),
-                ),
-              ],
+
+          // Developer feedback
+          if (_isDeveloper)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: _buildDeveloperFeedbackSection(),
             ),
-          ),
         ],
       ),
     );
@@ -668,65 +999,76 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 24,
-                height: 24,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE91E63),
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    '${index + 1}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: () => _copyToClipboard(suggestion),
-                child: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1A1A2E),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Icon(Icons.copy, size: 14, color: Colors.grey),
-                ),
-              ),
-              const SizedBox(width: 6),
-              GestureDetector(
-                onTap: () => _sendMessage(suggestion, wasAiSuggestion: true),
-                child: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE91E63),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Icon(Icons.check, size: 14, color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
           Text(
             suggestion,
             style: TextStyle(
               color: Colors.grey.shade300,
-              fontSize: 13,
+              fontSize: 14,
               height: 1.4,
             ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              // Copy button
+              GestureDetector(
+                onTap: () => _copyToClipboard(suggestion),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A1A2E),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFF2A2A3E)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.copy, size: 14, color: Colors.grey.shade400),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Copiar',
+                        style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Use button
+              GestureDetector(
+                onTap: () => _sendMessage(suggestion, wasAiSuggestion: true),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFE91E63), Color(0xFFFF5722)],
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check, size: 14, color: Colors.white),
+                      SizedBox(width: 6),
+                      Text(
+                        'Usar',
+                        style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // DIALOGS AND INFO
+  // ═══════════════════════════════════════════════════════════════════
 
   Future<void> _confirmDeleteConversation() async {
     final confirmed = await showDialog<bool>(
@@ -870,5 +1212,115 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         ],
       ),
     );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // DEVELOPER FEEDBACK
+  // ═══════════════════════════════════════════════════════════════════
+
+  Widget _buildDeveloperFeedbackSection() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D0D1A),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF8B5CF6)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF8B5CF6),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  'DEV',
+                  style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Feedback das sugestões',
+                style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(child: _buildDevFeedbackButton('Bom', Icons.thumb_up, Colors.green, () => _submitDevFeedback('good'))),
+              const SizedBox(width: 6),
+              Expanded(child: _buildDevFeedbackButton('Parcial', Icons.thumbs_up_down, Colors.orange, () => _submitDevFeedback('partial'))),
+              const SizedBox(width: 6),
+              Expanded(child: _buildDevFeedbackButton('Ruim', Icons.thumb_down, Colors.red, () => _submitDevFeedback('bad'))),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDevFeedbackButton(String label, IconData icon, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: color.withOpacity(0.5)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 4),
+            Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _submitDevFeedback(String type) async {
+    final appState = context.read<AppState>();
+    final agentService = AgentService(baseUrl: appState.backendUrl);
+
+    final inputData = {
+      'action': 'conversation_continue',
+      'matchName': _conversation?.avatar.matchName ?? '',
+      'platform': _conversation?.avatar.platform ?? '',
+      'conversationId': widget.conversationId,
+    };
+
+    final suggestionsData = _responseOptions.map((s) => {'text': s}).toList();
+
+    final success = await agentService.submitDeveloperFeedback(
+      inputData: inputData,
+      analysis: null,
+      suggestions: suggestionsData,
+      feedbackType: type,
+      feedbackNote: null,
+    );
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(success ? Icons.check_circle : Icons.error, color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+              Text(success ? 'Feedback enviado!' : 'Erro ao enviar'),
+            ],
+          ),
+          backgroundColor: success ? Colors.green : Colors.red,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 }

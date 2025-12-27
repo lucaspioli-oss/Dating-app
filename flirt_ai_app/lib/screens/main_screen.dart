@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'conversations_screen.dart';
-import 'unified_analysis_screen.dart';
+import 'profiles_list_screen.dart';
 import 'profile_screen.dart';
 import '../widgets/app_sidebar.dart';
 import '../config/app_theme.dart';
@@ -16,11 +15,10 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  // Ordem: Minha Conta, Primeira Mensagem, Conversas
+  // Nova estrutura: Perfis (principal), Minha Conta
   final List<Widget> _screens = [
+    const ProfilesListScreen(),
     const ProfileScreen(),
-    const UnifiedAnalysisScreen(),
-    const ConversationsScreen(),
   ];
 
   @override
@@ -65,70 +63,31 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Widget _buildMobileLayout() {
-    // Para mobile, mantém a ordem original: Conversas, Análise, Perfil
-    final mobileScreens = [
-      const ConversationsScreen(),
-      const UnifiedAnalysisScreen(),
-      const ProfileScreen(),
-    ];
-
-    // Mapear índice do sidebar para índice mobile
-    int mobileIndex;
-    switch (_currentIndex) {
-      case 0: // Minha Conta -> Perfil (index 2)
-        mobileIndex = 2;
-        break;
-      case 1: // Primeira Mensagem -> Análise (index 1)
-        mobileIndex = 1;
-        break;
-      case 2: // Conversas -> Conversas (index 0)
-        mobileIndex = 0;
-        break;
-      default:
-        mobileIndex = 0;
-    }
-
     return Scaffold(
       body: SafeArea(
         top: false,
         child: IndexedStack(
-          index: mobileIndex,
-          children: mobileScreens,
+          index: _currentIndex,
+          children: _screens,
         ),
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: mobileIndex,
+        selectedIndex: _currentIndex,
         onDestinationSelected: (index) {
           setState(() {
-            // Mapear índice mobile para índice do sidebar
-            switch (index) {
-              case 0: // Conversas
-                _currentIndex = 2;
-                break;
-              case 1: // Análise
-                _currentIndex = 1;
-                break;
-              case 2: // Perfil
-                _currentIndex = 0;
-                break;
-            }
+            _currentIndex = index;
           });
         },
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.forum_outlined),
-            selectedIcon: Icon(Icons.forum),
-            label: 'Conversas',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.auto_awesome_outlined),
-            selectedIcon: Icon(Icons.auto_awesome),
-            label: 'Análise',
+            icon: Icon(Icons.people_outlined),
+            selectedIcon: Icon(Icons.people),
+            label: 'Perfis',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outlined),
             selectedIcon: Icon(Icons.person),
-            label: 'Perfil',
+            label: 'Minha Conta',
           ),
         ],
       ),
