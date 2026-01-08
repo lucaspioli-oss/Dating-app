@@ -34,7 +34,20 @@
       "WebFetch(domain:dating-app-production-ac43.up.railway.app)",
       "Bash(C:/src/flutter/bin/flutter.bat analyze:*)",
       "Bash(C:/src/flutter/bin/flutter.bat clean:*)",
-      "Bash(node scripts/setup-cors.js:*)"
+      "Bash(node scripts/setup-cors.js:*)",
+      "Bash(pushd:*)",
+      "Bash(popd:*)",
+      "WebFetch(domain:desenrola-ia.web.app)",
+      "Bash(firebase hosting:channel:deploy:*)",
+      "Bash(copy \"C:\\\\Users\\\\lucas\\\\OneDrive\\\\Área de Trabalho\\\\Dating App\\\\flirt_ai_app\\\\web\\\\checkout.html\" \"C:\\\\Users\\\\lucas\\\\OneDrive\\\\Área de Trabalho\\\\Dating App\\\\flirt_ai_app\\\\build\\\\web\\\\checkout.html\")",
+      "Bash(railway status:*)",
+      "Bash(railway service)",
+      "Bash(railway logs:*)",
+      "Bash(/mnt/c/src/flutter/bin/flutter.bat build:*)",
+      "Bash(copy:*)",
+      "Bash(copy \"C:\\\\Users\\\\lucas\\\\OneDrive\\\\Área de Trabalho\\\\Dating App\\\\flirt_ai_app\\\\.firebaserc\" \"C:\\\\src\\\\flirt_ai_app\\\\.firebaserc\")",
+      "Bash(timeout /t 30 /nobreak)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []

@@ -91,10 +91,11 @@ export async function createEmbeddedCheckout(
   const price = await stripe.prices.retrieve(priceId);
   const amount = price.unit_amount || 0;
 
-  // Create subscription with incomplete payment
+  // Create subscription with 1-day trial (collects card, charges after 1 day)
   const subscription = await stripe.subscriptions.create({
     customer: customer.id,
     items: [{ price: priceId }],
+    trial_period_days: 1,
     payment_behavior: 'default_incomplete',
     payment_settings: {
       save_default_payment_method: 'on_subscription',
@@ -103,14 +104,26 @@ export async function createEmbeddedCheckout(
       plan,
       source: 'embedded_checkout',
     },
-    expand: ['latest_invoice.payment_intent'],
+    expand: ['latest_invoice.payment_intent', 'pending_setup_intent'],
   });
 
-  const invoice = subscription.latest_invoice as Stripe.Invoice;
-  const paymentIntent = invoice.payment_intent as Stripe.PaymentIntent;
+  // For trials, we use SetupIntent to collect payment method
+  // For immediate payment, we use PaymentIntent
+  let clientSecret: string | null = null;
 
-  if (!paymentIntent?.client_secret) {
-    throw new Error('Failed to create payment intent');
+  if (subscription.pending_setup_intent) {
+    // Trial subscription - use SetupIntent
+    const setupIntent = subscription.pending_setup_intent as Stripe.SetupIntent;
+    clientSecret = setupIntent.client_secret;
+  } else {
+    // Immediate payment - use PaymentIntent
+    const invoice = subscription.latest_invoice as Stripe.Invoice;
+    const paymentIntent = invoice.payment_intent as Stripe.PaymentIntent;
+    clientSecret = paymentIntent?.client_secret || null;
+  }
+
+  if (!clientSecret) {
+    throw new Error('Failed to create payment intent or setup intent');
   }
 
   console.log('💳 Embedded checkout created:', {
@@ -394,11 +407,12 @@ export async function handleCheckoutCompleted(
 
 /**
  * Handle customer.subscription.updated event
+ * Also handles embedded checkout activation (when status changes to 'active')
  */
 export async function handleSubscriptionUpdated(
   subscription: Stripe.Subscription
 ): Promise<void> {
-  console.log('🔄 Subscription updated:', subscription.id);
+  console.log('🔄 Subscription updated:', subscription.id, 'status:', subscription.status);
 
   const customerId = subscription.customer as string;
   const customer = await stripe.customers.retrieve(customerId);
@@ -409,49 +423,132 @@ export async function handleSubscriptionUpdated(
   }
 
   const email = (customer as Stripe.Customer).email;
+  const customerName = (customer as Stripe.Customer).name;
+
   if (!email) {
     console.error('❌ Customer email not found');
     return;
   }
 
-  const db = admin.firestore();
-  const usersSnapshot = await db
-    .collection('users')
-    .where('email', '==', email)
-    .limit(1)
-    .get();
-
-  if (usersSnapshot.empty) {
-    console.error('❌ User not found for email:', email);
+  // Skip temporary/placeholder emails from incomplete checkouts
+  if (email === 'pending@checkout.temp' || email.endsWith('@checkout.temp')) {
+    console.log('⏭️ Skipping temporary email:', email);
     return;
   }
 
-  const userId = usersSnapshot.docs[0].id;
+  const db = admin.firestore();
   const status = subscription.status;
 
+  // Validate current_period_end is a valid timestamp
+  const periodEnd = subscription.current_period_end;
+  if (!periodEnd || typeof periodEnd !== 'number' || !Number.isInteger(periodEnd)) {
+    console.error('❌ Invalid current_period_end:', periodEnd);
+    return;
+  }
+  const expiresAt = admin.firestore.Timestamp.fromDate(new Date(periodEnd * 1000));
+
+  // For embedded checkout: create user if subscription becomes active and user doesn't exist
   if (status === 'active') {
+    const usersSnapshot = await db
+      .collection('users')
+      .where('email', '==', email)
+      .limit(1)
+      .get();
+
     const price = subscription.items.data[0].price;
     const priceId = price.id;
     const amount = price.unit_amount || 0;
     const currency = price.currency;
     const plan = detectPlanFromPrice(price, subscription.metadata);
 
-    await db.collection('users').doc(userId).update({
-      'subscription.status': 'active',
-      'subscription.plan': plan,
-      'subscription.stripePriceId': priceId,
-      'subscription.amount': amount / 100,
-      'subscription.currency': currency,
-      'subscription.expiresAt': admin.firestore.Timestamp.fromDate(
-        new Date(subscription.current_period_end * 1000)
-      ),
-    });
+    if (usersSnapshot.empty) {
+      // User doesn't exist - create them (embedded checkout flow)
+      console.log('👤 Creating new user from subscription.updated for:', email);
+
+      let userRecord;
+      try {
+        userRecord = await admin.auth().getUserByEmail(email);
+      } catch (error: any) {
+        if (error.code === 'auth/user-not-found') {
+          userRecord = await admin.auth().createUser({
+            email: email,
+            displayName: customerName || 'Usuário',
+            emailVerified: true,
+          });
+        } else {
+          throw error;
+        }
+      }
+
+      const userId = userRecord.uid;
+
+      // Create user document with active subscription
+      await db.collection('users').doc(userId).set({
+        email: email,
+        name: customerName || 'Usuário',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        needsPasswordSetup: true,
+        subscription: {
+          status: 'active',
+          plan,
+          stripeCustomerId: customerId,
+          stripeSubscriptionId: subscription.id,
+          stripePriceId: priceId,
+          amount: amount / 100,
+          currency,
+          expiresAt,
+          startedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+      });
+
+      console.log(`✅ User created and subscription activated for ${email}:`, {
+        userId,
+        plan,
+        subscriptionId: subscription.id,
+        expiresAt: new Date(periodEnd * 1000),
+      });
+
+      // Track purchase on Meta Conversions API
+      trackPurchase({
+        email: email,
+        value: amount / 100,
+        currency: currency.toUpperCase(),
+        eventId: `purchase_sub_${subscription.id}`,
+        plan,
+      }).catch(err => console.error('Meta Purchase tracking error:', err));
+
+    } else {
+      // User exists - update their subscription
+      const userId = usersSnapshot.docs[0].id;
+
+      await db.collection('users').doc(userId).update({
+        'subscription.status': 'active',
+        'subscription.plan': plan,
+        'subscription.stripeCustomerId': customerId,
+        'subscription.stripeSubscriptionId': subscription.id,
+        'subscription.stripePriceId': priceId,
+        'subscription.amount': amount / 100,
+        'subscription.currency': currency,
+        'subscription.expiresAt': expiresAt,
+      });
+
+      console.log(`✅ Subscription updated for user ${userId} (${email})`);
+    }
   } else if (status === 'canceled' || status === 'unpaid') {
-    await db.collection('users').doc(userId).update({
-      'subscription.status': 'cancelled',
-      'subscription.cancelledAt': admin.firestore.FieldValue.serverTimestamp(),
-      'subscription.cancelReason': `Subscription ${status}`,
-    });
+    const usersSnapshot = await db
+      .collection('users')
+      .where('email', '==', email)
+      .limit(1)
+      .get();
+
+    if (!usersSnapshot.empty) {
+      const userId = usersSnapshot.docs[0].id;
+      await db.collection('users').doc(userId).update({
+        'subscription.status': 'cancelled',
+        'subscription.cancelledAt': admin.firestore.FieldValue.serverTimestamp(),
+        'subscription.cancelReason': `Subscription ${status}`,
+      });
+    }
   }
 }
 

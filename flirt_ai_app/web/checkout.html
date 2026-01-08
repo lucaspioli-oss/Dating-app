@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Checkout - Desenrola IA</title>
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-5TLN5W9W');</script>
+  <!-- End Google Tag Manager -->
   <script src="https://js.stripe.com/v3/"></script>
   <!-- Meta Pixel Code -->
   <script>
@@ -212,6 +219,10 @@
   </style>
 </head>
 <body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5TLN5W9W"
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
   <div class="checkout-container">
     <div class="logo">
       <h1>Desenrola IA</h1>
@@ -337,14 +348,37 @@
     let selectedPrice = 69.90;
     let selectedPriceId = 'price_1SgsmgAflPjpW4DO0oID3xaW';
 
+    // DataLayer helper
+    window.dataLayer = window.dataLayer || [];
+    function gtmEvent(eventName, eventData = {}) {
+      window.dataLayer.push({
+        event: eventName,
+        ...eventData
+      });
+      console.log('GTM Event:', eventName, eventData);
+    }
+
+    // Track page view
+    gtmEvent('checkout_page_view', {
+      page: 'checkout',
+      plan_from_url: new URLSearchParams(window.location.search).get('plan') || 'none'
+    });
+
     // Read plan from URL
     const urlParams = new URLSearchParams(window.location.search);
     const planFromUrl = urlParams.get('plan');
     if (planFromUrl) {
       const planOption = document.querySelector(`[data-plan="${planFromUrl}"]`);
       if (planOption) {
-        document.querySelectorAll('.plan-option').forEach(o => o.classList.remove('selected'));
-        planOption.classList.add('selected');
+        // Esconder todos os outros planos, mostrar apenas o selecionado
+        document.querySelectorAll('.plan-option').forEach(o => {
+          if (o.dataset.plan !== planFromUrl) {
+            o.style.display = 'none';
+          } else {
+            o.classList.add('selected');
+            o.style.cursor = 'default';
+          }
+        });
         selectedPlan = planFromUrl;
         selectedPrice = parseFloat(planOption.dataset.price);
         selectedPriceId = planOption.dataset.priceId;
@@ -366,9 +400,19 @@
         if (checkoutLoaded) return;
         document.querySelectorAll('.plan-option').forEach(o => o.classList.remove('selected'));
         this.classList.add('selected');
+        const previousPlan = selectedPlan;
         selectedPlan = this.dataset.plan;
         selectedPrice = parseFloat(this.dataset.price);
         selectedPriceId = this.dataset.priceId;
+
+        // Track plan change
+        if (previousPlan !== selectedPlan) {
+          gtmEvent('checkout_plan_changed', {
+            previous_plan: previousPlan,
+            new_plan: selectedPlan,
+            value: selectedPrice
+          });
+        }
       });
     });
 
@@ -379,9 +423,74 @@
       loadTimeout = setTimeout(tryLoadCheckout, 500);
     }
 
-    // Input listeners
-    document.getElementById('name').addEventListener('input', scheduleCheckoutLoad);
-    document.getElementById('email').addEventListener('input', scheduleCheckoutLoad);
+    // Track form interactions
+    let nameEntered = false;
+    let emailEntered = false;
+    let lastLoadedEmail = '';
+    let lastLoadedName = '';
+
+    document.getElementById('name').addEventListener('input', function() {
+      if (!nameEntered && this.value.trim().length >= 2) {
+        nameEntered = true;
+        gtmEvent('checkout_name_entered', {
+          plan: selectedPlan,
+          value: selectedPrice
+        });
+      }
+      scheduleCheckoutLoad();
+    });
+
+    document.getElementById('email').addEventListener('input', function() {
+      const email = this.value.trim();
+      if (!emailEntered && email.includes('@') && email.includes('.')) {
+        emailEntered = true;
+        gtmEvent('checkout_email_entered', {
+          plan: selectedPlan,
+          value: selectedPrice,
+          email: email
+        });
+      }
+      scheduleCheckoutLoad();
+    });
+
+    // Detectar mudanças após checkout carregado
+    function checkForChanges() {
+      if (!checkoutLoaded) return;
+
+      const currentName = document.getElementById('name').value.trim();
+      const currentEmail = document.getElementById('email').value.trim();
+
+      if (currentName !== lastLoadedName || currentEmail !== lastLoadedEmail) {
+        // Dados mudaram, recarregar checkout
+        reloadCheckout();
+      }
+    }
+
+    async function reloadCheckout() {
+      if (checkout) {
+        checkout.destroy();
+      }
+      checkoutLoaded = false;
+
+      // Esconder container e mostrar loading
+      document.getElementById('checkout-container').classList.add('hidden');
+      document.getElementById('checkout-loading').classList.remove('hidden');
+
+      // Aguardar um pouco e recarregar
+      await new Promise(r => setTimeout(r, 300));
+      tryLoadCheckout();
+    }
+
+    // Verificar mudanças quando usuário para de digitar
+    let changeTimeout;
+    document.getElementById('name').addEventListener('input', function() {
+      clearTimeout(changeTimeout);
+      changeTimeout = setTimeout(checkForChanges, 1000);
+    });
+    document.getElementById('email').addEventListener('input', function() {
+      clearTimeout(changeTimeout);
+      changeTimeout = setTimeout(checkForChanges, 1000);
+    });
 
     async function tryLoadCheckout() {
       if (checkoutLoaded) return;
@@ -393,14 +502,17 @@
       if (!name || name.length < 2) return;
       if (!email || !email.includes('@') || !email.includes('.')) return;
 
+      // Track checkout loading started
+      gtmEvent('checkout_loading_started', {
+        plan: selectedPlan,
+        value: selectedPrice,
+        email: email,
+        name: name
+      });
+
       // Mostrar loading
       document.getElementById('waiting-message').classList.add('hidden');
       document.getElementById('checkout-loading').classList.remove('hidden');
-
-      // Desabilitar campos
-      document.getElementById('name').disabled = true;
-      document.getElementById('email').disabled = true;
-      document.querySelectorAll('.plan-option').forEach(o => o.classList.add('disabled'));
 
       try {
         // Initialize Stripe
@@ -436,14 +548,30 @@
         checkout.mount('#checkout-container');
         checkoutLoaded = true;
 
+        // Salvar dados carregados para detectar mudanças
+        lastLoadedName = name;
+        lastLoadedEmail = email;
+
+        // Track Stripe checkout loaded successfully
+        gtmEvent('checkout_stripe_loaded', {
+          plan: selectedPlan,
+          value: selectedPrice,
+          email: email,
+          name: name,
+          currency: 'BRL'
+        });
+
       } catch (error) {
         console.error('Error:', error);
-        showError(error.message || 'Erro ao carregar checkout. Tente novamente.');
 
-        // Reabilitar campos
-        document.getElementById('name').disabled = false;
-        document.getElementById('email').disabled = false;
-        document.querySelectorAll('.plan-option').forEach(o => o.classList.remove('disabled'));
+        // Track checkout error
+        gtmEvent('checkout_error', {
+          plan: selectedPlan,
+          value: selectedPrice,
+          error_message: error.message || 'Unknown error'
+        });
+
+        showError(error.message || 'Erro ao carregar checkout. Tente novamente.');
 
         // Mostrar waiting novamente
         document.getElementById('checkout-loading').classList.add('hidden');
@@ -460,6 +588,102 @@
     function hideError() {
       document.getElementById('error-message').style.display = 'none';
     }
+
+    // Verificação de erros comuns de email
+    const emailTypos = {
+      'gmai.com': 'gmail.com',
+      'gmial.com': 'gmail.com',
+      'gmal.com': 'gmail.com',
+      'gmail.co': 'gmail.com',
+      'gmail.cm': 'gmail.com',
+      'gmail.om': 'gmail.com',
+      'gamil.com': 'gmail.com',
+      'gnail.com': 'gmail.com',
+      'gmil.com': 'gmail.com',
+      'gmaill.com': 'gmail.com',
+      'yahho.com': 'yahoo.com',
+      'yaho.com': 'yahoo.com',
+      'yahooo.com': 'yahoo.com',
+      'yahoo.co': 'yahoo.com',
+      'yhaoo.com': 'yahoo.com',
+      'hotmal.com': 'hotmail.com',
+      'hotmial.com': 'hotmail.com',
+      'hotmai.com': 'hotmail.com',
+      'hotmail.co': 'hotmail.com',
+      'hotmaill.com': 'hotmail.com',
+      'outloo.com': 'outlook.com',
+      'outlok.com': 'outlook.com',
+      'outlook.co': 'outlook.com',
+      'outloock.com': 'outlook.com',
+      'iclod.com': 'icloud.com',
+      'icoud.com': 'icloud.com',
+      'icloud.co': 'icloud.com'
+    };
+
+    function checkEmailTypo(email) {
+      const domain = email.split('@')[1]?.toLowerCase();
+      if (domain && emailTypos[domain]) {
+        return emailTypos[domain];
+      }
+      return null;
+    }
+
+    function showEmailWarning(suggestion) {
+      let warningEl = document.getElementById('email-warning');
+      if (!warningEl) {
+        warningEl = document.createElement('div');
+        warningEl.id = 'email-warning';
+        warningEl.style.cssText = 'background: rgba(255, 193, 7, 0.15); border: 1px solid rgba(255, 193, 7, 0.4); border-radius: 8px; padding: 10px 12px; color: #ffc107; font-size: 12px; margin-top: 8px; display: flex; align-items: center; gap: 8px;';
+        document.getElementById('email').parentElement.appendChild(warningEl);
+      }
+      warningEl.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        <span>Você quis dizer <strong>@${suggestion}</strong>?</span>
+        <button onclick="fixEmail('${suggestion}')" style="background: #ffc107; color: #000; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600;">Corrigir</button>
+      `;
+      warningEl.style.display = 'flex';
+    }
+
+    function hideEmailWarning() {
+      const warningEl = document.getElementById('email-warning');
+      if (warningEl) {
+        warningEl.style.display = 'none';
+      }
+    }
+
+    function fixEmail(correctDomain) {
+      const emailInput = document.getElementById('email');
+      const currentEmail = emailInput.value.trim();
+      const localPart = currentEmail.split('@')[0];
+      emailInput.value = localPart + '@' + correctDomain;
+      hideEmailWarning();
+
+      // Disparar evento de input para atualizar o checkout
+      emailInput.dispatchEvent(new Event('input'));
+    }
+
+    // Verificar email quando usuário para de digitar
+    let emailCheckTimeout;
+    document.getElementById('email').addEventListener('input', function() {
+      clearTimeout(emailCheckTimeout);
+      emailCheckTimeout = setTimeout(() => {
+        const email = this.value.trim();
+        if (email.includes('@')) {
+          const suggestion = checkEmailTypo(email);
+          if (suggestion) {
+            showEmailWarning(suggestion);
+          } else {
+            hideEmailWarning();
+          }
+        } else {
+          hideEmailWarning();
+        }
+      }, 500);
+    });
   </script>
 </body>
 </html>
