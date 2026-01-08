@@ -884,6 +884,49 @@ fastify.post('/create-embedded-checkout', async (request, reply) => {
   }
 });
 
+// Update customer email (for embedded checkout flow)
+fastify.post('/update-customer-email', async (request, reply) => {
+  try {
+    const { customerId, email, name } = request.body as {
+      customerId: string;
+      email: string;
+      name?: string;
+    };
+
+    if (!customerId || !email) {
+      return reply.code(400).send({
+        error: 'Missing required fields',
+        message: 'customerId and email are required',
+      });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return reply.code(400).send({
+        error: 'Invalid email',
+        message: 'Please provide a valid email address',
+      });
+    }
+
+    const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+      apiVersion: '2023-10-16',
+    });
+
+    await stripeClient.customers.update(customerId, {
+      email: email.toLowerCase().trim(),
+      name: name || undefined,
+    });
+
+    return reply.code(200).send({ success: true });
+  } catch (error) {
+    fastify.log.error(error);
+    return reply.code(500).send({
+      error: 'Failed to update customer',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
 // Create Stripe Embedded Checkout Session (ui_mode: 'embedded')
 // This is the most reliable embedded checkout method
 fastify.post('/create-stripe-embedded-session', async (request, reply) => {
