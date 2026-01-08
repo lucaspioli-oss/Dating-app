@@ -134,7 +134,7 @@ export async function createEmbeddedCheckout(
   });
 
   return {
-    clientSecret: paymentIntent.client_secret,
+    clientSecret,
     subscriptionId: subscription.id,
     customerId: customer.id,
     amount: amount / 100,
