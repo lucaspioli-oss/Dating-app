@@ -51,24 +51,26 @@ interface CreateEmbeddedCheckoutParams {
   plan: PlanType;
   email: string;
   name?: string;
+  paymentMethodId?: string; // Pre-validated payment method from frontend
 }
 
 interface EmbeddedCheckoutResult {
-  clientSecret: string;
+  clientSecret?: string;
   subscriptionId: string;
   customerId: string;
   amount: number;
   currency: string;
+  success?: boolean; // True if payment method was already attached
 }
 
 /**
  * Create embedded checkout (subscription with incomplete payment)
- * Returns clientSecret for Stripe Elements
+ * Returns clientSecret for Stripe Elements OR success if paymentMethod already attached
  */
 export async function createEmbeddedCheckout(
   params: CreateEmbeddedCheckoutParams
 ): Promise<EmbeddedCheckoutResult> {
-  const { priceId, plan, email, name } = params;
+  const { priceId, plan, email, name, paymentMethodId } = params;
 
   // Get or create customer
   let customer: Stripe.Customer;
@@ -91,7 +93,54 @@ export async function createEmbeddedCheckout(
   const price = await stripe.prices.retrieve(priceId);
   const amount = price.unit_amount || 0;
 
-  // Create subscription with 1-day trial (collects card, charges after 1 day)
+  // If paymentMethodId is provided, attach it to the customer first
+  // This means the card was already validated on the frontend
+  if (paymentMethodId) {
+    console.log('💳 Attaching pre-validated payment method:', paymentMethodId);
+
+    // Attach payment method to customer
+    await stripe.paymentMethods.attach(paymentMethodId, {
+      customer: customer.id,
+    });
+
+    // Set as default payment method
+    await stripe.customers.update(customer.id, {
+      invoice_settings: {
+        default_payment_method: paymentMethodId,
+      },
+    });
+
+    // Create subscription with the payment method already attached
+    // No need for SetupIntent since card is already validated
+    const subscription = await stripe.subscriptions.create({
+      customer: customer.id,
+      items: [{ price: priceId }],
+      trial_period_days: 1,
+      default_payment_method: paymentMethodId,
+      metadata: {
+        plan,
+        source: 'embedded_checkout',
+      },
+    });
+
+    console.log('✅ Subscription created with pre-validated card:', {
+      subscriptionId: subscription.id,
+      customerId: customer.id,
+      plan,
+      amount: amount / 100,
+    });
+
+    return {
+      success: true,
+      subscriptionId: subscription.id,
+      customerId: customer.id,
+      amount: amount / 100,
+      currency: price.currency || 'brl',
+    };
+  }
+
+  // Fallback: Create subscription with incomplete payment (old flow)
+  // This path should rarely be used now
   const subscription = await stripe.subscriptions.create({
     customer: customer.id,
     items: [{ price: priceId }],
@@ -126,7 +175,7 @@ export async function createEmbeddedCheckout(
     throw new Error('Failed to create payment intent or setup intent');
   }
 
-  console.log('💳 Embedded checkout created:', {
+  console.log('💳 Embedded checkout created (fallback):', {
     subscriptionId: subscription.id,
     customerId: customer.id,
     plan,

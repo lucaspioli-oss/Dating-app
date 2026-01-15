@@ -844,11 +844,12 @@ fastify.post('/create-checkout-session', {
 // Public endpoint - no auth required (user provides email)
 fastify.post('/create-embedded-checkout', async (request, reply) => {
   try {
-    const { priceId, plan, email, name } = request.body as {
+    const { priceId, plan, email, name, paymentMethodId } = request.body as {
       priceId: string;
       plan: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly';
       email: string;
       name?: string;
+      paymentMethodId?: string;
     };
 
     if (!priceId || !plan || !email) {
@@ -872,6 +873,7 @@ fastify.post('/create-embedded-checkout', async (request, reply) => {
       plan,
       email: email.toLowerCase().trim(),
       name,
+      paymentMethodId,
     });
 
     return reply.code(200).send(result);
