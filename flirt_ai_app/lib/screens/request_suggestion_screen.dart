@@ -563,79 +563,164 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          ...stories.map((story) {
-            Uint8List? imageBytes;
-            if (story.imageBase64 != null) {
-              try {
-                imageBytes = base64Decode(story.imageBase64!);
-              } catch (_) {}
-            }
 
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedStory = story;
-                });
-                _generateSuggestions();
-              },
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A2E),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF2A2A3E)),
+          // Se tem um story selecionado, mostrar ele com o botão
+          if (_selectedStory != null) ...[
+            _buildSelectedStoryCard(),
+            const SizedBox(height: 20),
+            const Text(
+              'Ou escolha outro:',
+              style: TextStyle(
+                color: Color(0xFF888888),
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // Grid de stories para seleção
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 0.7,
+            ),
+            itemCount: stories.length,
+            itemBuilder: (context, index) {
+              final story = stories[index];
+              final isSelected = _selectedStory?.id == story.id;
+
+              Uint8List? imageBytes;
+              if (story.imageBase64 != null) {
+                try {
+                  imageBytes = base64Decode(story.imageBase64!);
+                } catch (_) {}
+              }
+
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedStory = story;
+                  });
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0xFFE91E63)
+                          : const Color(0xFF2A2A3E),
+                      width: isSelected ? 3 : 1,
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: imageBytes != null
+                        ? Image.memory(
+                            imageBytes,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: double.infinity,
+                          )
+                        : Container(
+                            color: const Color(0xFF2A2A3E),
+                            child: const Icon(
+                              Icons.image,
+                              color: Color(0xFF666666),
+                              size: 32,
+                            ),
+                          ),
+                  ),
                 ),
-                child: Row(
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSelectedStoryCard() {
+    Uint8List? imageBytes;
+    if (_selectedStory!.imageBase64 != null) {
+      try {
+        imageBytes = base64Decode(_selectedStory!.imageBase64!);
+      } catch (_) {}
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A2E),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE91E63), width: 2),
+      ),
+      child: Row(
+        children: [
+          // Foto do story selecionado
+          Container(
+            width: 80,
+            height: 110,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              gradient: const LinearGradient(
+                colors: [Color(0xFFF58529), Color(0xFFDD2A7B), Color(0xFF8134AF)],
+              ),
+            ),
+            padding: const EdgeInsets.all(2),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: imageBytes != null
+                  ? Image.memory(imageBytes, fit: BoxFit.cover)
+                  : Container(
+                      color: const Color(0xFF2A2A3E),
+                      child: const Icon(Icons.image, color: Color(0xFF666666)),
+                    ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          // Botão Gerar Sugestão
+          Expanded(
+            child: GestureDetector(
+              onTap: () => _generateSuggestions(),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFE91E63), Color(0xFFFF5722)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFE91E63).withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
-                      width: 60,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        color: const Color(0xFF2A2A3E),
+                    Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'Gerar Sugestão',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
                       ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: imageBytes != null
-                            ? Image.memory(imageBytes, fit: BoxFit.cover)
-                            : const Icon(Icons.image, color: Color(0xFF666666)),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            story.description ?? 'Story sem descrição',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _formatTime(story.createdAt),
-                            style: const TextStyle(
-                              color: Color(0xFF888888),
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(
-                      Icons.chevron_right,
-                      color: Color(0xFF666666),
                     ),
                   ],
                 ),
               ),
-            );
-          }).toList(),
+            ),
+          ),
         ],
       ),
     );
@@ -1281,6 +1366,12 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
       final appState = Provider.of<AppState>(this.context, listen: false);
       final agentService = AgentService(baseUrl: appState.backendUrl);
 
+      // Se for responder story, primeiro analisar a imagem do story
+      if (_selectedAction == ActionType.responderStory && _selectedStory != null) {
+        await _generateStoryReplySuggestions(agentService);
+        return;
+      }
+
       // Construir o contexto para a IA
       String aiContext = _buildContextForAI();
 
@@ -1304,6 +1395,54 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
       setState(() {
         _isGenerating = false;
         _errorMessage = 'Erro ao gerar sugestões: $e';
+      });
+    }
+  }
+
+  /// Gera sugestões para responder story - analisa a IMAGEM do story
+  Future<void> _generateStoryReplySuggestions(AgentService agentService) async {
+    try {
+      String storyDescription = _selectedStory!.description ?? '';
+
+      // Se tiver imagem do story, analisar primeiro para extrair descrição visual
+      if (_selectedStory!.imageBase64 != null && _selectedStory!.imageBase64!.isNotEmpty) {
+        // Analisar a imagem do story para extrair o conteúdo visual
+        final imageAnalysis = await agentService.analyzeProfileImage(
+          imageBase64: _selectedStory!.imageBase64!,
+          platform: 'instagram',
+        );
+
+        if (imageAnalysis.success) {
+          // Pegar apenas a primeira descrição de foto (mais relevante)
+          if (imageAnalysis.photoDescriptions != null && imageAnalysis.photoDescriptions!.isNotEmpty) {
+            storyDescription = imageAnalysis.photoDescriptions!.first;
+          } else if (imageAnalysis.additionalInfo != null) {
+            storyDescription = imageAnalysis.additionalInfo!;
+          }
+        }
+      }
+
+      // Usar generateInstagramOpener com tipo 'resposta_story'
+      final platformData = widget.profile.platforms[PlatformType.instagram];
+
+      final result = await agentService.generateInstagramOpener(
+        username: platformData?.username ?? widget.profile.name,
+        approachType: 'resposta_story',
+        specificPost: storyDescription,
+      );
+
+      setState(() {
+        _isGenerating = false;
+        if (result.success && result.suggestions != null) {
+          _suggestions = result.suggestions!;
+        } else {
+          _errorMessage = result.errorMessage ?? 'Erro ao gerar sugestões para story';
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _isGenerating = false;
+        _errorMessage = 'Erro ao analisar story: $e';
       });
     }
   }

@@ -242,6 +242,14 @@ class Profile {
   final DateTime createdAt;
   final DateTime updatedAt;
 
+  /// Contexto de longo prazo: história do relacionamento, como se conheceram, etc
+  /// Ex: "Ela é minha amiga de infância, nos conhecemos na escola"
+  final String? longTermContext;
+
+  /// Contexto de curto prazo: situação atual, objetivo imediato
+  /// Ex: "Quero sair da friendzone e chamar ela pra sair"
+  final String? shortTermContext;
+
   Profile({
     required this.id,
     required this.userId,
@@ -251,6 +259,8 @@ class Profile {
     required this.platforms,
     required this.createdAt,
     required this.updatedAt,
+    this.longTermContext,
+    this.shortTermContext,
   });
 
   /// Retorna o Instagram se existir
@@ -284,6 +294,8 @@ class Profile {
       'platforms': platformsMap,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
+      'longTermContext': longTermContext,
+      'shortTermContext': shortTermContext,
     };
   }
 
@@ -313,6 +325,8 @@ class Profile {
       updatedAt: map['updatedAt'] != null
           ? (map['updatedAt'] as Timestamp).toDate()
           : DateTime.now(),
+      longTermContext: map['longTermContext'],
+      shortTermContext: map['shortTermContext'],
     );
   }
 
@@ -330,6 +344,8 @@ class Profile {
     Map<PlatformType, PlatformData>? platforms,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? longTermContext,
+    String? shortTermContext,
   }) {
     return Profile(
       id: id ?? this.id,
@@ -340,6 +356,8 @@ class Profile {
       platforms: platforms ?? this.platforms,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      longTermContext: longTermContext ?? this.longTermContext,
+      shortTermContext: shortTermContext ?? this.shortTermContext,
     );
   }
 }

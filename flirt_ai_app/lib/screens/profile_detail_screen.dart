@@ -102,11 +102,35 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
             color: const Color(0xFF1A1A2E),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             onSelected: (value) {
-              if (value == 'delete') {
+              if (value == 'edit') {
+                _showEditProfileDialog();
+              } else if (value == 'photos') {
+                _showPhotosManager();
+              } else if (value == 'delete') {
                 _confirmDeleteProfile();
               }
             },
             itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit_outlined, color: Colors.white, size: 20),
+                    SizedBox(width: 10),
+                    Text('Editar Nome', style: TextStyle(color: Colors.white)),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'photos',
+                child: Row(
+                  children: [
+                    Icon(Icons.photo_library_outlined, color: Colors.white, size: 20),
+                    SizedBox(width: 10),
+                    Text('Gerenciar Fotos', style: TextStyle(color: Colors.white)),
+                  ],
+                ),
+              ),
               const PopupMenuItem(
                 value: 'delete',
                 child: Row(
@@ -1245,5 +1269,362 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
     } catch (e) {
       return bytes;
     }
+  }
+
+  void _showEditProfileDialog() {
+    final nameController = TextEditingController(text: _profile!.name);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2A2A3E),
+        title: const Text(
+          'Editar Nome',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: TextField(
+          controller: nameController,
+          autofocus: true,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: 'Nome do perfil',
+            hintStyle: TextStyle(color: Colors.grey.shade600),
+            filled: true,
+            fillColor: const Color(0xFF1A1A2E),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFF3A3A4E)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFF3A3A4E)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFFE91E63)),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final newName = nameController.text.trim();
+              if (newName.isNotEmpty) {
+                Navigator.pop(context);
+                await _profileService.updateProfileName(widget.profileId, newName);
+                await _loadProfile();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Nome atualizado!'),
+                    backgroundColor: Color(0xFFE91E63),
+                  ),
+                );
+              }
+            },
+            child: const Text(
+              'Salvar',
+              style: TextStyle(color: Color(0xFFE91E63)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPhotosManager() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF1A1A2E),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade600,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'Gerenciar Fotos',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  children: [
+                    // Foto principal do perfil
+                    if (_profile!.faceImageBase64 != null) ...[
+                      const Text(
+                        'FOTO PRINCIPAL',
+                        style: TextStyle(
+                          color: Color(0xFF888888),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _buildPhotoItem(
+                        imageBase64: _profile!.faceImageBase64!,
+                        label: 'Foto do Perfil',
+                        onDelete: () => _confirmDeleteFaceImage(),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                    // Fotos por plataforma
+                    ..._profile!.platforms.entries.map((entry) {
+                      final platform = entry.key;
+                      final data = entry.value;
+                      final hasImages = data.profileImageBase64 != null ||
+                          (data.profileImagesBase64 != null && data.profileImagesBase64!.isNotEmpty);
+
+                      if (!hasImages) return const SizedBox.shrink();
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${platform.icon} ${platform.displayName.toUpperCase()}',
+                            style: const TextStyle(
+                              color: Color(0xFF888888),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          if (data.profileImageBase64 != null)
+                            _buildPhotoItem(
+                              imageBase64: data.profileImageBase64!,
+                              label: 'Foto Principal',
+                              onDelete: () => _confirmDeletePlatformImage(platform),
+                            ),
+                          if (data.profileImagesBase64 != null)
+                            ...data.profileImagesBase64!.asMap().entries.map((imageEntry) {
+                              return _buildPhotoItem(
+                                imageBase64: imageEntry.value,
+                                label: 'Foto ${imageEntry.key + 1}',
+                                onDelete: () => _confirmDeleteProfileImage(platform, imageEntry.key),
+                              );
+                            }),
+                          const SizedBox(height: 20),
+                        ],
+                      );
+                    }),
+                    const SizedBox(height: 40),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPhotoItem({
+    required String imageBase64,
+    required String label,
+    required VoidCallback onDelete,
+  }) {
+    Uint8List? imageBytes;
+    try {
+      imageBytes = base64Decode(imageBase64);
+    } catch (_) {}
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A2A3E),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: imageBytes != null
+                ? Image.memory(
+                    imageBytes,
+                    width: 60,
+                    height: 60,
+                    fit: BoxFit.cover,
+                  )
+                : Container(
+                    width: 60,
+                    height: 60,
+                    color: const Color(0xFF3A3A4E),
+                    child: const Icon(
+                      Icons.image,
+                      color: Color(0xFF666666),
+                    ),
+                  ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: onDelete,
+            icon: const Icon(
+              Icons.delete_outline,
+              color: Colors.red,
+              size: 22,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteFaceImage() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2A2A3E),
+        title: const Text(
+          'Excluir Foto Principal?',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'A foto principal do perfil será removida.',
+          style: TextStyle(color: Color(0xFFAAAAAA)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              Navigator.pop(context); // Fecha o modal de fotos
+              await _profileService.updateProfileFaceImage(widget.profileId, null);
+              await _loadProfile();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Foto removida'),
+                  backgroundColor: Color(0xFFE91E63),
+                ),
+              );
+            },
+            child: const Text(
+              'Excluir',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeletePlatformImage(PlatformType platform) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2A2A3E),
+        title: Text(
+          'Excluir Foto de ${platform.displayName}?',
+          style: const TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'Esta foto será removida.',
+          style: TextStyle(color: Color(0xFFAAAAAA)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              Navigator.pop(context); // Fecha o modal de fotos
+              await _profileService.removePlatformMainImage(widget.profileId, platform);
+              await _loadProfile();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Foto removida'),
+                  backgroundColor: Color(0xFFE91E63),
+                ),
+              );
+            },
+            child: const Text(
+              'Excluir',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteProfileImage(PlatformType platform, int imageIndex) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2A2A3E),
+        title: const Text(
+          'Excluir Foto?',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'Esta foto será removida do perfil.',
+          style: TextStyle(color: Color(0xFFAAAAAA)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              Navigator.pop(context); // Fecha o modal de fotos
+              await _profileService.removeProfileImage(widget.profileId, platform, imageIndex);
+              await _loadProfile();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Foto removida'),
+                  backgroundColor: Color(0xFFE91E63),
+                ),
+              );
+            },
+            child: const Text(
+              'Excluir',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -147,6 +147,82 @@ class ProfileService {
     await _profilesCollection.doc(profileId).delete();
   }
 
+  /// Atualizar nome do perfil
+  Future<void> updateProfileName(String profileId, String newName) async {
+    await _profilesCollection.doc(profileId).update({
+      'name': newName,
+      'updatedAt': Timestamp.now(),
+    });
+  }
+
+  /// Atualizar foto principal do perfil
+  Future<void> updateProfileFaceImage(String profileId, String? faceImageBase64) async {
+    await _profilesCollection.doc(profileId).update({
+      'faceImageBase64': faceImageBase64,
+      'updatedAt': Timestamp.now(),
+    });
+  }
+
+  /// Remover foto de uma plataforma (do array profileImagesBase64)
+  Future<void> removeProfileImage(String profileId, PlatformType platformType, int imageIndex) async {
+    final profile = await getProfile(profileId);
+    if (profile == null) return;
+
+    final platformData = profile.platforms[platformType];
+    if (platformData == null) return;
+
+    final images = platformData.profileImagesBase64;
+    if (images == null || imageIndex >= images.length) return;
+
+    final updatedImages = List<String>.from(images)..removeAt(imageIndex);
+
+    final updatedPlatform = platformData.copyWith(
+      profileImagesBase64: updatedImages,
+      updatedAt: DateTime.now(),
+    );
+
+    await updatePlatform(profileId, updatedPlatform);
+  }
+
+  /// Remover foto principal de uma plataforma
+  Future<void> removePlatformMainImage(String profileId, PlatformType platformType) async {
+    final profile = await getProfile(profileId);
+    if (profile == null) return;
+
+    final platformData = profile.platforms[platformType];
+    if (platformData == null) return;
+
+    // Se tiver outras imagens, usar a primeira como principal
+    String? newMainImage;
+    List<String>? updatedImages;
+
+    if (platformData.profileImagesBase64 != null && platformData.profileImagesBase64!.isNotEmpty) {
+      newMainImage = platformData.profileImagesBase64!.first;
+      updatedImages = platformData.profileImagesBase64!.sublist(1);
+    }
+
+    final updatedPlatform = PlatformData(
+      type: platformData.type,
+      username: platformData.username,
+      bio: platformData.bio,
+      age: platformData.age,
+      location: platformData.location,
+      occupation: platformData.occupation,
+      interests: platformData.interests,
+      photoDescriptions: platformData.photoDescriptions,
+      openingMove: platformData.openingMove,
+      prompts: platformData.prompts,
+      additionalInfo: platformData.additionalInfo,
+      stories: platformData.stories,
+      profileImageBase64: newMainImage,
+      profileImagesBase64: updatedImages,
+      createdAt: platformData.createdAt,
+      updatedAt: DateTime.now(),
+    );
+
+    await updatePlatform(profileId, updatedPlatform);
+  }
+
   /// Buscar perfil por nome (para evitar duplicatas)
   Future<Profile?> findProfileByName(String userId, String name) async {
     final snapshot = await _profilesCollection
