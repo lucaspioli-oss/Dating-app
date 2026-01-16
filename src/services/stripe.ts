@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import * as admin from 'firebase-admin';
 import { trackPurchase, trackInitiateCheckout } from './meta-conversions';
+import { sendWelcomeEmail } from './email';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2023-10-16',
@@ -402,6 +403,16 @@ export async function handleCheckoutCompleted(
     eventId: `purchase_${session.id}`,
     plan,
   });
+
+  // Send welcome email with account setup link
+  if (isNewUser) {
+    const customerName = session.customer_details?.name || '';
+    sendWelcomeEmail({
+      to: customerEmail,
+      name: customerName,
+      plan,
+    }).catch(err => console.error('❌ Erro ao enviar email de boas-vindas:', err));
+  }
 }
 
 /**
@@ -515,6 +526,13 @@ export async function handleSubscriptionUpdated(
         eventId: `purchase_sub_${subscription.id}`,
         plan,
       }).catch(err => console.error('Meta Purchase tracking error:', err));
+
+      // Send welcome email with account setup link
+      sendWelcomeEmail({
+        to: email,
+        name: customerName || undefined,
+        plan,
+      }).catch(err => console.error('❌ Erro ao enviar email de boas-vindas:', err));
 
     } else {
       // User exists - update their subscription

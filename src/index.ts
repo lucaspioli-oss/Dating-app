@@ -30,7 +30,7 @@ import {
   handleInvoicePaid,
   handlePaymentFailed,
 } from './services/stripe';
-import { sendEmail, sendTestEmail, EmailTemplate } from './services/email';
+import { sendEmail, sendTestEmail, sendWelcomeEmail, EmailTemplate } from './services/email';
 import { verifyAuth, verifyAuthOnly, AuthenticatedRequest } from './middleware/auth';
 import { CollectiveAvatarManager } from './services/collective-avatar-manager';
 import { TrainingFeedbackService } from './services/training-feedback-service';
@@ -1507,6 +1507,59 @@ fastify.post('/test-email', async (request, reply) => {
     return reply.code(result.success ? 200 : 500).send(result);
   } catch (error: any) {
     console.error('❌ Erro ao enviar email de teste:', error);
+    return reply.code(500).send({ error: error.message });
+  }
+});
+
+// Enviar email de boas-vindas (para clientes que não receberam ou precisam reenviar)
+fastify.post('/send-welcome-email', async (request, reply) => {
+  try {
+    const { email, name, plan } = request.body as {
+      email: string;
+      name?: string;
+      plan?: string;
+    };
+
+    if (!email) {
+      return reply.code(400).send({ error: 'Email é obrigatório' });
+    }
+
+    // Verificar se o usuário existe e tem assinatura ativa
+    const db = admin.firestore();
+    const usersSnapshot = await db.collection('users')
+      .where('email', '==', email.toLowerCase().trim())
+      .limit(1)
+      .get();
+
+    let userName = name;
+    let userPlan = plan || 'Mensal';
+
+    if (!usersSnapshot.empty) {
+      const userData = usersSnapshot.docs[0].data();
+      userName = userName || userData.name;
+      userPlan = userData.subscription?.plan || userPlan;
+
+      // Verificar se precisa criar senha
+      if (!userData.needsPasswordSetup) {
+        console.log(`ℹ️ Usuário ${email} já configurou a senha`);
+      }
+    } else {
+      console.log(`⚠️ Usuário ${email} não encontrado no banco, enviando email mesmo assim`);
+    }
+
+    const result = await sendWelcomeEmail({
+      to: email,
+      name: userName,
+      plan: userPlan,
+    });
+
+    if (result.success) {
+      console.log(`✅ Email de boas-vindas enviado para ${email}`);
+    }
+
+    return reply.code(result.success ? 200 : 500).send(result);
+  } catch (error: any) {
+    console.error('❌ Erro ao enviar email de boas-vindas:', error);
     return reply.code(500).send({ error: error.message });
   }
 });

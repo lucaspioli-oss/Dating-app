@@ -4,6 +4,92 @@ const resend = new Resend('re_EPWCVHjs_Fu2QZ6RRiSQozVaYFBsAcq44');
 
 // Templates de email para recuperação de leads
 const emailTemplates = {
+  // Email de boas-vindas após compra
+  welcome: {
+    subject: (name: string) => name ? `${name}, sua conta Desenrola AI esta pronta! 🎉` : 'Sua conta Desenrola AI esta pronta! 🎉',
+    html: (name: string, plan: string, extra?: string) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0D0D1A; color: #fff; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
+    .logo { text-align: center; margin-bottom: 30px; }
+    .logo h1 { color: #E91E63; margin: 0; font-size: 28px; }
+    .content { background: #1A1A2E; border-radius: 16px; padding: 30px; }
+    h2 { color: #fff; margin-top: 0; font-size: 22px; }
+    p { color: #bbb; line-height: 1.7; font-size: 15px; }
+    .highlight { color: #E91E63; font-weight: bold; }
+    .success-badge { background: linear-gradient(135deg, #4CAF50, #45a049); border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0; }
+    .success-badge h3 { color: #fff; margin: 0; font-size: 20px; }
+    .success-badge p { color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 14px; }
+    .steps { margin: 24px 0; }
+    .step { display: flex; align-items: flex-start; margin: 16px 0; }
+    .step-number { background: #E91E63; color: #fff; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; flex-shrink: 0; }
+    .step-text { color: #ddd; }
+    .cta { display: inline-block; background: linear-gradient(135deg, #E91E63, #FF5722); color: #fff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: bold; margin: 24px 0; font-size: 16px; }
+    .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
+    .info-box { background: #2A2A3E; border-radius: 8px; padding: 16px; margin: 20px 0; }
+    .info-box p { margin: 0; color: #aaa; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <h1>Desenrola AI</h1>
+    </div>
+    <div class="content">
+      <h2>${name ? `Parabens ${name}!` : 'Parabens!'} Voce tomou a melhor decisao 🚀</h2>
+
+      <div class="success-badge">
+        <h3>✅ Pagamento Confirmado</h3>
+        <p>Plano ${plan} ativado com sucesso</p>
+      </div>
+
+      <p>Agora e so criar sua senha e comecar a usar o <span class="highlight">Desenrola AI</span> para nunca mais travar nas conversas!</p>
+
+      <div class="steps">
+        <div class="step">
+          <span class="step-number">1</span>
+          <span class="step-text">Clique no botao abaixo para criar sua senha</span>
+        </div>
+        <div class="step">
+          <span class="step-number">2</span>
+          <span class="step-text">Baixe o app na Play Store ou App Store</span>
+        </div>
+        <div class="step">
+          <span class="step-number">3</span>
+          <span class="step-text">Faca login com seu email e senha</span>
+        </div>
+        <div class="step">
+          <span class="step-number">4</span>
+          <span class="step-text">Comece a usar e nunca mais trave!</span>
+        </div>
+      </div>
+
+      <center>
+        <a href="${extra || 'https://app.desenrolaai.site/success'}" class="cta">CRIAR MINHA SENHA</a>
+      </center>
+
+      <div class="info-box">
+        <p>📱 <strong>Links do App:</strong></p>
+        <p style="margin-top: 8px;">Android: <a href="https://play.google.com/store/apps/details?id=com.desenrolaai.app" style="color: #E91E63;">Play Store</a></p>
+        <p style="margin-top: 4px;">iPhone: <a href="https://apps.apple.com/app/desenrola-ai" style="color: #E91E63;">App Store</a> (em breve)</p>
+      </div>
+
+      <p style="font-size: 13px; color: #888;">Se tiver qualquer duvida, responda esse email que te ajudamos!</p>
+    </div>
+    <div class="footer">
+      <p>Desenrola AI - Nunca mais trave numa conversa</p>
+    </div>
+  </div>
+</body>
+</html>
+    `,
+  },
+
   // Email 1 - Enviado imediatamente após abandono
   // Foco: Lembrete amigável + reforçar que é grátis testar
   immediate: {
@@ -250,6 +336,7 @@ export interface SendEmailParams {
   template: EmailTemplate;
   name?: string;
   plan?: string;
+  extra?: string; // Used for welcome email link
 }
 
 export interface AbandonedLead {
@@ -267,7 +354,7 @@ export interface AbandonedLead {
  * Enviar email usando template
  */
 export async function sendEmail(params: SendEmailParams): Promise<{ success: boolean; error?: string }> {
-  const { to, template, name = '', plan = 'mensal' } = params;
+  const { to, template, name = '', plan = 'mensal', extra } = params;
 
   try {
     const templateData = emailTemplates[template];
@@ -276,7 +363,7 @@ export async function sendEmail(params: SendEmailParams): Promise<{ success: boo
       from: 'Desenrola AI <contato@desenrolaai.site>',
       to: [to],
       subject: templateData.subject(name),
-      html: templateData.html(name, plan),
+      html: templateData.html(name, plan, extra),
     });
 
     if (error) {
@@ -290,6 +377,29 @@ export async function sendEmail(params: SendEmailParams): Promise<{ success: boo
     console.error('❌ Erro ao enviar email:', error);
     return { success: false, error: error.message };
   }
+}
+
+/**
+ * Enviar email de boas-vindas após compra
+ */
+export async function sendWelcomeEmail(params: {
+  to: string;
+  name?: string;
+  plan: string;
+  successUrl?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  const { to, name, plan, successUrl } = params;
+
+  // URL padrão para criar senha - usa o email como parâmetro
+  const defaultUrl = `https://app.desenrolaai.site/success?email=${encodeURIComponent(to)}`;
+
+  return sendEmail({
+    to,
+    template: 'welcome',
+    name: name || undefined,
+    plan,
+    extra: successUrl || defaultUrl,
+  });
 }
 
 /**
