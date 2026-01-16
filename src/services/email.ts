@@ -51,7 +51,7 @@ const emailTemplates = {
       </div>
 
       <center>
-        <a href="https://funis-desenrola.web.app/checkout-${plan.toLowerCase()}" class="cta">Quero testar gratis agora</a>
+        <a href="https://funis-desenrola.web.app/checkout/${plan.toLowerCase()}" class="cta">Quero testar gratis agora</a>
       </center>
 
       <p class="ps">PS: Mais de 2.000 caras ja usaram essa semana. Nao fica pra tras nao.</p>
@@ -129,7 +129,7 @@ const emailTemplates = {
       </div>
 
       <center>
-        <a href="https://funis-desenrola.web.app/checkout-${plan.toLowerCase()}" class="cta">Quero parar de travar</a>
+        <a href="https://funis-desenrola.web.app/checkout/${plan.toLowerCase()}" class="cta">Quero parar de travar</a>
       </center>
 
       <p style="text-align: center; color: #888; font-size: 13px;">Teste gratis por 24h. Sem cartao ate decidir.</p>
@@ -225,7 +225,7 @@ const emailTemplates = {
       </div>
 
       <center>
-        <a href="https://funis-desenrola.web.app/checkout-${plan.toLowerCase()}?cupom=DESENROLA30" class="cta">USAR MEU CUPOM DE 30% OFF</a>
+        <a href="https://funis-desenrola.web.app/checkout/${plan.toLowerCase()}?cupom=DESENROLA30" class="cta">USAR MEU CUPOM DE 30% OFF</a>
       </center>
 
       <div class="final-note">
