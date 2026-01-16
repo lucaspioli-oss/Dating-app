@@ -223,6 +223,27 @@ class ProfileService {
     await updatePlatform(profileId, updatedPlatform);
   }
 
+  /// Atualizar contexto do perfil (longo e curto prazo)
+  Future<void> updateProfileContext(
+    String profileId, {
+    String? longTermContext,
+    String? shortTermContext,
+  }) async {
+    final updates = <String, dynamic>{
+      'updatedAt': Timestamp.now(),
+    };
+
+    // Permite limpar o contexto passando string vazia
+    if (longTermContext != null) {
+      updates['longTermContext'] = longTermContext.isEmpty ? null : longTermContext;
+    }
+    if (shortTermContext != null) {
+      updates['shortTermContext'] = shortTermContext.isEmpty ? null : shortTermContext;
+    }
+
+    await _profilesCollection.doc(profileId).update(updates);
+  }
+
   /// Buscar perfil por nome (para evitar duplicatas)
   Future<Profile?> findProfileByName(String userId, String name) async {
     final snapshot = await _profilesCollection

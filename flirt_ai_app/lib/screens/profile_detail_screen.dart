@@ -104,6 +104,8 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
             onSelected: (value) {
               if (value == 'edit') {
                 _showEditProfileDialog();
+              } else if (value == 'context') {
+                _showEditContextDialog();
               } else if (value == 'photos') {
                 _showPhotosManager();
               } else if (value == 'delete') {
@@ -118,6 +120,16 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                     Icon(Icons.edit_outlined, color: Colors.white, size: 20),
                     SizedBox(width: 10),
                     Text('Editar Nome', style: TextStyle(color: Colors.white)),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'context',
+                child: Row(
+                  children: [
+                    Icon(Icons.psychology_outlined, color: Colors.white, size: 20),
+                    SizedBox(width: 10),
+                    Text('Editar Contexto', style: TextStyle(color: Colors.white)),
                   ],
                 ),
               ),
@@ -154,6 +166,8 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
             children: [
               _buildProfileHeader(),
               const SizedBox(height: 24),
+              _buildContextSection(),
+              const SizedBox(height: 20),
               if (_profile!.hasInstagram) ...[
                 _buildInstagramSection(),
                 const SizedBox(height: 20),
@@ -305,6 +319,113 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildContextSection() {
+    final hasContext = _profile!.longTermContext != null || _profile!.shortTermContext != null;
+
+    return GestureDetector(
+      onTap: () => _showEditContextDialog(),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A2E),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFF2A2A3E)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE91E63).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.psychology,
+                    color: Color(0xFFE91E63),
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Contexto para IA',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Icon(
+                  hasContext ? Icons.edit_outlined : Icons.add,
+                  color: const Color(0xFF888888),
+                  size: 20,
+                ),
+              ],
+            ),
+            if (!hasContext) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Adicione contexto sobre seu relacionamento para a IA gerar mensagens mais personalizadas',
+                style: TextStyle(
+                  color: Colors.grey.shade500,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+            if (_profile!.longTermContext != null && _profile!.longTermContext!.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const Text(
+                'HISTORIA',
+                style: TextStyle(
+                  color: Color(0xFF888888),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _profile!.longTermContext!,
+                style: const TextStyle(
+                  color: Color(0xFFAAAAAA),
+                  fontSize: 13,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+            if (_profile!.shortTermContext != null && _profile!.shortTermContext!.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const Text(
+                'OBJETIVO ATUAL',
+                style: TextStyle(
+                  color: Color(0xFF888888),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _profile!.shortTermContext!,
+                style: const TextStyle(
+                  color: Color(0xFFAAAAAA),
+                  fontSize: 13,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -1331,6 +1452,167 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showEditContextDialog() {
+    final longTermController = TextEditingController(text: _profile!.longTermContext ?? '');
+    final shortTermController = TextEditingController(text: _profile!.shortTermContext ?? '');
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF1A1A2E),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade600,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Row(
+                    children: [
+                      Icon(
+                        Icons.psychology,
+                        color: Color(0xFFE91E63),
+                        size: 24,
+                      ),
+                      SizedBox(width: 12),
+                      Text(
+                        'Contexto para IA',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'A IA usara essas informacoes para gerar mensagens mais personalizadas',
+                    style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'HISTORIA DO RELACIONAMENTO',
+                    style: TextStyle(
+                      color: Color(0xFF888888),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: longTermController,
+                    maxLines: 3,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    decoration: InputDecoration(
+                      hintText: 'Ex: Ela e minha amiga de infancia, nos conhecemos na escola...',
+                      hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                      filled: true,
+                      fillColor: const Color(0xFF2A2A3E),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.all(14),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'OBJETIVO ATUAL',
+                    style: TextStyle(
+                      color: Color(0xFF888888),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: shortTermController,
+                    maxLines: 3,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    decoration: InputDecoration(
+                      hintText: 'Ex: Quero sair da friendzone e chamar ela pra sair...',
+                      hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                      filled: true,
+                      fillColor: const Color(0xFF2A2A3E),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.all(14),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        await _profileService.updateProfileContext(
+                          widget.profileId,
+                          longTermContext: longTermController.text.trim(),
+                          shortTermContext: shortTermController.text.trim(),
+                        );
+                        await _loadProfile();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Contexto salvo!'),
+                            backgroundColor: Color(0xFFE91E63),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE91E63),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Salvar Contexto',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

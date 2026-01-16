@@ -1448,7 +1448,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
   }
 
   /// Gera sugestões baseado apenas no texto digitado (sem análise de imagem)
-  /// Usa o endpoint /reply que foca 100% na mensagem dela
+  /// Usa o endpoint /reply que foca na mensagem dela mas considera o contexto do relacionamento
   Future<void> _generateSuggestionsFromText() async {
     if (_lastMessage == null || _lastMessage!.trim().isEmpty) {
       setState(() {
@@ -1467,11 +1467,13 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
       final appState = Provider.of<AppState>(this.context, listen: false);
       final agentService = AgentService(baseUrl: appState.backendUrl);
 
-      // Usa o endpoint /reply que foca APENAS na mensagem dela
-      // Não passa contexto de perfil para evitar que a IA foque no perfil
+      // Usa o endpoint /reply que foca na mensagem dela
+      // Passa o contexto do relacionamento (se existir) para personalizar as respostas
       final result = await agentService.generateReply(
         receivedMessage: _lastMessage!.trim(),
-        conversationHistory: null, // Pode adicionar histórico se necessário
+        conversationHistory: null,
+        longTermContext: widget.profile.longTermContext,
+        shortTermContext: widget.profile.shortTermContext,
       );
 
       setState(() {
@@ -1514,6 +1516,16 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
       if (platformData.photoDescriptions != null) {
         buffer.writeln('Fotos: ${platformData.photoDescriptions!.join(", ")}');
       }
+    }
+
+    // Contexto do relacionamento (se existir)
+    if (widget.profile.longTermContext != null && widget.profile.longTermContext!.isNotEmpty) {
+      buffer.writeln('\nHISTORIA DO RELACIONAMENTO:');
+      buffer.writeln(widget.profile.longTermContext);
+    }
+    if (widget.profile.shortTermContext != null && widget.profile.shortTermContext!.isNotEmpty) {
+      buffer.writeln('\nOBJETIVO ATUAL:');
+      buffer.writeln(widget.profile.shortTermContext);
     }
 
     // Contexto específico da ação

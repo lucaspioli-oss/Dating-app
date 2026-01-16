@@ -181,22 +181,45 @@ class AgentService {
   }
 
   /// Gerar resposta para mensagem recebida
-  /// FOCO 100% na mensagem dela - NÃO envia perfil/bio/contexto
+  /// Foca na mensagem mas pode usar contexto do relacionamento se fornecido
   Future<AgentResponse> generateReply({
     required String receivedMessage,
-    String? matchName, // Ignorado
-    String? platform, // Ignorado
-    String? context, // Ignorado
+    String? matchName,
+    String? platform,
+    String? context,
     List<Map<String, String>>? conversationHistory,
-    UserProfile? userProfile, // Ignorado
+    UserProfile? userProfile,
+    String? longTermContext, // Historia do relacionamento
+    String? shortTermContext, // Objetivo atual
+    String? additionalContext, // Contexto extra (tempo de resposta, etc)
   }) async {
     try {
       final url = Uri.parse('$baseUrl/reply');
 
-      // APENAS a mensagem e histórico - sem perfil/bio
+      // Monta o contexto do relacionamento se existir
+      String? relationshipContext;
+      if (longTermContext != null || shortTermContext != null) {
+        final parts = <String>[];
+        if (longTermContext != null && longTermContext.isNotEmpty) {
+          parts.add('Historia: $longTermContext');
+        }
+        if (shortTermContext != null && shortTermContext.isNotEmpty) {
+          parts.add('Objetivo atual: $shortTermContext');
+        }
+        if (additionalContext != null && additionalContext.isNotEmpty) {
+          parts.add(additionalContext);
+        }
+        if (parts.isNotEmpty) {
+          relationshipContext = parts.join('\n');
+        }
+      } else if (additionalContext != null && additionalContext.isNotEmpty) {
+        relationshipContext = additionalContext;
+      }
+
       final body = {
         'receivedMessage': receivedMessage,
         if (conversationHistory != null) 'conversationHistory': conversationHistory,
+        if (relationshipContext != null) 'context': relationshipContext,
       };
 
       final response = await http.post(
