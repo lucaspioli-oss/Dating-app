@@ -87,6 +87,30 @@ export async function createEmbeddedCheckout(
 
   if (existingCustomers.data.length > 0) {
     customer = existingCustomers.data[0];
+
+    // Check if customer already has active subscription
+    const existingSubscriptions = await stripe.subscriptions.list({
+      customer: customer.id,
+      status: 'active',
+      limit: 1,
+    });
+
+    if (existingSubscriptions.data.length > 0) {
+      console.log('⚠️ Cliente já tem subscription ativa:', email);
+      throw new Error('Este email já possui uma assinatura ativa. Faça login para acessar.');
+    }
+
+    // Also check for trialing subscriptions
+    const trialingSubscriptions = await stripe.subscriptions.list({
+      customer: customer.id,
+      status: 'trialing',
+      limit: 1,
+    });
+
+    if (trialingSubscriptions.data.length > 0) {
+      console.log('⚠️ Cliente já tem trial ativo:', email);
+      throw new Error('Este email já possui um período de teste ativo. Faça login para acessar.');
+    }
   } else {
     customer = await stripe.customers.create({
       email,
