@@ -6,7 +6,7 @@ const resend = new Resend('re_EPWCVHjs_Fu2QZ6RRiSQozVaYFBsAcq44');
 const emailTemplates = {
   // Email de boas-vindas após compra
   welcome: {
-    subject: (name: string) => name ? `${name}, seu acesso ao Desenrola AI esta liberado!` : 'Seu acesso ao Desenrola AI esta liberado!',
+    subject: (name: string) => name ? `${name}, sua conta Desenrola AI esta pronta! 🎉` : 'Sua conta Desenrola AI esta pronta! 🎉',
     html: (name: string, plan: string, extra?: string) => `
 <!DOCTYPE html>
 <html>
@@ -15,77 +15,67 @@ const emailTemplates = {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0D0D1A; color: #fff; margin: 0; padding: 0; }
-    .container { max-width: 560px; margin: 0 auto; padding: 48px 24px; }
-    .header { text-align: center; margin-bottom: 32px; }
-    .logo { font-size: 32px; font-weight: 700; color: #E91E63; margin: 0; }
-    .card { background: #16162a; border: 1px solid #2a2a4a; border-radius: 24px; padding: 40px 32px; }
-    .greeting { font-size: 24px; font-weight: 600; color: #fff; margin: 0 0 24px 0; line-height: 1.3; }
-    .success-box { background: #1a3d1a; border: 1px solid #2d5a2d; border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 28px; }
-    .success-icon { font-size: 48px; margin-bottom: 12px; display: block; }
-    .success-title { color: #5cb85c; font-size: 18px; font-weight: 600; margin: 0 0 4px 0; }
-    .success-sub { color: #a0a0a0; font-size: 14px; margin: 0; }
-    .message { color: #b0b0b0; font-size: 16px; line-height: 1.7; margin: 0 0 32px 0; }
-    .highlight { color: #E91E63; font-weight: 600; }
-    .steps-title { color: #808080; font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; margin: 0 0 16px 0; }
-    .steps { margin: 0 0 32px 0; }
-    .step { display: table; width: 100%; padding: 14px 0; border-bottom: 1px solid #1e1e3a; }
-    .step:last-child { border-bottom: none; }
-    .step-icon { display: table-cell; width: 44px; height: 44px; background: #252545; border-radius: 10px; text-align: center; vertical-align: middle; font-size: 18px; line-height: 44px; }
-    .step-content { display: table-cell; vertical-align: middle; padding-left: 16px; }
-    .step-text { color: #d0d0d0; font-size: 15px; }
-    .cta-wrapper { text-align: center; margin: 8px 0 32px 0; }
-    .cta { display: inline-block; background: linear-gradient(135deg, #E91E63, #FF5722); color: #fff; text-decoration: none; padding: 18px 48px; border-radius: 12px; font-weight: 600; font-size: 16px; }
-    .divider { height: 1px; background: #1e1e3a; margin: 24px 0; }
-    .help-text { color: #707070; font-size: 14px; text-align: center; margin: 0; }
-    .help-text a { color: #E91E63; text-decoration: none; }
-    .footer { text-align: center; margin-top: 32px; padding-top: 24px; }
-    .footer-text { color: #505050; font-size: 13px; margin: 0; }
+    .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
+    .logo { text-align: center; margin-bottom: 30px; }
+    .logo h1 { color: #E91E63; margin: 0; font-size: 28px; }
+    .content { background: #1A1A2E; border-radius: 16px; padding: 30px; }
+    h2 { color: #fff; margin-top: 0; font-size: 22px; }
+    p { color: #bbb; line-height: 1.7; font-size: 15px; }
+    .highlight { color: #E91E63; font-weight: bold; }
+    .success-badge { background: linear-gradient(135deg, #4CAF50, #45a049); border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0; }
+    .success-badge h3 { color: #fff; margin: 0; font-size: 20px; }
+    .success-badge p { color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 14px; }
+    .steps { margin: 24px 0; }
+    .step { display: flex; align-items: flex-start; margin: 16px 0; }
+    .step-number { background: #E91E63; color: #fff; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; flex-shrink: 0; }
+    .step-text { color: #ddd; }
+    .cta { display: inline-block; background: linear-gradient(135deg, #E91E63, #FF5722); color: #fff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: bold; margin: 24px 0; font-size: 16px; }
+    .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
+    .help-text { font-size: 13px; color: #888; margin-top: 20px; }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <h1 class="logo">Desenrola AI</h1>
+    <div class="logo">
+      <h1>Desenrola AI</h1>
     </div>
+    <div class="content">
+      <h2>${name ? `Parabens ${name}!` : 'Parabens!'} Voce tomou a melhor decisao 🚀</h2>
 
-    <div class="card">
-      <h2 class="greeting">${name ? `${name}, seu acesso esta liberado!` : 'Seu acesso esta liberado!'}</h2>
-
-      <div class="success-box">
-        <div class="success-icon">🎉</div>
-        <p class="success-title">Plano ativado com sucesso</p>
-        <p class="success-sub">Agora e so criar sua senha e comecar</p>
+      <div class="success-badge">
+        <h3>✅ Plano Ativado</h3>
+        <p>Seu acesso foi liberado com sucesso</p>
       </div>
 
-      <p class="message">Falta apenas um passo para voce comecar a usar o <span class="highlight">Desenrola AI</span> e nunca mais travar nas conversas.</p>
+      <p>Agora e so criar sua senha e comecar a usar o <span class="highlight">Desenrola AI</span> para nunca mais travar nas conversas!</p>
 
-      <p class="steps-title">Como comecar</p>
       <div class="steps">
         <div class="step">
-          <div class="step-icon">🔐</div>
-          <div class="step-content"><span class="step-text">Crie sua senha clicando no botao abaixo</span></div>
+          <span class="step-number">1</span>
+          <span class="step-text">Clique no botao abaixo para criar sua senha</span>
         </div>
         <div class="step">
-          <div class="step-icon">🌐</div>
-          <div class="step-content"><span class="step-text">Acesse app.desenrolaai.site</span></div>
+          <span class="step-number">2</span>
+          <span class="step-text">Acesse <strong>app.desenrolaai.site</strong></span>
         </div>
         <div class="step">
-          <div class="step-icon">✨</div>
-          <div class="step-content"><span class="step-text">Faca login e comece a usar!</span></div>
+          <span class="step-number">3</span>
+          <span class="step-text">Faca login com seu email e senha</span>
+        </div>
+        <div class="step">
+          <span class="step-number">4</span>
+          <span class="step-text">Comece a usar e nunca mais trave!</span>
         </div>
       </div>
 
-      <div class="cta-wrapper">
+      <center>
         <a href="${extra || 'https://app.desenrolaai.site/success'}" class="cta">CRIAR MINHA SENHA</a>
-      </div>
+      </center>
 
-      <div class="divider"></div>
-
-      <p class="help-text">Alguma duvida? Responda este email ou fale com a gente pelo <a href="https://wa.me/5511999999999">WhatsApp</a></p>
+      <p class="help-text">Se tiver qualquer duvida, responda esse email que te ajudamos!</p>
     </div>
-
     <div class="footer">
-      <p class="footer-text">Desenrola AI - Nunca mais trave numa conversa</p>
+      <p>Desenrola AI - Nunca mais trave numa conversa</p>
     </div>
   </div>
 </body>
