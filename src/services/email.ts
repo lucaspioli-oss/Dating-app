@@ -14,31 +14,32 @@ const emailTemplates = {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(180deg, #0D0D1A 0%, #1a1a2e 100%); color: #fff; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0D0D1A; color: #fff; margin: 0; padding: 0; }
     .container { max-width: 560px; margin: 0 auto; padding: 48px 24px; }
     .header { text-align: center; margin-bottom: 32px; }
-    .logo { font-size: 32px; font-weight: 700; background: linear-gradient(135deg, #E91E63, #FF5722); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin: 0; }
-    .card { background: rgba(26, 26, 46, 0.8); border: 1px solid rgba(233, 30, 99, 0.2); border-radius: 24px; padding: 40px 32px; backdrop-filter: blur(10px); }
+    .logo { font-size: 32px; font-weight: 700; color: #E91E63; margin: 0; }
+    .card { background: #16162a; border: 1px solid #2a2a4a; border-radius: 24px; padding: 40px 32px; }
     .greeting { font-size: 24px; font-weight: 600; color: #fff; margin: 0 0 24px 0; line-height: 1.3; }
-    .success-box { background: linear-gradient(135deg, rgba(76, 175, 80, 0.15), rgba(69, 160, 73, 0.1)); border: 1px solid rgba(76, 175, 80, 0.3); border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 28px; }
-    .success-icon { font-size: 48px; margin-bottom: 12px; }
-    .success-title { color: #4CAF50; font-size: 18px; font-weight: 600; margin: 0 0 4px 0; }
-    .success-sub { color: rgba(255,255,255,0.7); font-size: 14px; margin: 0; }
-    .message { color: rgba(255,255,255,0.8); font-size: 16px; line-height: 1.7; margin: 0 0 32px 0; }
+    .success-box { background: #1a3d1a; border: 1px solid #2d5a2d; border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 28px; }
+    .success-icon { font-size: 48px; margin-bottom: 12px; display: block; }
+    .success-title { color: #5cb85c; font-size: 18px; font-weight: 600; margin: 0 0 4px 0; }
+    .success-sub { color: #a0a0a0; font-size: 14px; margin: 0; }
+    .message { color: #b0b0b0; font-size: 16px; line-height: 1.7; margin: 0 0 32px 0; }
     .highlight { color: #E91E63; font-weight: 600; }
-    .steps-title { color: rgba(255,255,255,0.5); font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; margin: 0 0 16px 0; }
+    .steps-title { color: #808080; font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; margin: 0 0 16px 0; }
     .steps { margin: 0 0 32px 0; }
-    .step { display: flex; align-items: center; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .step { display: table; width: 100%; padding: 14px 0; border-bottom: 1px solid #1e1e3a; }
     .step:last-child { border-bottom: none; }
-    .step-icon { width: 36px; height: 36px; background: linear-gradient(135deg, rgba(233, 30, 99, 0.2), rgba(255, 87, 34, 0.2)); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-right: 16px; font-size: 16px; }
-    .step-text { color: rgba(255,255,255,0.9); font-size: 15px; }
+    .step-icon { display: table-cell; width: 44px; height: 44px; background: #252545; border-radius: 10px; text-align: center; vertical-align: middle; font-size: 18px; line-height: 44px; }
+    .step-content { display: table-cell; vertical-align: middle; padding-left: 16px; }
+    .step-text { color: #d0d0d0; font-size: 15px; }
     .cta-wrapper { text-align: center; margin: 8px 0 32px 0; }
-    .cta { display: inline-block; background: linear-gradient(135deg, #E91E63, #FF5722); color: #fff; text-decoration: none; padding: 18px 48px; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 8px 32px rgba(233, 30, 99, 0.35); transition: transform 0.2s, box-shadow 0.2s; }
-    .divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent); margin: 24px 0; }
-    .help-text { color: rgba(255,255,255,0.5); font-size: 14px; text-align: center; margin: 0; }
+    .cta { display: inline-block; background: linear-gradient(135deg, #E91E63, #FF5722); color: #fff; text-decoration: none; padding: 18px 48px; border-radius: 12px; font-weight: 600; font-size: 16px; }
+    .divider { height: 1px; background: #1e1e3a; margin: 24px 0; }
+    .help-text { color: #707070; font-size: 14px; text-align: center; margin: 0; }
     .help-text a { color: #E91E63; text-decoration: none; }
     .footer { text-align: center; margin-top: 32px; padding-top: 24px; }
-    .footer-text { color: rgba(255,255,255,0.3); font-size: 13px; margin: 0; }
+    .footer-text { color: #505050; font-size: 13px; margin: 0; }
   </style>
 </head>
 <body>
@@ -61,16 +62,16 @@ const emailTemplates = {
       <p class="steps-title">Como comecar</p>
       <div class="steps">
         <div class="step">
-          <span class="step-icon">🔐</span>
-          <span class="step-text">Crie sua senha clicando no botao abaixo</span>
+          <div class="step-icon">🔐</div>
+          <div class="step-content"><span class="step-text">Crie sua senha clicando no botao abaixo</span></div>
         </div>
         <div class="step">
-          <span class="step-icon">🌐</span>
-          <span class="step-text">Acesse app.desenrolaai.site</span>
+          <div class="step-icon">🌐</div>
+          <div class="step-content"><span class="step-text">Acesse app.desenrolaai.site</span></div>
         </div>
         <div class="step">
-          <span class="step-icon">✨</span>
-          <span class="step-text">Faca login e comece a usar!</span>
+          <div class="step-icon">✨</div>
+          <div class="step-content"><span class="step-text">Faca login e comece a usar!</span></div>
         </div>
       </div>
 
