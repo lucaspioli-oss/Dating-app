@@ -4,24 +4,31 @@ const resend = new Resend('re_EPWCVHjs_Fu2QZ6RRiSQozVaYFBsAcq44');
 
 // Templates de email para recuperação de leads
 const emailTemplates = {
-  // Email 1 - Enviado 30 min após abandono
+  // Email 1 - Enviado imediatamente após abandono
+  // Foco: Lembrete amigável + reforçar que é grátis testar
   immediate: {
-    subject: 'Esqueceu algo? Seu teste gratis esta esperando',
+    subject: (name: string) => name ? `${name}, sua conversa travou? A gente resolve` : 'Sua conversa travou? A gente resolve',
     html: (name: string, plan: string) => `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0D0D1A; color: #fff; margin: 0; padding: 0; }
     .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
     .logo { text-align: center; margin-bottom: 30px; }
     .logo h1 { color: #E91E63; margin: 0; font-size: 28px; }
     .content { background: #1A1A2E; border-radius: 16px; padding: 30px; }
-    h2 { color: #fff; margin-top: 0; }
-    p { color: #aaa; line-height: 1.6; }
-    .cta { display: inline-block; background: linear-gradient(135deg, #E91E63, #FF5722); color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: bold; margin: 20px 0; }
+    h2 { color: #fff; margin-top: 0; font-size: 22px; }
+    p { color: #bbb; line-height: 1.7; font-size: 15px; }
+    .highlight { color: #E91E63; font-weight: bold; }
+    .cta { display: inline-block; background: linear-gradient(135deg, #E91E63, #FF5722); color: #fff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: bold; margin: 24px 0; font-size: 16px; }
+    .cta:hover { opacity: 0.9; }
+    .guarantee { background: #2A2A3E; border-radius: 8px; padding: 16px; margin: 20px 0; text-align: center; }
+    .guarantee-text { color: #4CAF50; font-weight: bold; margin: 0; }
     .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
+    .ps { font-size: 13px; color: #888; font-style: italic; margin-top: 20px; }
   </style>
 </head>
 <body>
@@ -30,17 +37,28 @@ const emailTemplates = {
       <h1>Desenrola AI</h1>
     </div>
     <div class="content">
-      <h2>Opa${name ? `, ${name}` : ''}! Voce esqueceu algo...</h2>
-      <p>Notamos que voce estava quase comecando seu <strong>teste gratuito</strong> do plano ${plan}, mas nao finalizou.</p>
-      <p>Sem problemas! Seu carrinho ainda esta salvo e voce pode continuar de onde parou.</p>
-      <p>Lembre-se: voce tera <strong>1 dia gratis</strong> para testar todas as funcionalidades antes de qualquer cobranca.</p>
+      <h2>${name ? `E ai ${name}!` : 'E ai!'} Tudo certo?</h2>
+
+      <p>Vi que voce estava prestes a testar o Desenrola AI, mas algo te impediu de finalizar.</p>
+
+      <p>Sei como e... as vezes a gente ta conversando com alguem e <span class="highlight">trava na hora de responder</span>. Fica pensando "o que eu falo agora?" e quando ve, ja passou tempo demais.</p>
+
+      <p>Foi exatamente pra isso que criamos o Desenrola AI. Em segundos voce tem <span class="highlight">3 opcoes de resposta</span> perfeitas pro momento.</p>
+
+      <div class="guarantee">
+        <p class="guarantee-text">🎁 TESTE GRATIS POR 24 HORAS</p>
+        <p style="margin: 8px 0 0 0; color: #aaa; font-size: 13px;">Sem compromisso. Cancela quando quiser.</p>
+      </div>
+
       <center>
-        <a href="https://funis-desenrola.web.app/checkout-${plan.toLowerCase()}" class="cta">Continuar meu teste gratis</a>
+        <a href="https://funis-desenrola.web.app/checkout-${plan.toLowerCase()}" class="cta">Quero testar gratis agora</a>
       </center>
-      <p style="color: #666; font-size: 13px;">Se tiver alguma duvida, e so responder este email!</p>
+
+      <p class="ps">PS: Mais de 2.000 caras ja usaram essa semana. Nao fica pra tras nao.</p>
     </div>
     <div class="footer">
-      <p>Desenrola AI - Sua IA de conversas</p>
+      <p>Desenrola AI - Nunca mais trave numa conversa</p>
+      <p style="margin-top: 8px;"><a href="#" style="color: #666;">Cancelar inscricao</a></p>
     </div>
   </div>
 </body>
@@ -49,25 +67,33 @@ const emailTemplates = {
   },
 
   // Email 2 - Enviado 24h após abandono
+  // Foco: Mostrar a DOR de não ter + prova social
   followUp24h: {
-    subject: 'O que voce esta perdendo...',
+    subject: (name: string) => name ? `${name}, ela respondeu... e agora? 🤔` : 'Ela respondeu... e agora? 🤔',
     html: (name: string, plan: string) => `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0D0D1A; color: #fff; margin: 0; padding: 0; }
     .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
     .logo { text-align: center; margin-bottom: 30px; }
     .logo h1 { color: #E91E63; margin: 0; font-size: 28px; }
     .content { background: #1A1A2E; border-radius: 16px; padding: 30px; }
-    h2 { color: #fff; margin-top: 0; }
-    p { color: #aaa; line-height: 1.6; }
-    .benefit { background: #2A2A3E; border-radius: 8px; padding: 12px 16px; margin: 10px 0; display: flex; align-items: center; }
-    .benefit-icon { font-size: 24px; margin-right: 12px; }
-    .benefit-text { color: #fff; }
-    .cta { display: inline-block; background: linear-gradient(135deg, #E91E63, #FF5722); color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: bold; margin: 20px 0; }
+    h2 { color: #fff; margin-top: 0; font-size: 22px; }
+    p { color: #bbb; line-height: 1.7; font-size: 15px; }
+    .highlight { color: #E91E63; font-weight: bold; }
+    .scenario { background: #2A2A3E; border-left: 4px solid #E91E63; padding: 16px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+    .scenario p { margin: 0; color: #ddd; }
+    .vs { text-align: center; color: #666; font-size: 13px; margin: 16px 0; }
+    .win { background: #2A2A3E; border-left: 4px solid #4CAF50; padding: 16px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+    .win p { margin: 0; color: #ddd; }
+    .testimonial { background: #2A2A3E; border-radius: 12px; padding: 20px; margin: 24px 0; }
+    .testimonial-text { color: #fff; font-style: italic; margin: 0 0 12px 0; }
+    .testimonial-author { color: #888; font-size: 13px; margin: 0; }
+    .cta { display: inline-block; background: linear-gradient(135deg, #E91E63, #FF5722); color: #fff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: bold; margin: 24px 0; font-size: 16px; }
     .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
   </style>
 </head>
@@ -77,34 +103,40 @@ const emailTemplates = {
       <h1>Desenrola AI</h1>
     </div>
     <div class="content">
-      <h2>${name ? `${name}, v` : 'V'}eja o que voce esta perdendo...</h2>
-      <p>Enquanto voce pensa, outros usuarios ja estao:</p>
+      <h2>${name ? `${name}, ` : ''}ja passou por isso?</h2>
 
-      <div class="benefit">
-        <span class="benefit-icon">💬</span>
-        <span class="benefit-text">Gerando mensagens que realmente funcionam</span>
-      </div>
-      <div class="benefit">
-        <span class="benefit-icon">🔥</span>
-        <span class="benefit-text">Transformando matches em encontros reais</span>
-      </div>
-      <div class="benefit">
-        <span class="benefit-icon">🎯</span>
-        <span class="benefit-text">Saindo da friendzone com estrategias certeiras</span>
-      </div>
-      <div class="benefit">
-        <span class="benefit-icon">⚡</span>
-        <span class="benefit-text">Economizando horas pensando no que responder</span>
+      <div class="scenario">
+        <p>😰 Ela manda uma mensagem...</p>
+        <p>Voce le, pensa "preciso responder bem"...</p>
+        <p>Passa 1 hora. Passa 2 horas.</p>
+        <p>Quando responde, ela ja esfriou.</p>
       </div>
 
-      <p>E o melhor: voce pode testar <strong>gratis por 1 dia</strong> antes de decidir!</p>
+      <div class="vs">- - - ou - - -</div>
+
+      <div class="win">
+        <p>😎 Ela manda uma mensagem...</p>
+        <p>Voce abre o Desenrola, cola a mensagem.</p>
+        <p>Em 10 segundos tem 3 respostas perfeitas.</p>
+        <p>Responde rapido. Ela continua engajada.</p>
+      </div>
+
+      <p>A diferenca entre <span class="highlight">"ficou no vacuo"</span> e <span class="highlight">"marcou o date"</span> muitas vezes e so o tempo de resposta e a qualidade da mensagem.</p>
+
+      <div class="testimonial">
+        <p class="testimonial-text">"Cara, eu travava MUITO nas conversas. Agora respondo em segundos e a qualidade das minhas mensagens melhorou absurdamente. Ja marquei 3 encontros esse mes."</p>
+        <p class="testimonial-author">- Pedro, 26 anos, Sao Paulo</p>
+      </div>
 
       <center>
-        <a href="https://funis-desenrola.web.app/checkout-${plan.toLowerCase()}" class="cta">Quero comecar agora</a>
+        <a href="https://funis-desenrola.web.app/checkout-${plan.toLowerCase()}" class="cta">Quero parar de travar</a>
       </center>
+
+      <p style="text-align: center; color: #888; font-size: 13px;">Teste gratis por 24h. Sem cartao ate decidir.</p>
     </div>
     <div class="footer">
-      <p>Desenrola AI - Sua IA de conversas</p>
+      <p>Desenrola AI - Nunca mais trave numa conversa</p>
+      <p style="margin-top: 8px;"><a href="#" style="color: #666;">Cancelar inscricao</a></p>
     </div>
   </div>
 </body>
@@ -113,27 +145,40 @@ const emailTemplates = {
   },
 
   // Email 3 - Enviado 48-72h após abandono (com desconto)
+  // Foco: Urgência + escassez + desconto real
   lastChance: {
-    subject: 'Ultima chance: 20% OFF so para voce',
+    subject: (name: string) => name ? `⚠️ ${name}, seu desconto de 30% expira em 24h` : '⚠️ Seu desconto de 30% expira em 24h',
     html: (name: string, plan: string) => `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0D0D1A; color: #fff; margin: 0; padding: 0; }
     .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
     .logo { text-align: center; margin-bottom: 30px; }
     .logo h1 { color: #E91E63; margin: 0; font-size: 28px; }
     .content { background: #1A1A2E; border-radius: 16px; padding: 30px; }
-    h2 { color: #fff; margin-top: 0; }
-    p { color: #aaa; line-height: 1.6; }
-    .discount-box { background: linear-gradient(135deg, #E91E63, #FF5722); border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0; }
-    .discount-box h3 { color: #fff; margin: 0 0 5px 0; font-size: 32px; }
-    .discount-box p { color: rgba(255,255,255,0.9); margin: 0; }
-    .cta { display: inline-block; background: #fff; color: #E91E63; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: bold; margin: 20px 0; }
-    .timer { color: #FF5722; font-weight: bold; }
+    h2 { color: #fff; margin-top: 0; font-size: 22px; }
+    p { color: #bbb; line-height: 1.7; font-size: 15px; }
+    .highlight { color: #E91E63; font-weight: bold; }
+    .urgent { color: #FF5722; }
+    .discount-box { background: linear-gradient(135deg, #E91E63, #FF5722); border-radius: 12px; padding: 24px; text-align: center; margin: 24px 0; }
+    .discount-box h3 { color: #fff; margin: 0; font-size: 36px; font-weight: bold; }
+    .discount-box p { color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 14px; }
+    .coupon { background: rgba(255,255,255,0.2); display: inline-block; padding: 8px 20px; border-radius: 6px; margin-top: 12px; }
+    .coupon code { color: #fff; font-size: 18px; font-weight: bold; letter-spacing: 2px; }
+    .timer-box { background: #2A2A3E; border-radius: 8px; padding: 16px; margin: 20px 0; text-align: center; }
+    .timer-box p { margin: 0; color: #FF5722; font-weight: bold; font-size: 14px; }
+    .benefits { margin: 24px 0; }
+    .benefit { display: flex; align-items: center; margin: 12px 0; }
+    .benefit-check { color: #4CAF50; margin-right: 12px; font-size: 18px; }
+    .benefit-text { color: #ddd; }
+    .cta { display: inline-block; background: #fff; color: #E91E63; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: bold; margin: 24px 0; font-size: 16px; }
     .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
+    .final-note { background: #2A2A3E; border-radius: 8px; padding: 16px; margin-top: 20px; }
+    .final-note p { margin: 0; color: #aaa; font-size: 13px; }
   </style>
 </head>
 <body>
@@ -142,25 +187,54 @@ const emailTemplates = {
       <h1>Desenrola AI</h1>
     </div>
     <div class="content">
-      <h2>${name ? `${name}, ` : ''}esta e sua ultima chance!</h2>
-      <p>Sabemos que as vezes a gente precisa de um empurraozinho. Por isso, preparamos algo especial:</p>
+      <h2>${name ? `${name}, ` : ''}ultima chance (de verdade)</h2>
+
+      <p>Olha, eu entendo. As vezes a gente precisa de um empurrao pra tomar uma decisao.</p>
+
+      <p>Entao vou ser direto: preparei um <span class="highlight">desconto exclusivo</span> pra voce que ta em cima do muro. Mas ele <span class="urgent">expira em 24 horas</span>.</p>
 
       <div class="discount-box">
-        <h3>20% OFF</h3>
-        <p>Use o cupom: <strong>DESENROLA20</strong></p>
+        <h3>30% OFF</h3>
+        <p>No plano ${plan}</p>
+        <div class="coupon">
+          <code>DESENROLA30</code>
+        </div>
       </div>
 
-      <p>Essa oferta e <span class="timer">exclusiva e expira em 24 horas</span>.</p>
-      <p>Alem do desconto, voce ainda tem <strong>1 dia gratis</strong> para testar!</p>
+      <div class="timer-box">
+        <p>⏰ Esse cupom expira em 24 horas e NAO volta</p>
+      </div>
+
+      <div class="benefits">
+        <div class="benefit">
+          <span class="benefit-check">✓</span>
+          <span class="benefit-text">Respostas inteligentes em segundos</span>
+        </div>
+        <div class="benefit">
+          <span class="benefit-check">✓</span>
+          <span class="benefit-text">Funciona em Tinder, Bumble, Instagram, WhatsApp</span>
+        </div>
+        <div class="benefit">
+          <span class="benefit-check">✓</span>
+          <span class="benefit-text">IA treinada com milhares de conversas reais</span>
+        </div>
+        <div class="benefit">
+          <span class="benefit-check">✓</span>
+          <span class="benefit-text">Cancela quando quiser, sem burocracia</span>
+        </div>
+      </div>
 
       <center>
-        <a href="https://funis-desenrola.web.app/checkout-${plan.toLowerCase()}?cupom=DESENROLA20" class="cta">Usar meu cupom agora</a>
+        <a href="https://funis-desenrola.web.app/checkout-${plan.toLowerCase()}?cupom=DESENROLA30" class="cta">USAR MEU CUPOM DE 30% OFF</a>
       </center>
 
-      <p style="color: #666; font-size: 13px;">Depois dessa oferta, so no proximo mes...</p>
+      <div class="final-note">
+        <p>🔒 Pagamento 100% seguro. Teste gratis por 24h incluso. Se nao gostar, cancela sem pagar nada.</p>
+      </div>
     </div>
     <div class="footer">
-      <p>Desenrola AI - Sua IA de conversas</p>
+      <p>Desenrola AI - Nunca mais trave numa conversa</p>
+      <p style="margin-top: 8px;"><a href="#" style="color: #666;">Cancelar inscricao</a></p>
     </div>
   </div>
 </body>
@@ -201,7 +275,7 @@ export async function sendEmail(params: SendEmailParams): Promise<{ success: boo
     const { data, error } = await resend.emails.send({
       from: 'Desenrola AI <contato@desenrolaai.site>',
       to: [to],
-      subject: templateData.subject,
+      subject: templateData.subject(name),
       html: templateData.html(name, plan),
     });
 
