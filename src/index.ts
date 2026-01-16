@@ -30,6 +30,7 @@ import {
   handleInvoicePaid,
   handlePaymentFailed,
 } from './services/stripe';
+import { sendEmail, sendTestEmail, EmailTemplate } from './services/email';
 import { verifyAuth, verifyAuthOnly, AuthenticatedRequest } from './middleware/auth';
 import { CollectiveAvatarManager } from './services/collective-avatar-manager';
 import { TrainingFeedbackService } from './services/training-feedback-service';
@@ -1293,6 +1294,220 @@ fastify.post('/webhook/stripe', async (request, reply) => {
       error: 'Internal server error',
       message: error.message,
     });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// 📧 ABANDONED LEADS & EMAIL RECOVERY ENDPOINTS
+// ═══════════════════════════════════════════════════════════════════
+
+const admin = require('firebase-admin');
+
+// Salvar lead abandonado (chamado quando usuário preenche email mas não compra)
+fastify.post('/abandoned-lead', async (request, reply) => {
+  try {
+    const { email, name, plan } = request.body as {
+      email: string;
+      name?: string;
+      plan: string;
+    };
+
+    if (!email || !plan) {
+      return reply.code(400).send({ error: 'Email e plan são obrigatórios' });
+    }
+
+    const db = admin.firestore();
+    const leadsRef = db.collection('abandoned_leads');
+
+    // Verificar se já existe um lead com esse email
+    const existing = await leadsRef.where('email', '==', email.toLowerCase().trim()).get();
+
+    if (!existing.empty) {
+      // Atualizar lead existente
+      const doc = existing.docs[0];
+      await doc.ref.update({
+        plan,
+        name: name || doc.data().name,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      console.log('📧 Lead abandonado atualizado:', email);
+      return reply.code(200).send({ success: true, updated: true });
+    }
+
+    // Criar novo lead
+    const leadData = {
+      email: email.toLowerCase().trim(),
+      name: name || null,
+      plan,
+      abandonedAt: admin.firestore.FieldValue.serverTimestamp(),
+      emailsSent: [],
+      lastEmailSentAt: null,
+      converted: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    await leadsRef.add(leadData);
+    console.log('📧 Novo lead abandonado salvo:', email);
+
+    // Enviar primeiro email imediatamente
+    const emailResult = await sendEmail({
+      to: email,
+      template: 'immediate',
+      name: name || undefined,
+      plan,
+    });
+
+    if (emailResult.success) {
+      // Atualizar lead com email enviado
+      const newLead = await leadsRef.where('email', '==', email.toLowerCase().trim()).get();
+      if (!newLead.empty) {
+        await newLead.docs[0].ref.update({
+          emailsSent: ['immediate'],
+          lastEmailSentAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+    }
+
+    return reply.code(201).send({
+      success: true,
+      emailSent: emailResult.success,
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao salvar lead abandonado:', error);
+    return reply.code(500).send({ error: error.message });
+  }
+});
+
+// Processar leads abandonados (enviar emails de follow-up)
+// Chamar via cron job ou manualmente
+fastify.post('/process-abandoned-leads', async (request, reply) => {
+  try {
+    const db = admin.firestore();
+    const leadsRef = db.collection('abandoned_leads');
+
+    // Buscar leads não convertidos
+    const snapshot = await leadsRef
+      .where('converted', '==', false)
+      .get();
+
+    const now = new Date();
+    let processed = 0;
+    let emailsSent = 0;
+
+    for (const doc of snapshot.docs) {
+      const lead = doc.data();
+      const abandonedAt = lead.abandonedAt?.toDate() || lead.createdAt?.toDate();
+
+      if (!abandonedAt) continue;
+
+      const hoursSinceAbandoned = (now.getTime() - abandonedAt.getTime()) / (1000 * 60 * 60);
+      const emailsSentList: string[] = lead.emailsSent || [];
+
+      let templateToSend: EmailTemplate | null = null;
+
+      // Lógica de timing dos emails
+      if (hoursSinceAbandoned >= 48 && !emailsSentList.includes('lastChance')) {
+        templateToSend = 'lastChance';
+      } else if (hoursSinceAbandoned >= 24 && !emailsSentList.includes('followUp24h')) {
+        templateToSend = 'followUp24h';
+      } else if (hoursSinceAbandoned >= 0.5 && !emailsSentList.includes('immediate')) {
+        templateToSend = 'immediate';
+      }
+
+      if (templateToSend) {
+        const result = await sendEmail({
+          to: lead.email,
+          template: templateToSend,
+          name: lead.name || undefined,
+          plan: lead.plan,
+        });
+
+        if (result.success) {
+          emailsSentList.push(templateToSend);
+          await doc.ref.update({
+            emailsSent: emailsSentList,
+            lastEmailSentAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+          emailsSent++;
+        }
+
+        processed++;
+      }
+    }
+
+    console.log(`📧 Processados ${processed} leads, ${emailsSent} emails enviados`);
+
+    return reply.code(200).send({
+      success: true,
+      processed,
+      emailsSent,
+      totalLeads: snapshot.size,
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao processar leads:', error);
+    return reply.code(500).send({ error: error.message });
+  }
+});
+
+// Marcar lead como convertido (chamado após compra bem-sucedida)
+fastify.post('/lead-converted', async (request, reply) => {
+  try {
+    const { email } = request.body as { email: string };
+
+    if (!email) {
+      return reply.code(400).send({ error: 'Email é obrigatório' });
+    }
+
+    const db = admin.firestore();
+    const leadsRef = db.collection('abandoned_leads');
+
+    const snapshot = await leadsRef
+      .where('email', '==', email.toLowerCase().trim())
+      .get();
+
+    if (snapshot.empty) {
+      return reply.code(200).send({ success: true, message: 'Lead não encontrado (pode nunca ter abandonado)' });
+    }
+
+    await snapshot.docs[0].ref.update({
+      converted: true,
+      convertedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    console.log('✅ Lead convertido:', email);
+    return reply.code(200).send({ success: true });
+  } catch (error: any) {
+    console.error('❌ Erro ao marcar lead como convertido:', error);
+    return reply.code(500).send({ error: error.message });
+  }
+});
+
+// Enviar email de teste
+fastify.post('/test-email', async (request, reply) => {
+  try {
+    const { email, template, name, plan } = request.body as {
+      email: string;
+      template?: EmailTemplate;
+      name?: string;
+      plan?: string;
+    };
+
+    if (!email) {
+      return reply.code(400).send({ error: 'Email é obrigatório' });
+    }
+
+    const result = await sendEmail({
+      to: email,
+      template: template || 'immediate',
+      name: name || 'Teste',
+      plan: plan || 'Mensal',
+    });
+
+    return reply.code(result.success ? 200 : 500).send(result);
+  } catch (error: any) {
+    console.error('❌ Erro ao enviar email de teste:', error);
+    return reply.code(500).send({ error: error.message });
   }
 });
 
