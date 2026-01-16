@@ -64,13 +64,18 @@ interface EmbeddedCheckoutResult {
 }
 
 /**
- * Create embedded checkout (subscription with incomplete payment)
- * Returns clientSecret for Stripe Elements OR success if paymentMethod already attached
+ * Create embedded checkout (subscription with validated payment method)
+ * REQUIRES paymentMethodId - card must be validated on frontend first
  */
 export async function createEmbeddedCheckout(
   params: CreateEmbeddedCheckoutParams
 ): Promise<EmbeddedCheckoutResult> {
   const { priceId, plan, email, name, paymentMethodId } = params;
+
+  // SECURITY: Require paymentMethodId - never create subscription without validated card
+  if (!paymentMethodId) {
+    throw new Error('Payment method is required. Please fill in your card details.');
+  }
 
   // Get or create customer
   let customer: Stripe.Customer;
@@ -93,89 +98,34 @@ export async function createEmbeddedCheckout(
   const price = await stripe.prices.retrieve(priceId);
   const amount = price.unit_amount || 0;
 
-  // If paymentMethodId is provided, attach it to the customer first
-  // This means the card was already validated on the frontend
-  if (paymentMethodId) {
-    console.log('💳 Attaching pre-validated payment method:', paymentMethodId);
+  console.log('💳 Attaching pre-validated payment method:', paymentMethodId);
 
-    // Attach payment method to customer
-    await stripe.paymentMethods.attach(paymentMethodId, {
-      customer: customer.id,
-    });
+  // Attach payment method to customer
+  await stripe.paymentMethods.attach(paymentMethodId, {
+    customer: customer.id,
+  });
 
-    // Set as default payment method
-    await stripe.customers.update(customer.id, {
-      invoice_settings: {
-        default_payment_method: paymentMethodId,
-      },
-    });
-
-    // Create subscription with the payment method already attached
-    // No need for SetupIntent since card is already validated
-    const subscription = await stripe.subscriptions.create({
-      customer: customer.id,
-      items: [{ price: priceId }],
-      trial_period_days: 1,
+  // Set as default payment method
+  await stripe.customers.update(customer.id, {
+    invoice_settings: {
       default_payment_method: paymentMethodId,
-      metadata: {
-        plan,
-        source: 'embedded_checkout',
-      },
-    });
+    },
+  });
 
-    console.log('✅ Subscription created with pre-validated card:', {
-      subscriptionId: subscription.id,
-      customerId: customer.id,
-      plan,
-      amount: amount / 100,
-    });
-
-    return {
-      success: true,
-      subscriptionId: subscription.id,
-      customerId: customer.id,
-      amount: amount / 100,
-      currency: price.currency || 'brl',
-    };
-  }
-
-  // Fallback: Create subscription with incomplete payment (old flow)
-  // This path should rarely be used now
+  // Create subscription with the payment method already attached
+  // Card is validated, so subscription + trial can start
   const subscription = await stripe.subscriptions.create({
     customer: customer.id,
     items: [{ price: priceId }],
     trial_period_days: 1,
-    payment_behavior: 'default_incomplete',
-    payment_settings: {
-      save_default_payment_method: 'on_subscription',
-    },
+    default_payment_method: paymentMethodId,
     metadata: {
       plan,
       source: 'embedded_checkout',
     },
-    expand: ['latest_invoice.payment_intent', 'pending_setup_intent'],
   });
 
-  // For trials, we use SetupIntent to collect payment method
-  // For immediate payment, we use PaymentIntent
-  let clientSecret: string | null = null;
-
-  if (subscription.pending_setup_intent) {
-    // Trial subscription - use SetupIntent
-    const setupIntent = subscription.pending_setup_intent as Stripe.SetupIntent;
-    clientSecret = setupIntent.client_secret;
-  } else {
-    // Immediate payment - use PaymentIntent
-    const invoice = subscription.latest_invoice as Stripe.Invoice;
-    const paymentIntent = invoice.payment_intent as Stripe.PaymentIntent;
-    clientSecret = paymentIntent?.client_secret || null;
-  }
-
-  if (!clientSecret) {
-    throw new Error('Failed to create payment intent or setup intent');
-  }
-
-  console.log('💳 Embedded checkout created (fallback):', {
+  console.log('✅ Subscription created with validated card:', {
     subscriptionId: subscription.id,
     customerId: customer.id,
     plan,
@@ -183,7 +133,7 @@ export async function createEmbeddedCheckout(
   });
 
   return {
-    clientSecret,
+    success: true,
     subscriptionId: subscription.id,
     customerId: customer.id,
     amount: amount / 100,
