@@ -1511,6 +1511,55 @@ fastify.post('/test-email', async (request, reply) => {
   }
 });
 
+// Atualizar subscription do usuário manualmente
+fastify.post('/update-user-subscription', async (request, reply) => {
+  try {
+    const { email, plan, stripeCustomerId, stripeSubscriptionId } = request.body as {
+      email: string;
+      plan?: string;
+      stripeCustomerId?: string;
+      stripeSubscriptionId?: string;
+    };
+
+    if (!email) {
+      return reply.code(400).send({ error: 'Email é obrigatório' });
+    }
+
+    const db = admin.firestore();
+    const emailLower = email.toLowerCase().trim();
+
+    const userSnapshot = await db.collection('users')
+      .where('email', '==', emailLower)
+      .limit(1)
+      .get();
+
+    if (userSnapshot.empty) {
+      return reply.code(404).send({ error: 'Usuário não encontrado' });
+    }
+
+    const userId = userSnapshot.docs[0].id;
+    const updateData: any = {};
+
+    if (plan) updateData['subscription.plan'] = plan;
+    if (stripeCustomerId) updateData['subscription.stripeCustomerId'] = stripeCustomerId;
+    if (stripeSubscriptionId) updateData['subscription.stripeSubscriptionId'] = stripeSubscriptionId;
+
+    await db.collection('users').doc(userId).update(updateData);
+
+    console.log(`✅ Subscription atualizada: ${emailLower}`, updateData);
+
+    return reply.code(200).send({
+      success: true,
+      message: 'Subscription atualizada',
+      userId,
+      updated: updateData,
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao atualizar subscription:', error);
+    return reply.code(500).send({ error: error.message });
+  }
+});
+
 // Criar usuário manualmente (para casos onde o webhook não funcionou)
 fastify.post('/create-user-manual', async (request, reply) => {
   try {
