@@ -26,8 +26,8 @@ const emailTemplates = {
     .success-badge h3 { color: #fff; margin: 0; font-size: 20px; }
     .success-badge p { color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 14px; }
     .steps { margin: 24px 0; }
-    .step { display: flex; align-items: flex-start; margin: 16px 0; }
-    .step-number { background: #E91E63; color: #fff; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; flex-shrink: 0; }
+    .step { margin: 16px 0; }
+    .step-number { background: #E91E63; color: #fff; width: 28px; height: 28px; border-radius: 50%; display: inline-block; text-align: center; line-height: 28px; font-weight: bold; margin-right: 12px; font-size: 14px; }
     .step-text { color: #ddd; }
     .cta { display: inline-block; background: linear-gradient(135deg, #E91E63, #FF5722); color: #fff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: bold; margin: 24px 0; font-size: 16px; }
     .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
