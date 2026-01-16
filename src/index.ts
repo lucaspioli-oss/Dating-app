@@ -1511,6 +1511,105 @@ fastify.post('/test-email', async (request, reply) => {
   }
 });
 
+// Importar leads da planilha e enviar emails
+fastify.post('/import-leads', async (request, reply) => {
+  try {
+    const { leads } = request.body as {
+      leads: Array<{ email: string; name?: string; plan?: string }>;
+    };
+
+    if (!leads || !Array.isArray(leads) || leads.length === 0) {
+      return reply.code(400).send({ error: 'Array de leads é obrigatório' });
+    }
+
+    const db = admin.firestore();
+    const leadsRef = db.collection('abandoned_leads');
+
+    let imported = 0;
+    let skipped = 0;
+    let emailsSent = 0;
+    const errors: string[] = [];
+
+    for (const lead of leads) {
+      const email = lead.email?.toLowerCase().trim();
+      if (!email) {
+        skipped++;
+        continue;
+      }
+
+      try {
+        // Verificar se já existe
+        const existing = await leadsRef.where('email', '==', email).get();
+
+        if (!existing.empty) {
+          console.log(`⏭️ Lead já existe: ${email}`);
+          skipped++;
+          continue;
+        }
+
+        // Criar novo lead
+        const leadData = {
+          email,
+          name: lead.name || null,
+          plan: lead.plan || 'Mensal',
+          abandonedAt: admin.firestore.FieldValue.serverTimestamp(),
+          emailsSent: [],
+          lastEmailSentAt: null,
+          converted: false,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          source: 'imported_from_sheet',
+        };
+
+        await leadsRef.add(leadData);
+        imported++;
+        console.log(`📥 Lead importado: ${email}`);
+
+        // Enviar email imediatamente
+        const emailResult = await sendEmail({
+          to: email,
+          template: 'immediate',
+          name: lead.name || undefined,
+          plan: lead.plan || 'Mensal',
+        });
+
+        if (emailResult.success) {
+          emailsSent++;
+          // Atualizar lead com email enviado
+          const newLead = await leadsRef.where('email', '==', email).get();
+          if (!newLead.empty) {
+            await newLead.docs[0].ref.update({
+              emailsSent: ['immediate'],
+              lastEmailSentAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+          }
+          console.log(`✉️ Email enviado para: ${email}`);
+        }
+
+        // Pequeno delay para não sobrecarregar
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+      } catch (err: any) {
+        console.error(`❌ Erro no lead ${email}:`, err.message);
+        errors.push(`${email}: ${err.message}`);
+      }
+    }
+
+    console.log(`📊 Importação concluída: ${imported} importados, ${emailsSent} emails enviados, ${skipped} pulados`);
+
+    return reply.code(200).send({
+      success: true,
+      imported,
+      emailsSent,
+      skipped,
+      total: leads.length,
+      errors: errors.length > 0 ? errors : undefined,
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao importar leads:', error);
+    return reply.code(500).send({ error: error.message });
+  }
+});
+
 // Atualizar subscription do usuário manualmente
 fastify.post('/update-user-subscription', async (request, reply) => {
   try {
