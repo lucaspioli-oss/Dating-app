@@ -1511,6 +1511,77 @@ fastify.post('/test-email', async (request, reply) => {
   }
 });
 
+// Criar usuário manualmente (para casos onde o webhook não funcionou)
+fastify.post('/create-user-manual', async (request, reply) => {
+  try {
+    const { email, name } = request.body as {
+      email: string;
+      name?: string;
+    };
+
+    if (!email) {
+      return reply.code(400).send({ error: 'Email é obrigatório' });
+    }
+
+    const db = admin.firestore();
+    const emailLower = email.toLowerCase().trim();
+
+    // Verificar se já existe
+    const existingUser = await db.collection('users')
+      .where('email', '==', emailLower)
+      .limit(1)
+      .get();
+
+    if (!existingUser.empty) {
+      return reply.code(200).send({
+        success: true,
+        message: 'Usuário já existe',
+        userId: existingUser.docs[0].id
+      });
+    }
+
+    // Criar no Firebase Auth
+    let userRecord;
+    try {
+      userRecord = await admin.auth().getUserByEmail(emailLower);
+    } catch (error: any) {
+      if (error.code === 'auth/user-not-found') {
+        userRecord = await admin.auth().createUser({
+          email: emailLower,
+          displayName: name || 'Usuário',
+          emailVerified: true,
+        });
+      } else {
+        throw error;
+      }
+    }
+
+    // Criar documento no Firestore
+    await db.collection('users').doc(userRecord.uid).set({
+      email: emailLower,
+      name: name || 'Usuário',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      needsPasswordSetup: true,
+      subscription: {
+        status: 'active',
+        plan: 'monthly',
+        startedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+    });
+
+    console.log(`✅ Usuário criado manualmente: ${emailLower} (${userRecord.uid})`);
+
+    return reply.code(201).send({
+      success: true,
+      message: 'Usuário criado com sucesso',
+      userId: userRecord.uid,
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao criar usuário:', error);
+    return reply.code(500).send({ error: error.message });
+  }
+});
+
 // Enviar email de boas-vindas (para clientes que não receberam ou precisam reenviar)
 fastify.post('/send-welcome-email', async (request, reply) => {
   try {
