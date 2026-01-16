@@ -22,7 +22,7 @@ const emailTemplates = {
     h2 { color: #fff; margin-top: 0; font-size: 22px; }
     p { color: #bbb; line-height: 1.7; font-size: 15px; }
     .highlight { color: #E91E63; font-weight: bold; }
-    .success-badge { background: linear-gradient(135deg, #4CAF50, #45a049); border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0; }
+    .success-badge { background: linear-gradient(135deg, #E91E63, #C2185B); border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0; }
     .success-badge h3 { color: #fff; margin: 0; font-size: 20px; }
     .success-badge p { color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 14px; }
     .steps { margin: 24px 0; }
