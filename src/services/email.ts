@@ -22,13 +22,15 @@ const emailTemplates = {
     h2 { color: #fff; margin-top: 0; font-size: 22px; }
     p { color: #bbb; line-height: 1.7; font-size: 15px; }
     .highlight { color: #E91E63; font-weight: bold; }
-    .success-badge { background: linear-gradient(135deg, #E91E63, #C2185B); border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0; }
+    .success-badge { background: linear-gradient(135deg, #4CAF50, #45a049); border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0; }
     .success-badge h3 { color: #fff; margin: 0; font-size: 20px; }
     .success-badge p { color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 14px; }
     .steps { margin: 24px 0; }
-    .step { margin: 16px 0; }
-    .step-number { background: #E91E63; color: #fff; width: 28px; height: 28px; border-radius: 50%; display: inline-block; text-align: center; line-height: 28px; font-weight: bold; margin-right: 12px; font-size: 14px; }
-    .step-text { color: #ddd; }
+    .step-table { width: 100%; }
+    .step-number-cell { width: 40px; vertical-align: middle; padding: 8px 0; }
+    .step-number { background: #E91E63; color: #fff; width: 28px; height: 28px; border-radius: 14px; text-align: center; line-height: 28px; font-weight: bold; font-size: 14px; font-family: Arial, sans-serif; }
+    .step-text-cell { vertical-align: middle; padding: 8px 0; }
+    .step-text { color: #ddd; font-size: 15px; }
     .cta { display: inline-block; background: linear-gradient(135deg, #E91E63, #FF5722); color: #fff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: bold; margin: 24px 0; font-size: 16px; }
     .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
     .help-text { font-size: 13px; color: #888; margin-top: 20px; }
@@ -50,22 +52,24 @@ const emailTemplates = {
       <p>Agora e so criar sua senha e comecar a usar o <span class="highlight">Desenrola AI</span> para nunca mais travar nas conversas!</p>
 
       <div class="steps">
-        <div class="step">
-          <span class="step-number">1</span>
-          <span class="step-text">Clique no botao abaixo para criar sua senha</span>
-        </div>
-        <div class="step">
-          <span class="step-number">2</span>
-          <span class="step-text">Acesse <strong>app.desenrolaai.site</strong></span>
-        </div>
-        <div class="step">
-          <span class="step-number">3</span>
-          <span class="step-text">Faca login com seu email e senha</span>
-        </div>
-        <div class="step">
-          <span class="step-number">4</span>
-          <span class="step-text">Comece a usar e nunca mais trave!</span>
-        </div>
+        <table class="step-table" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td class="step-number-cell"><div class="step-number">1</div></td>
+            <td class="step-text-cell"><span class="step-text">Clique no botao abaixo para criar sua senha</span></td>
+          </tr>
+          <tr>
+            <td class="step-number-cell"><div class="step-number">2</div></td>
+            <td class="step-text-cell"><span class="step-text">Acesse <strong>app.desenrolaai.site</strong></span></td>
+          </tr>
+          <tr>
+            <td class="step-number-cell"><div class="step-number">3</div></td>
+            <td class="step-text-cell"><span class="step-text">Faca login com seu email e senha</span></td>
+          </tr>
+          <tr>
+            <td class="step-number-cell"><div class="step-number">4</div></td>
+            <td class="step-text-cell"><span class="step-text">Comece a usar e nunca mais trave!</span></td>
+          </tr>
+        </table>
       </div>
 
       <center>
