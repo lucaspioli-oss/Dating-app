@@ -199,7 +199,7 @@ export async function sendEmail(params: SendEmailParams): Promise<{ success: boo
     const templateData = emailTemplates[template];
 
     const { data, error } = await resend.emails.send({
-      from: 'Desenrola AI <onboarding@resend.dev>', // Mudar para seu domínio depois
+      from: 'Desenrola AI <contato@desenrolaai.site>',
       to: [to],
       subject: templateData.subject,
       html: templateData.html(name, plan),
