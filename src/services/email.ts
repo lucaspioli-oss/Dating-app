@@ -6,7 +6,7 @@ const resend = new Resend('re_EPWCVHjs_Fu2QZ6RRiSQozVaYFBsAcq44');
 const emailTemplates = {
   // Email de boas-vindas após compra
   welcome: {
-    subject: (name: string) => name ? `${name}, sua conta Desenrola AI esta pronta! 🎉` : 'Sua conta Desenrola AI esta pronta! 🎉',
+    subject: (name: string) => name ? `${name}, seu acesso ao Desenrola AI esta liberado!` : 'Seu acesso ao Desenrola AI esta liberado!',
     html: (name: string, plan: string, extra?: string) => `
 <!DOCTYPE html>
 <html>
@@ -14,75 +14,77 @@ const emailTemplates = {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0D0D1A; color: #fff; margin: 0; padding: 0; }
-    .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
-    .logo { text-align: center; margin-bottom: 30px; }
-    .logo h1 { color: #E91E63; margin: 0; font-size: 28px; }
-    .content { background: #1A1A2E; border-radius: 16px; padding: 30px; }
-    h2 { color: #fff; margin-top: 0; font-size: 22px; }
-    p { color: #bbb; line-height: 1.7; font-size: 15px; }
-    .highlight { color: #E91E63; font-weight: bold; }
-    .success-badge { background: linear-gradient(135deg, #4CAF50, #45a049); border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0; }
-    .success-badge h3 { color: #fff; margin: 0; font-size: 20px; }
-    .success-badge p { color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 14px; }
-    .steps { margin: 24px 0; }
-    .step { display: flex; align-items: flex-start; margin: 16px 0; }
-    .step-number { background: #E91E63; color: #fff; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; flex-shrink: 0; }
-    .step-text { color: #ddd; }
-    .cta { display: inline-block; background: linear-gradient(135deg, #E91E63, #FF5722); color: #fff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: bold; margin: 24px 0; font-size: 16px; }
-    .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
-    .info-box { background: #2A2A3E; border-radius: 8px; padding: 16px; margin: 20px 0; }
-    .info-box p { margin: 0; color: #aaa; font-size: 13px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(180deg, #0D0D1A 0%, #1a1a2e 100%); color: #fff; margin: 0; padding: 0; }
+    .container { max-width: 560px; margin: 0 auto; padding: 48px 24px; }
+    .header { text-align: center; margin-bottom: 32px; }
+    .logo { font-size: 32px; font-weight: 700; background: linear-gradient(135deg, #E91E63, #FF5722); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin: 0; }
+    .card { background: rgba(26, 26, 46, 0.8); border: 1px solid rgba(233, 30, 99, 0.2); border-radius: 24px; padding: 40px 32px; backdrop-filter: blur(10px); }
+    .greeting { font-size: 24px; font-weight: 600; color: #fff; margin: 0 0 24px 0; line-height: 1.3; }
+    .success-box { background: linear-gradient(135deg, rgba(76, 175, 80, 0.15), rgba(69, 160, 73, 0.1)); border: 1px solid rgba(76, 175, 80, 0.3); border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 28px; }
+    .success-icon { font-size: 48px; margin-bottom: 12px; }
+    .success-title { color: #4CAF50; font-size: 18px; font-weight: 600; margin: 0 0 4px 0; }
+    .success-sub { color: rgba(255,255,255,0.7); font-size: 14px; margin: 0; }
+    .message { color: rgba(255,255,255,0.8); font-size: 16px; line-height: 1.7; margin: 0 0 32px 0; }
+    .highlight { color: #E91E63; font-weight: 600; }
+    .steps-title { color: rgba(255,255,255,0.5); font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; margin: 0 0 16px 0; }
+    .steps { margin: 0 0 32px 0; }
+    .step { display: flex; align-items: center; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .step:last-child { border-bottom: none; }
+    .step-icon { width: 36px; height: 36px; background: linear-gradient(135deg, rgba(233, 30, 99, 0.2), rgba(255, 87, 34, 0.2)); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-right: 16px; font-size: 16px; }
+    .step-text { color: rgba(255,255,255,0.9); font-size: 15px; }
+    .cta-wrapper { text-align: center; margin: 8px 0 32px 0; }
+    .cta { display: inline-block; background: linear-gradient(135deg, #E91E63, #FF5722); color: #fff; text-decoration: none; padding: 18px 48px; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 8px 32px rgba(233, 30, 99, 0.35); transition: transform 0.2s, box-shadow 0.2s; }
+    .divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent); margin: 24px 0; }
+    .help-text { color: rgba(255,255,255,0.5); font-size: 14px; text-align: center; margin: 0; }
+    .help-text a { color: #E91E63; text-decoration: none; }
+    .footer { text-align: center; margin-top: 32px; padding-top: 24px; }
+    .footer-text { color: rgba(255,255,255,0.3); font-size: 13px; margin: 0; }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="logo">
-      <h1>Desenrola AI</h1>
+    <div class="header">
+      <h1 class="logo">Desenrola AI</h1>
     </div>
-    <div class="content">
-      <h2>${name ? `Parabens ${name}!` : 'Parabens!'} Voce tomou a melhor decisao 🚀</h2>
 
-      <div class="success-badge">
-        <h3>✅ Pagamento Confirmado</h3>
-        <p>Plano ${plan} ativado com sucesso</p>
+    <div class="card">
+      <h2 class="greeting">${name ? `${name}, seu acesso esta liberado!` : 'Seu acesso esta liberado!'}</h2>
+
+      <div class="success-box">
+        <div class="success-icon">🎉</div>
+        <p class="success-title">Plano ativado com sucesso</p>
+        <p class="success-sub">Agora e so criar sua senha e comecar</p>
       </div>
 
-      <p>Agora e so criar sua senha e comecar a usar o <span class="highlight">Desenrola AI</span> para nunca mais travar nas conversas!</p>
+      <p class="message">Falta apenas um passo para voce comecar a usar o <span class="highlight">Desenrola AI</span> e nunca mais travar nas conversas.</p>
 
+      <p class="steps-title">Como comecar</p>
       <div class="steps">
         <div class="step">
-          <span class="step-number">1</span>
-          <span class="step-text">Clique no botao abaixo para criar sua senha</span>
+          <span class="step-icon">🔐</span>
+          <span class="step-text">Crie sua senha clicando no botao abaixo</span>
         </div>
         <div class="step">
-          <span class="step-number">2</span>
-          <span class="step-text">Baixe o app na Play Store ou App Store</span>
+          <span class="step-icon">🌐</span>
+          <span class="step-text">Acesse app.desenrolaai.site</span>
         </div>
         <div class="step">
-          <span class="step-number">3</span>
-          <span class="step-text">Faca login com seu email e senha</span>
-        </div>
-        <div class="step">
-          <span class="step-number">4</span>
-          <span class="step-text">Comece a usar e nunca mais trave!</span>
+          <span class="step-icon">✨</span>
+          <span class="step-text">Faca login e comece a usar!</span>
         </div>
       </div>
 
-      <center>
+      <div class="cta-wrapper">
         <a href="${extra || 'https://app.desenrolaai.site/success'}" class="cta">CRIAR MINHA SENHA</a>
-      </center>
-
-      <div class="info-box">
-        <p>📱 <strong>Links do App:</strong></p>
-        <p style="margin-top: 8px;">Android: <a href="https://play.google.com/store/apps/details?id=com.desenrolaai.app" style="color: #E91E63;">Play Store</a></p>
-        <p style="margin-top: 4px;">iPhone: <a href="https://apps.apple.com/app/desenrola-ai" style="color: #E91E63;">App Store</a> (em breve)</p>
       </div>
 
-      <p style="font-size: 13px; color: #888;">Se tiver qualquer duvida, responda esse email que te ajudamos!</p>
+      <div class="divider"></div>
+
+      <p class="help-text">Alguma duvida? Responda este email ou fale com a gente pelo <a href="https://wa.me/5511999999999">WhatsApp</a></p>
     </div>
+
     <div class="footer">
-      <p>Desenrola AI - Nunca mais trave numa conversa</p>
+      <p class="footer-text">Desenrola AI - Nunca mais trave numa conversa</p>
     </div>
   </div>
 </body>
