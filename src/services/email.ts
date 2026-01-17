@@ -361,6 +361,10 @@ export async function sendEmail(params: SendEmailParams): Promise<{ success: boo
       to: [to],
       subject: templateData.subject(name),
       html: templateData.html(name, plan, extra),
+      tracking: {
+        opens: true,
+        clicks: true,
+      },
     });
 
     if (error) {
