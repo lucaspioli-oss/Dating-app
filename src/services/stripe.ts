@@ -67,6 +67,7 @@ interface EmbeddedCheckoutResult {
 /**
  * Create embedded checkout (subscription with validated payment method)
  * REQUIRES paymentMethodId - card must be validated on frontend first
+ * Uses PRE-AUTHORIZATION to validate card has sufficient funds before starting trial
  */
 export async function createEmbeddedCheckout(
   params: CreateEmbeddedCheckoutParams
@@ -137,8 +138,57 @@ export async function createEmbeddedCheckout(
     },
   });
 
-  // Create subscription with the payment method already attached
-  // Card is validated, so subscription + trial can start
+  // ═══════════════════════════════════════════════════════════════════
+  // PRÉ-AUTORIZAÇÃO: Validar que o cartão tem saldo ANTES de dar trial
+  // ═══════════════════════════════════════════════════════════════════
+  console.log('🔒 Criando pré-autorização para validar saldo do cartão...');
+
+  let paymentIntent: Stripe.PaymentIntent;
+  try {
+    paymentIntent = await stripe.paymentIntents.create({
+      amount,
+      currency: price.currency || 'brl',
+      customer: customer.id,
+      payment_method: paymentMethodId,
+      capture_method: 'manual', // PRÉ-AUTORIZAÇÃO - não cobra, só reserva
+      confirm: true,
+      off_session: true,
+      metadata: {
+        type: 'pre_authorization',
+        plan,
+        priceId,
+        email,
+      },
+    });
+  } catch (error: any) {
+    console.error('❌ Pré-autorização falhou:', error.message);
+    // Erros específicos de cartão
+    if (error.code === 'card_declined' || error.decline_code === 'insufficient_funds') {
+      throw new Error('Cartão sem saldo suficiente. Por favor, tente outro cartão.');
+    }
+    if (error.code === 'card_declined') {
+      throw new Error('Cartão recusado. Verifique os dados ou tente outro cartão.');
+    }
+    throw new Error(error.message || 'Erro ao validar cartão. Tente novamente.');
+  }
+
+  // Verificar se a pré-autorização foi aprovada
+  if (paymentIntent.status !== 'requires_capture') {
+    console.error('❌ Pré-autorização não aprovada, status:', paymentIntent.status);
+    // Tentar cancelar se possível
+    try {
+      await stripe.paymentIntents.cancel(paymentIntent.id);
+    } catch (e) {
+      // Ignorar erro no cancelamento
+    }
+    throw new Error('Cartão sem saldo suficiente. Por favor, tente outro cartão.');
+  }
+
+  console.log('✅ Pré-autorização aprovada! Cartão tem saldo. PaymentIntent:', paymentIntent.id);
+
+  // ═══════════════════════════════════════════════════════════════════
+  // CRIAR SUBSCRIPTION: Agora que sabemos que o cartão tem saldo
+  // ═══════════════════════════════════════════════════════════════════
   const subscription = await stripe.subscriptions.create({
     customer: customer.id,
     items: [{ price: priceId }],
@@ -147,10 +197,25 @@ export async function createEmbeddedCheckout(
     metadata: {
       plan,
       source: 'embedded_checkout',
+      preAuthPaymentIntentId: paymentIntent.id,
     },
   });
 
-  console.log('✅ Subscription created with validated card:', {
+  // ═══════════════════════════════════════════════════════════════════
+  // CANCELAR PRÉ-AUTORIZAÇÃO: Liberar o valor reservado no cartão
+  // O objetivo era só validar que o cartão tem saldo
+  // A cobrança real será feita pela subscription após o trial
+  // ═══════════════════════════════════════════════════════════════════
+  console.log('🔓 Liberando pré-autorização (valor reservado)...');
+  try {
+    await stripe.paymentIntents.cancel(paymentIntent.id);
+    console.log('✅ Pré-autorização cancelada, valor liberado no cartão');
+  } catch (cancelError) {
+    console.warn('⚠️ Não foi possível cancelar pré-autorização:', cancelError);
+    // Não é crítico - a autorização expira automaticamente em 7 dias
+  }
+
+  console.log('✅ Subscription criada com cartão validado por pré-autorização:', {
     subscriptionId: subscription.id,
     customerId: customer.id,
     plan,
