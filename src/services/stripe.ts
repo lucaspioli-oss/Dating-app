@@ -79,19 +79,43 @@ export async function createEmbeddedCheckout(
     throw new Error('Payment method is required. Please fill in your card details.');
   }
 
-  // Get or create customer
-  let customer: Stripe.Customer;
+  // ═══════════════════════════════════════════════════════════════════
+  // PASSO 1: Validar o PaymentMethod ANTES de criar qualquer coisa
+  // ═══════════════════════════════════════════════════════════════════
+  console.log('🔍 Validando payment method antes de criar customer...');
+
+  // Verificar se o PaymentMethod existe e é válido
+  let paymentMethod: Stripe.PaymentMethod;
+  try {
+    paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+    if (!paymentMethod || !paymentMethod.card) {
+      throw new Error('Cartão inválido. Por favor, tente novamente.');
+    }
+    console.log('✅ PaymentMethod válido:', paymentMethod.id, paymentMethod.card.brand, paymentMethod.card.last4);
+  } catch (error: any) {
+    console.error('❌ PaymentMethod inválido:', error.message);
+    throw new Error('Dados do cartão inválidos. Por favor, verifique e tente novamente.');
+  }
+
+  // Get price details (antes de criar customer)
+  const price = await stripe.prices.retrieve(priceId);
+  const amount = price.unit_amount || 0;
+
+  // ═══════════════════════════════════════════════════════════════════
+  // PASSO 2: Verificar se já existe customer com subscription ativa
+  // (sem criar novo customer ainda)
+  // ═══════════════════════════════════════════════════════════════════
   const existingCustomers = await stripe.customers.list({
     email,
     limit: 1,
   });
 
   if (existingCustomers.data.length > 0) {
-    customer = existingCustomers.data[0];
+    const existingCustomer = existingCustomers.data[0];
 
     // Check if customer already has active subscription
     const existingSubscriptions = await stripe.subscriptions.list({
-      customer: customer.id,
+      customer: existingCustomer.id,
       status: 'active',
       limit: 1,
     });
@@ -103,7 +127,7 @@ export async function createEmbeddedCheckout(
 
     // Also check for trialing subscriptions
     const trialingSubscriptions = await stripe.subscriptions.list({
-      customer: customer.id,
+      customer: existingCustomer.id,
       status: 'trialing',
       limit: 1,
     });
@@ -112,34 +136,11 @@ export async function createEmbeddedCheckout(
       console.log('⚠️ Cliente já tem trial ativo:', email);
       throw new Error('Este email já possui um período de teste ativo. Faça login para acessar.');
     }
-  } else {
-    customer = await stripe.customers.create({
-      email,
-      name: name || undefined,
-      metadata: { source: 'embedded_checkout' },
-    });
   }
 
-  // Get price details
-  const price = await stripe.prices.retrieve(priceId);
-  const amount = price.unit_amount || 0;
-
-  console.log('💳 Attaching pre-validated payment method:', paymentMethodId);
-
-  // Attach payment method to customer
-  await stripe.paymentMethods.attach(paymentMethodId, {
-    customer: customer.id,
-  });
-
-  // Set as default payment method
-  await stripe.customers.update(customer.id, {
-    invoice_settings: {
-      default_payment_method: paymentMethodId,
-    },
-  });
-
   // ═══════════════════════════════════════════════════════════════════
-  // PRÉ-AUTORIZAÇÃO: Validar que o cartão tem saldo ANTES de dar trial
+  // PASSO 3: Fazer PRÉ-AUTORIZAÇÃO sem customer (usando apenas o PM)
+  // Isso valida que o cartão tem saldo ANTES de criar o customer
   // ═══════════════════════════════════════════════════════════════════
   console.log('🔒 Criando pré-autorização para validar saldo do cartão...');
 
@@ -148,11 +149,9 @@ export async function createEmbeddedCheckout(
     paymentIntent = await stripe.paymentIntents.create({
       amount,
       currency: price.currency || 'brl',
-      customer: customer.id,
       payment_method: paymentMethodId,
       capture_method: 'manual', // PRÉ-AUTORIZAÇÃO - não cobra, só reserva
       confirm: true,
-      off_session: true,
       metadata: {
         type: 'pre_authorization',
         plan,
@@ -162,7 +161,7 @@ export async function createEmbeddedCheckout(
     });
   } catch (error: any) {
     console.error('❌ Pré-autorização falhou:', error.message);
-    // Erros específicos de cartão
+    // Erros específicos de cartão - NÃO criamos customer se falhar aqui
     if (error.code === 'card_declined' || error.decline_code === 'insufficient_funds') {
       throw new Error('Cartão sem saldo suficiente. Por favor, tente outro cartão.');
     }
@@ -175,7 +174,6 @@ export async function createEmbeddedCheckout(
   // Verificar se a pré-autorização foi aprovada
   if (paymentIntent.status !== 'requires_capture') {
     console.error('❌ Pré-autorização não aprovada, status:', paymentIntent.status);
-    // Tentar cancelar se possível
     try {
       await stripe.paymentIntents.cancel(paymentIntent.id);
     } catch (e) {
@@ -185,6 +183,37 @@ export async function createEmbeddedCheckout(
   }
 
   console.log('✅ Pré-autorização aprovada! Cartão tem saldo. PaymentIntent:', paymentIntent.id);
+
+  // ═══════════════════════════════════════════════════════════════════
+  // PASSO 4: AGORA sim, criar ou usar customer existente
+  // Só chegamos aqui se o cartão foi validado com sucesso
+  // ═══════════════════════════════════════════════════════════════════
+  console.log('👤 Cartão validado! Criando/atualizando customer...');
+
+  let customer: Stripe.Customer;
+  if (existingCustomers.data.length > 0) {
+    customer = existingCustomers.data[0];
+  } else {
+    customer = await stripe.customers.create({
+      email,
+      name: name || undefined,
+      metadata: { source: 'embedded_checkout' },
+    });
+  }
+
+  console.log('💳 Attaching payment method to customer:', customer.id);
+
+  // Attach payment method to customer
+  await stripe.paymentMethods.attach(paymentMethodId, {
+    customer: customer.id,
+  });
+
+  // Set as default payment method
+  await stripe.customers.update(customer.id, {
+    invoice_settings: {
+      default_payment_method: paymentMethodId,
+    },
+  });
 
   // ═══════════════════════════════════════════════════════════════════
   // CRIAR SUBSCRIPTION: Agora que sabemos que o cartão tem saldo
