@@ -22,6 +22,7 @@ import { getSystemPromptForTone } from './prompts';
 import {
   createCheckoutSession,
   createEmbeddedCheckout,
+  createCheckoutRedirect,
   createCustomerPortalSession,
   constructWebhookEvent,
   handleCheckoutCompleted,
@@ -880,6 +881,93 @@ fastify.post('/create-embedded-checkout', async (request, reply) => {
     return reply.code(200).send(result);
   } catch (error) {
     fastify.log.error(error);
+    return reply.code(500).send({
+      error: 'Failed to create checkout',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// Create Checkout Redirect (for funnel with lead capture)
+// Public endpoint - captures lead then redirects to Stripe Checkout
+// IMMEDIATE CHARGE - No trial period (uses 7-day money-back guarantee instead)
+fastify.post('/create-checkout-redirect', async (request, reply) => {
+  try {
+    const { priceId, plan, email, name } = request.body as {
+      priceId: string;
+      plan: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+      email: string;
+      name?: string;
+    };
+
+    if (!priceId || !plan || !email) {
+      return reply.code(400).send({
+        error: 'Missing required fields',
+        message: 'priceId, plan, and email are required',
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return reply.code(400).send({
+        error: 'Invalid email',
+        message: 'Please provide a valid email address',
+      });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Save as abandoned lead BEFORE redirecting to Stripe
+    // This way we capture the lead even if they don't complete payment
+    const db = admin.firestore();
+    const leadsRef = db.collection('abandoned_leads');
+
+    const existing = await leadsRef.where('email', '==', normalizedEmail).get();
+
+    if (existing.empty) {
+      await leadsRef.add({
+        email: normalizedEmail,
+        name: name || null,
+        plan,
+        abandonedAt: admin.firestore.FieldValue.serverTimestamp(),
+        emailsSent: [],
+        lastEmailSentAt: null,
+        converted: false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        source: 'checkout_redirect',
+      });
+      console.log('📧 Lead capturado antes do redirect:', normalizedEmail);
+    } else {
+      // Update existing lead
+      await existing.docs[0].ref.update({
+        plan,
+        name: name || existing.docs[0].data().name,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+
+    // Create Stripe Checkout session and get redirect URL
+    const result = await createCheckoutRedirect({
+      priceId,
+      plan,
+      email: normalizedEmail,
+      name,
+    });
+
+    return reply.code(200).send(result);
+  } catch (error: any) {
+    fastify.log.error(error);
+
+    // Handle specific error for existing subscription
+    if (error.message?.includes('já possui')) {
+      return reply.code(400).send({
+        error: 'Subscription exists',
+        message: error.message,
+        existingSubscription: true,
+      });
+    }
+
     return reply.code(500).send({
       error: 'Failed to create checkout',
       message: error instanceof Error ? error.message : 'Unknown error',

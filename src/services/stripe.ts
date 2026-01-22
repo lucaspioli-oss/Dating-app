@@ -47,6 +47,148 @@ interface CreateCheckoutSessionParams {
   userEmail: string;
 }
 
+interface CreateCheckoutRedirectParams {
+  priceId: string;
+  plan: PlanType;
+  email: string;
+  name?: string;
+  successUrl?: string;
+  cancelUrl?: string;
+}
+
+interface CheckoutRedirectResult {
+  url: string;
+  sessionId: string;
+  customerId: string;
+}
+
+/**
+ * Create Stripe Checkout Session for redirect flow (public, no auth required)
+ * IMMEDIATE CHARGE - No trial period
+ * Used for funnel checkout with lead capture before redirect
+ */
+export async function createCheckoutRedirect(
+  params: CreateCheckoutRedirectParams
+): Promise<CheckoutRedirectResult> {
+  const { priceId, plan, email, name, successUrl, cancelUrl } = params;
+
+  const normalizedEmail = email.toLowerCase().trim();
+
+  // Get or create customer
+  let customer: Stripe.Customer;
+  const existingCustomers = await stripe.customers.list({
+    email: normalizedEmail,
+    limit: 1,
+  });
+
+  if (existingCustomers.data.length > 0) {
+    customer = existingCustomers.data[0];
+
+    // Check if customer already has active subscription
+    const existingSubscriptions = await stripe.subscriptions.list({
+      customer: customer.id,
+      status: 'active',
+      limit: 1,
+    });
+
+    if (existingSubscriptions.data.length > 0) {
+      console.log('⚠️ Cliente já tem subscription ativa:', normalizedEmail);
+      throw new Error('Este email já possui uma assinatura ativa. Faça login para acessar.');
+    }
+
+    // Also check for trialing subscriptions
+    const trialingSubscriptions = await stripe.subscriptions.list({
+      customer: customer.id,
+      status: 'trialing',
+      limit: 1,
+    });
+
+    if (trialingSubscriptions.data.length > 0) {
+      console.log('⚠️ Cliente já tem trial ativo:', normalizedEmail);
+      throw new Error('Este email já possui um período de teste ativo. Faça login para acessar.');
+    }
+
+    // Update name if provided and customer doesn't have one
+    if (name && !customer.name) {
+      await stripe.customers.update(customer.id, { name });
+    }
+  } else {
+    // Create new customer
+    customer = await stripe.customers.create({
+      email: normalizedEmail,
+      name: name || undefined,
+      metadata: { source: 'funnel_checkout_redirect' },
+    });
+  }
+
+  // Get price details for tracking
+  const price = await stripe.prices.retrieve(priceId);
+  const amount = price.unit_amount || 0;
+
+  const frontendUrl = process.env.FUNNEL_URL || 'https://funis-desenrola.web.app';
+  const appUrl = process.env.FRONTEND_URL || 'https://app.desenrolaai.site';
+
+  // Create checkout session - IMMEDIATE CHARGE (no trial)
+  const session = await stripe.checkout.sessions.create({
+    customer: customer.id,
+    mode: 'subscription',
+    payment_method_types: ['card'],
+    line_items: [
+      {
+        price: priceId,
+        quantity: 1,
+      },
+    ],
+    // Redirect to app success page after payment
+    success_url: successUrl || `${appUrl}/success?session_id={CHECKOUT_SESSION_ID}&email=${encodeURIComponent(normalizedEmail)}`,
+    cancel_url: cancelUrl || `${frontendUrl}/checkout?cancelled=true`,
+    metadata: {
+      plan,
+      email: normalizedEmail,
+      name: name || '',
+      source: 'funnel_checkout_redirect',
+    },
+    subscription_data: {
+      metadata: {
+        plan,
+        source: 'funnel_checkout_redirect',
+      },
+      // NO trial_period_days - immediate charge
+    },
+    allow_promotion_codes: true,
+    locale: 'pt-BR',
+    // Pre-fill customer email
+    customer_update: {
+      address: 'auto',
+      name: 'auto',
+    },
+  });
+
+  console.log('💳 Stripe Checkout redirect session created:', {
+    sessionId: session.id,
+    customerId: customer.id,
+    plan,
+    priceId,
+    amount: amount / 100,
+    email: normalizedEmail,
+  });
+
+  // Track InitiateCheckout on Meta Conversions API
+  trackInitiateCheckout({
+    email: normalizedEmail,
+    value: amount / 100,
+    currency: price.currency || 'brl',
+    eventId: `ic_redirect_${session.id}`,
+    plan,
+  }).catch(err => console.error('Meta InitiateCheckout tracking error:', err));
+
+  return {
+    url: session.url!,
+    sessionId: session.id,
+    customerId: customer.id,
+  };
+}
+
 interface CreateEmbeddedCheckoutParams {
   priceId: string;
   plan: PlanType;
