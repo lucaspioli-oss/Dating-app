@@ -1,136 +1,73 @@
-# Desenrola AI - Assistente de Conversas
+# React + TypeScript + Vite
 
-Sistema de assistente de conversas com IA usando Claude 3.5 Sonnet. Aplicativo Flutter Web com backend Node.js/TypeScript hospedado na Railway.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Links
+Currently, two official plugins are available:
 
-- **App Web**: https://desenrola-ia.web.app
-- **GitHub**: https://github.com/lucaspioli-oss/Dating-app
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## Estrutura do Projeto
+## React Compiler
 
-```
-Dating App/
-├── flirt_ai_app/           # Frontend Flutter
-│   ├── lib/
-│   │   ├── config/         # Configurações (tema, API keys)
-│   │   ├── models/         # Modelos de dados
-│   │   ├── providers/      # Estado da aplicação
-│   │   ├── screens/        # Telas do app
-│   │   │   └── auth/       # Telas de autenticação
-│   │   ├── services/       # Serviços (API, Firebase, etc)
-│   │   └── widgets/        # Componentes reutilizáveis
-│   ├── assets/             # Imagens e recursos
-│   ├── android/            # Configurações Android
-│   ├── web/                # Configurações Web
-│   └── build/              # Build gerado
-│
-├── src/                    # Backend (Railway)
-│   ├── agents/             # Agentes de IA
-│   ├── config/             # Configurações
-│   ├── services/           # Serviços
-│   ├── middleware/         # Middlewares
-│   └── index.ts            # Entry point
-│
-├── functions/              # Firebase Functions
-│
-├── docs/                   # Documentação
-│   ├── DEPLOYMENT_GUIDE.md
-│   ├── CONVERSATION_SYSTEM.md
-│   ├── CODEMAGIC_SETUP.md
-│   └── ...
-│
-├── _archive/               # Arquivos arquivados
-│
-├── firebase.json           # Firebase Hosting config
-├── firestore.rules         # Regras Firestore
-├── railway.toml            # Railway config
-├── WORKFLOW.md             # Instruções de build/deploy
-└── README.md               # Este arquivo
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+
+## Expanding the ESLint configuration
+
+If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+
+```js
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+
+      // Remove tseslint.configs.recommended and replace with this
+      tseslint.configs.recommendedTypeChecked,
+      // Alternatively, use this for stricter rules
+      tseslint.configs.strictTypeChecked,
+      // Optionally, add this for stylistic rules
+      tseslint.configs.stylisticTypeChecked,
+
+      // Other configs...
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
 ```
 
-## Tecnologias
+You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
-### Frontend
-- Flutter 3.x
-- Dart
-- Firebase Auth
-- Cloud Firestore
-- Provider (state management)
+```js
+// eslint.config.js
+import reactX from 'eslint-plugin-react-x'
+import reactDom from 'eslint-plugin-react-dom'
 
-### Backend
-- Node.js + TypeScript
-- Fastify
-- Anthropic Claude API
-- Stripe (pagamentos)
-- Firebase Admin SDK
-
-### Infraestrutura
-- Firebase Hosting (frontend)
-- Railway (backend)
-- Firebase Authentication
-- Cloud Firestore
-
-## Quick Start
-
-### Pré-requisitos
-
-- Flutter SDK (em `C:\src\flutter`)
-- Node.js 18+
-- Firebase CLI
-- Git
-
-### Desenvolvimento Local
-
-```bash
-# Clone o repositório
-git clone https://github.com/lucaspioli-oss/Dating-app.git
-cd "Dating App"
-
-# Backend
-npm install
-npm run dev
-
-# Frontend (em outro terminal)
-cd flirt_ai_app
-flutter pub get
-flutter run -d chrome
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+      // Enable lint rules for React
+      reactX.configs['recommended-typescript'],
+      // Enable lint rules for React DOM
+      reactDom.configs.recommended,
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
 ```
-
-## Deploy
-
-Consulte o arquivo **[WORKFLOW.md](WORKFLOW.md)** para instruções detalhadas sobre:
-- Commit e Push
-- Build do Flutter
-- Deploy Firebase Hosting
-- Deploy Railway
-
-### Resumo Rápido
-
-```bash
-# 1. Commit
-git add .
-git commit -m "feat: descrição"
-git push
-
-# 2. Build (em C:\src para evitar problemas com OneDrive)
-cd C:\src\flirt_ai_app
-flutter build web --release
-
-# 3. Deploy
-cd "C:\Users\lucas\OneDrive\Área de Trabalho\Dating App"
-firebase deploy --only hosting
-```
-
-## Documentação
-
-| Documento | Descrição |
-|-----------|-----------|
-| [WORKFLOW.md](WORKFLOW.md) | Instruções de build e deploy |
-| [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) | Guia completo de deployment |
-| [docs/CONVERSATION_SYSTEM.md](docs/CONVERSATION_SYSTEM.md) | Sistema de conversas |
-| [flirt_ai_app/README.md](flirt_ai_app/README.md) | Documentação do app Flutter |
-
-## Licença
-
-MIT License

@@ -1,206 +1,24 @@
-# ============================================
-# BACKEND (Node.js + TypeScript)
-# ============================================
-
-# Dependencies
-node_modules/
+# Logs
+logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-package-lock.json
-yarn.lock
+pnpm-debug.log*
+lerna-debug.log*
 
-# Build outputs
-dist/
-build/
-*.tsbuildinfo
+node_modules
+dist
+dist-ssr
+*.local
 
-# Environment variables
-.env
-.env.local
-.env.*.local
-
-# Logs
-logs/
-*.log
-
-# OS files
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
 .DS_Store
-Thumbs.db
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# ============================================
-# iOS
-# ============================================
-
-# Xcode
-*.xcodeproj/*
-!*.xcodeproj/project.pbxproj
-!*.xcodeproj/xcshareddata/
-!*.xcworkspace/contents.xcworkspacedata
-*.xcworkspace/*
-!*.xcworkspace/contents.xcworkspacedata
-xcuserdata/
-*.xccheckout
-*.moved-aside
-DerivedData/
-*.hmap
-*.ipa
-*.dSYM.zip
-*.dSYM
-
-# CocoaPods
-Pods/
-*.podspec
-
-# Carthage
-Carthage/Build/
-
-# Swift Package Manager
-.build/
-Packages/
-Package.pins
-Package.resolved
-
-# PlayGround
-*.playground
-
-# ============================================
-# ANDROID
-# ============================================
-
-# Gradle
-.gradle/
-build/
-*/build/
-gradle-app.setting
-!gradle-wrapper.jar
-
-# Android Studio
-*.iml
-.idea/
-.externalNativeBuild
-.cxx
-local.properties
-
-# NDK
-obj/
-
-# Signing
-*.jks
-*.keystore
-keystore.properties
-
-# APK/AAB
-*.apk
-*.aab
-
-# ============================================
-# FLUTTER
-# ============================================
-
-# Flutter/Dart/Pub related
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-.packages
-.pub-cache/
-.pub/
-build/
-
-# Flutter build outputs
-flutter_keyboard/build/
-flutter_keyboard/.dart_tool/
-flutter_keyboard/.flutter-plugins
-flutter_keyboard/.flutter-plugins-dependencies
-flutter_keyboard/.packages
-flutter_keyboard/.pub-cache/
-flutter_keyboard/.pub/
-
-# iOS Flutter
-flutter_keyboard/ios/Flutter/.last_build_id
-flutter_keyboard/ios/Flutter/App.framework
-flutter_keyboard/ios/Flutter/Flutter.framework
-flutter_keyboard/ios/Flutter/Flutter.podspec
-flutter_keyboard/ios/Flutter/Generated.xcconfig
-flutter_keyboard/ios/Flutter/ephemeral
-flutter_keyboard/ios/ServiceDefinitions.json
-flutter_keyboard/ios/Runner/GeneratedPluginRegistrant.*
-
-# Android Flutter
-flutter_keyboard/android/.gradle/
-flutter_keyboard/android/app/build/
-flutter_keyboard/android/build/
-flutter_keyboard/android/local.properties
-
-# Web
-flutter_keyboard/web/
-
-# Windows
-flutter_keyboard/windows/
-
-# Linux
-flutter_keyboard/linux/
-
-# macOS
-flutter_keyboard/macos/
-
-# ============================================
-# API KEYS & SECRETS (SEGURANÇA CRÍTICA)
-# ============================================
-
-# NUNCA commitar chaves de API
-.env
-.env.*
-!.env.example
-
-# Credenciais Google Services
-**/google-services.json
-**/GoogleService-Info.plist
-
-# Chaves de assinatura
-*.p12
-*.mobileprovision
-*.certSigningRequest
-
-# ============================================
-# DATABASES & CACHE
-# ============================================
-
-*.db
-*.sqlite
-*.sqlite3
-.cache/
-
-# ============================================
-# TEMP & TEST FILES
-# ============================================
-
-tmp/
-temp/
-*.tmp
-coverage/
-.nyc_output/
-
-# ============================================
-# ESPECÍFICO DO PROJETO
-# ============================================
-
-# Dados de teste
-test-data/
-mock-data/
-
-# Screenshots (adicione quando necessário)
-# screenshots/
-
-# Windows reserved device names
-nul
-con
-prn
-aux
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

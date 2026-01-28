@@ -1,37 +1,43 @@
 {
-  "name": "dating-app-analyzer",
-  "version": "1.0.0",
-  "description": "API para análise de mensagens com IA usando Claude",
-  "main": "dist/index.js",
+  "name": "funil-gamificado",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js"
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
   },
-  "keywords": [
-    "fastify",
-    "typescript",
-    "anthropic",
-    "claude"
-  ],
-  "author": "",
-  "license": "MIT",
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.32.1",
-    "@fastify/cors": "^11.2.0",
-    "@types/uuid": "^10.0.0",
-    "dotenv": "^16.4.5",
-    "fastify": "^5.6.2",
-    "firebase-admin": "^12.0.0",
-    "imghash": "^1.1.2",
-    "resend": "^6.7.0",
-    "sharp": "^0.34.5",
-    "stripe": "^14.11.0"
+    "@stripe/react-stripe-js": "^5.4.1",
+    "@stripe/stripe-js": "^8.6.1",
+    "@tailwindcss/vite": "^4.1.18",
+    "canvas-confetti": "^1.9.4",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.24.10",
+    "lucide-react": "^0.562.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "tailwind-merge": "^3.4.0",
+    "tailwindcss": "^4.1.18",
+    "wouter": "^3.9.0",
+    "zustand": "^5.0.9"
   },
   "devDependencies": {
-    "@types/node": "^20.14.9",
-    "@types/sharp": "^0.31.1",
-    "tsx": "^4.16.2",
-    "typescript": "^5.5.3"
+    "@eslint/js": "^9.39.1",
+    "@types/canvas-confetti": "^1.9.0",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "sharp": "^0.34.5",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "vite": "^7.2.4"
   }
 }

@@ -1,7 +1,0 @@
-[
-  {
-    "origin": ["https://desenrola-ia.web.app", "https://desenrola-ia.firebaseapp.com", "http://localhost:*"],
-    "method": ["GET", "HEAD"],
-    "maxAgeSeconds": 3600
-  }
-]
