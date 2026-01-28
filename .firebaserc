@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "funis-desenrola"
+  },
+  "targets": {
+    "funis-desenrola": {
+      "hosting": {
+        "game": [
+          "funil-ligacao-game"
+        ]
+      }
+    }
+  }
+}
