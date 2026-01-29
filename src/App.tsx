@@ -8,6 +8,7 @@ import CheckoutMensal from "./pages/CheckoutMensal"
 import CheckoutTrimestral from "./pages/CheckoutTrimestral"
 import CheckoutAnual from "./pages/CheckoutAnual"
 import Success from "./pages/Success"
+import Teste from "./pages/Teste"
 
 // Game Funnel Pages
 import GameLanding from "./pages/game/Landing"
@@ -31,6 +32,7 @@ function App() {
       <Route path="/checkout/trimestral" component={CheckoutTrimestral} />
       <Route path="/checkout/anual" component={CheckoutAnual} />
       <Route path="/success" component={Success} />
+      <Route path="/teste" component={Teste} />
 
       {/* Funil Game - Ligação */}
       <Route path="/game" component={GameLanding} />
