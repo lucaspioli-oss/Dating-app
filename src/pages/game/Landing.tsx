@@ -1,14 +1,9 @@
-import { useEffect } from 'react'
 import { useLocation } from 'wouter'
 import { motion } from 'framer-motion'
 import { Volume2 } from 'lucide-react'
 
-export default function Landing() {
+export default function GameLanding() {
   const [, setLocation] = useLocation()
-
-  useEffect(() => {
-    window.scrollTo(0, 0)
-  }, [])
 
   const handleStart = () => {
     setLocation('/game/ligacao')
@@ -27,9 +22,9 @@ export default function Landing() {
       >
         {/* Texto principal */}
         <h1 className="text-2xl md:text-3xl font-medium text-white leading-relaxed mb-8">
-          Você está preparado para viver uma experiência{' '}
+          Voce esta preparado para viver uma experiencia{' '}
           <span className="gradient-text font-semibold">
-            diferente de tudo que já viu?
+            diferente de tudo que ja viu?
           </span>
         </h1>
 
@@ -41,10 +36,10 @@ export default function Landing() {
           className="flex items-center justify-center gap-2 text-muted-foreground mb-12"
         >
           <Volume2 className="w-5 h-5 animate-pulse" />
-          <span className="text-sm">Aumente o som para uma melhor experiência</span>
+          <span className="text-sm">Aumente o som para uma melhor experiencia</span>
         </motion.div>
 
-        {/* Botão */}
+        {/* Botao */}
         <motion.button
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -57,30 +52,6 @@ export default function Landing() {
           ESTOU PRONTO
         </motion.button>
       </motion.div>
-
-      {/* Partículas decorativas */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(20)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-1 h-1 bg-purple-500/30 rounded-full"
-            initial={{
-              x: Math.random() * window.innerWidth,
-              y: Math.random() * window.innerHeight,
-              opacity: 0
-            }}
-            animate={{
-              y: [null, Math.random() * -100],
-              opacity: [0, 0.5, 0]
-            }}
-            transition={{
-              duration: 3 + Math.random() * 2,
-              repeat: Infinity,
-              delay: Math.random() * 2
-            }}
-          />
-        ))}
-      </div>
     </div>
   )
 }
