@@ -28,19 +28,16 @@ export default function CallAna() {
     }
   }, [])
 
-  useEffect(() => {
-    // Quando a chamada termina, vai para o chat após 1.5s
-    if (callEnded) {
-      const redirectTimer = setTimeout(() => {
-        setLocation('/game/notificacao')
-      }, 1500)
-      return () => clearTimeout(redirectTimer)
-    }
-  }, [callEnded, setLocation])
+  const handleContinue = () => {
+    setLocation('/game/notificacao')
+  }
 
   if (callEnded) {
     return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center">
+      <div
+        className="min-h-screen bg-black flex flex-col items-center justify-center cursor-pointer"
+        onClick={handleContinue}
+      >
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -50,7 +47,15 @@ export default function CallAna() {
             <Phone className="w-10 h-10 text-white/50" />
           </div>
           <h2 className="text-xl text-white mb-1">Chamada Encerrada</h2>
-          <p className="text-white/50">{timer.formatted}</p>
+          <p className="text-white/50 mb-6">{timer.formatted}</p>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="text-white/40 text-sm"
+          >
+            Toque para continuar
+          </motion.p>
         </motion.div>
       </div>
     )
