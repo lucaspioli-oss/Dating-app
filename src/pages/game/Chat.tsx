@@ -73,7 +73,9 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
   }
 
   useEffect(() => {
@@ -199,14 +201,15 @@ export default function Chat() {
   const persona = getPersonaInfo()
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#0B141A' }}>
+    <div className="h-screen flex flex-col overflow-hidden" style={{ backgroundColor: '#0B141A' }}>
       {/* Header - WhatsApp style */}
       <div style={{
         backgroundColor: '#1F2C34',
         padding: '8px 16px',
         display: 'flex',
         alignItems: 'center',
-        gap: '12px'
+        gap: '12px',
+        flexShrink: 0
       }}>
         <ArrowLeft className="w-6 h-6" style={{ color: '#8696A0' }} />
 
@@ -440,7 +443,8 @@ export default function Chat() {
       <div style={{
         backgroundColor: '#1F2C34',
         padding: '8px 16px',
-        minHeight: '62px'
+        minHeight: '62px',
+        flexShrink: 0
       }}>
         {waitingForResponse && currentOptions.length > 0 ? (
           <motion.div

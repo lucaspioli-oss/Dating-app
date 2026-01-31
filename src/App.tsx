@@ -19,6 +19,8 @@ import GameCallAna from "./pages/game/CallAna"
 import GamePhoneNotification from "./pages/game/PhoneNotification"
 import GameChat from "./pages/game/Chat"
 import GameCheckout from "./pages/game/Checkout"
+import GameTikTokFeed from "./pages/game/TikTokFeed"
+import GameTikTokProfile from "./pages/game/TikTokProfile"
 
 function App() {
   return (
@@ -44,6 +46,8 @@ function App() {
       <Route path="/game/notificacao" component={GamePhoneNotification} />
       <Route path="/game/chat" component={GameChat} />
       <Route path="/game/checkout" component={GameCheckout} />
+      <Route path="/game/tiktok" component={GameTikTokFeed} />
+      <Route path="/game/tiktok/perfil" component={GameTikTokProfile} />
 
       <Route>
         <div className="min-h-screen flex items-center justify-center bg-[hsl(280,40%,2%)] text-white">
