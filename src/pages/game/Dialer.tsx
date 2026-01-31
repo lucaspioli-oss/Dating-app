@@ -198,33 +198,51 @@ export default function Dialer() {
                 <div
                   className="rounded-2xl backdrop-blur-xl"
                   style={{
-                    background: 'rgba(255, 255, 255, 0.1)',
+                    background: 'rgba(30, 30, 30, 0.85)',
                     border: '1px solid rgba(255, 255, 255, 0.1)',
                     padding: '12px 16px'
                   }}
                 >
-                  <div className="flex items-center gap-3" style={{ marginBottom: '8px' }}>
-                    <div
-                      className="rounded-full bg-green-500 flex items-center justify-center"
-                      style={{ width: '32px', height: '32px' }}
-                    >
-                      <MessageCircle className="w-4 h-4 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-white font-medium" style={{ fontSize: '14px' }}>WhatsApp</span>
-                        <span className="text-white/50" style={{ fontSize: '12px' }}>agora</span>
+                  <div className="flex items-start gap-3">
+                    {/* Foto com ícone do WhatsApp */}
+                    <div className="relative flex-shrink-0">
+                      <div
+                        className="rounded-full overflow-hidden"
+                        style={{ width: '44px', height: '44px' }}
+                      >
+                        <img
+                          src="/assets/images/proofs/Echo.png"
+                          alt="ECHO"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      {/* Mini ícone WhatsApp */}
+                      <div
+                        className="absolute rounded-full bg-[#25D366] flex items-center justify-center"
+                        style={{
+                          width: '18px',
+                          height: '18px',
+                          bottom: '-2px',
+                          right: '-2px',
+                          border: '2px solid rgba(30, 30, 30, 0.85)'
+                        }}
+                      >
+                        <svg viewBox="0 0 24 24" fill="white" style={{ width: '10px', height: '10px' }}>
+                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                        </svg>
                       </div>
                     </div>
-                  </div>
 
-                  <div style={{ marginLeft: '44px' }}>
-                    <p className="text-white font-medium" style={{ fontSize: '15px', marginBottom: '2px' }}>
-                      ECHO
-                    </p>
-                    <p className="text-white/70" style={{ fontSize: '14px' }}>
-                      🎤 Mensagem de voz
-                    </p>
+                    {/* Conteúdo */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between" style={{ marginBottom: '2px' }}>
+                        <span className="text-white font-semibold" style={{ fontSize: '15px' }}>ECHO</span>
+                        <span className="text-white/50" style={{ fontSize: '12px' }}>agora</span>
+                      </div>
+                      <p className="text-white/80" style={{ fontSize: '14px' }}>
+                        🎤 Mensagem de voz (0:10)
+                      </p>
+                    </div>
                   </div>
                 </div>
 
