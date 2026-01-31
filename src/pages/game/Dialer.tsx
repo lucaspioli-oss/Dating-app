@@ -12,7 +12,7 @@ export default function Dialer() {
   const [isCalling, setIsCalling] = useState(false)
 
   // Som de chamando
-  const dialTone = useAudio('/assets/audios/effects/chamada.mpeg', {
+  const dialTone = useAudio('/assets/audios/effects/chamada.mp3', {
     loop: true
   })
 
