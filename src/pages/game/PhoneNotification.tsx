@@ -11,8 +11,9 @@ export default function PhoneNotification() {
 
   useEffect(() => {
     // Pré-carrega o áudio da notificação
-    notificationSoundRef.current = new Audio('/assets/audios/effects/notificacao_whats.m4a')
-    notificationSoundRef.current.load()
+    const audio = new Audio('/assets/audios/effects/notificacao_whats.m4a')
+    audio.preload = 'auto'
+    notificationSoundRef.current = audio
 
     // Atualiza o horário
     const updateTime = () => {
@@ -25,12 +26,25 @@ export default function PhoneNotification() {
     // Mostra notificação após 2 segundos
     const notifTimer = setTimeout(() => {
       setShowNotification(true)
-      notificationSoundRef.current?.play().catch(() => {})
+      // Tenta tocar o som
+      if (notificationSoundRef.current) {
+        notificationSoundRef.current.currentTime = 0
+        notificationSoundRef.current.volume = 1
+        const playPromise = notificationSoundRef.current.play()
+        if (playPromise !== undefined) {
+          playPromise.catch((error) => {
+            console.log('Audio play failed:', error)
+          })
+        }
+      }
     }, 2000)
 
     return () => {
       clearInterval(interval)
       clearTimeout(notifTimer)
+      if (notificationSoundRef.current) {
+        notificationSoundRef.current.pause()
+      }
     }
   }, [])
 

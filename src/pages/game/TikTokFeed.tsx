@@ -133,7 +133,7 @@ export default function TikTokFeed() {
           >
             {/* Video */}
             <video
-              ref={el => videoRefs.current[index] = el}
+              ref={el => { videoRefs.current[index] = el }}
               src={video.url}
               poster={video.poster}
               loop
