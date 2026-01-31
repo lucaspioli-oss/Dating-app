@@ -179,7 +179,7 @@ export default function Dialer() {
           <h1 className="text-white font-light" style={{ fontSize: '72px', letterSpacing: '2px' }}>
             {currentTime}
           </h1>
-          <p className="text-white/50" style={{ fontSize: '18px', marginTop: '8px' }}>
+          <p className="text-white/80" style={{ fontSize: '18px', marginTop: '8px' }}>
             {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
         </div>
