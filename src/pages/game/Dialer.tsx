@@ -90,6 +90,12 @@ export default function Dialer() {
           if (callTimerRef.current) {
             clearInterval(callTimerRef.current)
           }
+
+          // Começa a carregar o som de notificação AGORA
+          if (notifSoundRef.current) {
+            notifSoundRef.current.load()
+          }
+
           setTimeout(() => {
             setStage('notification')
           }, 1500)
