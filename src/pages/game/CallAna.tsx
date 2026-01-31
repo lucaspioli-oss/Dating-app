@@ -16,7 +16,7 @@ export default function CallAna() {
   const notificationSoundRef = useRef<HTMLAudioElement | null>(null)
 
   // Audio da ligacao da ECHO
-  const callAudio = useAudio('/assets/audios/audio_final_echo.m4a', {
+  const callAudio = useAudio('/assets/audios/voices/audio_final_echo.m4a', {
     onEnded: () => {
       timer.stop()
       // Muda para tela de notificação após 1.5s
