@@ -16,6 +16,7 @@ import GameIncomingCall from "./pages/game/IncomingCall"
 import GameCallCode from "./pages/game/CallCode"
 import GameDialer from "./pages/game/Dialer"
 import GameCallAna from "./pages/game/CallAna"
+import GamePhoneNotification from "./pages/game/PhoneNotification"
 import GameChat from "./pages/game/Chat"
 import GameCheckout from "./pages/game/Checkout"
 
@@ -40,6 +41,7 @@ function App() {
       <Route path="/game/ligacao/code" component={GameCallCode} />
       <Route path="/game/discar" component={GameDialer} />
       <Route path="/game/ligacao/ana" component={GameCallAna} />
+      <Route path="/game/notificacao" component={GamePhoneNotification} />
       <Route path="/game/chat" component={GameChat} />
       <Route path="/game/checkout" component={GameCheckout} />
 

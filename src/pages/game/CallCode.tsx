@@ -1,29 +1,17 @@
 import { useEffect, useState } from 'react'
 import { useLocation } from 'wouter'
 import { motion } from 'framer-motion'
-import { Phone, User, Volume2 } from 'lucide-react'
+import { Phone, Volume2 } from 'lucide-react'
 import { useTimer } from '../../hooks/useTimer'
 import { useAudio } from '../../hooks/useAudio'
 
 export default function CallCode() {
   const [, setLocation] = useLocation()
   const [callEnded, setCallEnded] = useState(false)
-  const [showNumber, setShowNumber] = useState(false)
   const timer = useTimer()
 
-  // Áudio da ligação do Code
-  const callAudio = useAudio('/assets/audios/voices/code_ligacao.mp3', {
-    onEnded: () => {
-      setCallEnded(true)
-      timer.stop()
-    },
-    onTimeUpdate: (currentTime) => {
-      // Mostra o número quando ele fala (aproximadamente aos 22s)
-      if (currentTime >= 22 && !showNumber) {
-        setShowNumber(true)
-      }
-    }
-  })
+  // Audio da ligacao do NEO
+  const callAudio = useAudio('/assets/audios/voices/Audio Neo.m4a', {})
 
   useEffect(() => {
     // Inicia a chamada após pequeno delay
@@ -38,12 +26,21 @@ export default function CallCode() {
     }
   }, [])
 
+  // Mostra "Chamada Encerrada" aos 55 segundos (audio continua)
   useEffect(() => {
-    // Quando a chamada termina, vai para a tela de discar após 2s
+    if (timer.seconds >= 55 && !callEnded) {
+      setCallEnded(true)
+      timer.stop()
+    }
+  }, [timer.seconds, callEnded])
+
+  useEffect(() => {
+    // Quando a chamada termina visualmente, espera 5s (audio continua) e redireciona
     if (callEnded) {
       const redirectTimer = setTimeout(() => {
+        callAudio.stop()
         setLocation('/game/discar')
-      }, 2000)
+      }, 5000)
       return () => clearTimeout(redirectTimer)
     }
   }, [callEnded, setLocation])
@@ -72,64 +69,47 @@ export default function CallCode() {
       <div className="absolute inset-0 bg-gradient-to-b from-gray-900 to-black" />
 
       {/* Conteúdo */}
-      <div className="relative z-10 flex flex-col items-center h-screen py-12 px-6">
+      <div
+        className="relative z-10 flex flex-col items-center h-screen"
+        style={{ paddingTop: '80px', paddingBottom: '60px', paddingLeft: '24px', paddingRight: '24px' }}
+      >
         {/* Info do chamador */}
-        <div className="text-center mb-8">
+        <div className="text-center" style={{ marginBottom: '40px' }}>
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="w-24 h-24 rounded-full bg-gradient-to-br from-gray-700 to-gray-800
-                       flex items-center justify-center mx-auto mb-4
-                       border-2 border-white/10"
+            className="rounded-full overflow-hidden mx-auto border-2 border-white/10"
+            style={{ width: '96px', height: '96px', marginBottom: '16px' }}
           >
-            <User className="w-12 h-12 text-white/50" />
+            <img src="/assets/images/NEO.png" alt="NEO" className="w-full h-full object-cover" />
           </motion.div>
-          <h1 className="text-2xl font-light text-white mb-1">Code</h1>
+          <h1 className="text-2xl font-light text-white" style={{ marginBottom: '4px' }}>NEO</h1>
           <p className="text-call-green text-sm">{timer.formatted}</p>
         </div>
 
         {/* Waveform / Indicador de áudio */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="flex items-center justify-center gap-1 mb-8"
-        >
-          {[...Array(12)].map((_, i) => (
+        <div className="flex items-center justify-center" style={{ gap: '3px' }}>
+          {[8, 16, 24, 16, 28, 20, 12, 24, 16, 8, 20, 12].map((maxHeight, i) => (
             <motion.div
               key={i}
-              className="w-1 bg-call-green rounded-full"
-              animate={{
-                height: callAudio.isPlaying ? [4, 12 + Math.random() * 16, 4] : 4
-              }}
+              className="bg-call-green rounded-full"
+              style={{ width: '3px' }}
+              animate={{ height: [4, maxHeight, 4] }}
               transition={{
-                duration: 0.3 + Math.random() * 0.2,
+                duration: 0.8,
                 repeat: Infinity,
-                delay: i * 0.05
+                delay: i * 0.1,
+                ease: "easeInOut"
               }}
             />
           ))}
-        </motion.div>
-
-        {/* Número quando aparece */}
-        {showNumber && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white/10 rounded-xl px-6 py-4 mb-8"
-          >
-            <p className="text-white/70 text-sm mb-1">Anote o número:</p>
-            <p className="text-2xl font-mono text-white font-bold tracking-wider">
-              345 9450-4335
-            </p>
-          </motion.div>
-        )}
+        </div>
 
         {/* Spacer */}
-        <div className="flex-1" />
+        <div style={{ flex: 1 }} />
 
         {/* Indicador de volume */}
-        <div className="flex items-center gap-2 text-white/50 mb-4">
+        <div className="flex items-center gap-2 text-white/50" style={{ marginBottom: '24px' }}>
           <Volume2 className="w-4 h-4" />
           <span className="text-sm">Alto-falante ativado</span>
         </div>
@@ -139,12 +119,11 @@ export default function CallCode() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="w-16 h-16 rounded-full bg-call-red/20 flex items-center justify-center
-                     border border-call-red/50"
+          className="rounded-full bg-call-red/20 flex items-center justify-center border border-call-red/50"
+          style={{ width: '64px', height: '64px' }}
         >
           <Phone className="w-7 h-7 text-call-red rotate-[135deg]" />
         </motion.div>
-        <p className="text-white/50 text-xs mt-2">Em chamada</p>
       </div>
     </div>
   )

@@ -6,7 +6,7 @@ import { ArrowLeft, Phone, MoreVertical } from 'lucide-react'
 // Tipos
 interface Message {
   id: string
-  sender: 'ana' | 'mina' | 'user'
+  sender: 'echo' | 'mina' | 'user'
   content: string
   type: 'text' | 'image' | 'suggestion'
 }
@@ -14,13 +14,13 @@ interface Message {
 // Script do chat
 const chatFlow = [
   // Abertura
-  { id: '1', sender: 'ana', content: 'Você atendeu. Isso já diz algo sobre você.', delay: 1000 },
-  { id: '2', sender: 'ana', content: 'Agora eu preciso entender uma coisa.', delay: 2000 },
-  { id: '3', sender: 'ana', content: 'Por que você quer isso?', delay: 1500, waitForResponse: true, options: ['Cansei de tomar vacuo', 'Quero parar de travar', 'Quero mais resultados'] },
-  { id: '4', sender: 'ana', content: 'Entendi.', delay: 1000 },
-  { id: '5', sender: 'ana', content: 'Vou te mostrar o que o Code criou. Mas não vou só FALAR. Vou te fazer SENTIR.', delay: 2000 },
-  { id: '6', sender: 'ana', content: 'Faz o seguinte. Imagina que eu sou uma mina que você acabou de dar match. Vou te mandar uma mensagem como ela mandaria.', delay: 3000 },
-  { id: '7', sender: 'ana', content: 'Preparado?', delay: 1500, waitForResponse: true, options: ['BORA'] },
+  { id: '1', sender: 'echo', content: 'Você atendeu. Isso já diz algo sobre você.', delay: 1000 },
+  { id: '2', sender: 'echo', content: 'Agora eu preciso entender uma coisa.', delay: 2000 },
+  { id: '3', sender: 'echo', content: 'Por que você quer isso?', delay: 1500, waitForResponse: true, options: ['Cansei de tomar vacuo', 'Quero parar de travar', 'Quero mais resultados'] },
+  { id: '4', sender: 'echo', content: 'Entendi.', delay: 1000 },
+  { id: '5', sender: 'echo', content: 'Vou te mostrar o que o NEO criou. Mas não vou só FALAR. Vou te fazer SENTIR.', delay: 2000 },
+  { id: '6', sender: 'echo', content: 'Faz o seguinte. Imagina que eu sou uma mina que você acabou de dar match. Vou te mandar uma mensagem como ela mandaria.', delay: 3000 },
+  { id: '7', sender: 'echo', content: 'Preparado?', delay: 1500, waitForResponse: true, options: ['BORA'] },
 
   // Simulação
   { id: '8', type: 'transition', persona: 'mina' },
@@ -30,31 +30,31 @@ const chatFlow = [
   { id: '12', type: 'silence', delay: 4000 },
 
   // Análise
-  { id: '13', type: 'transition', persona: 'ana' },
-  { id: '14', sender: 'ana', content: 'Morreu né?', delay: 1500 },
-  { id: '15', sender: 'ana', content: 'Essa é a realidade de 90% dos caras. A conversa simplesmente... morre.', delay: 2500 },
-  { id: '16', sender: 'ana', content: 'Agora olha o que o sistema do Code sugeriria nesse momento exato:', delay: 2000 },
+  { id: '13', type: 'transition', persona: 'echo' },
+  { id: '14', sender: 'echo', content: 'Morreu né?', delay: 1500 },
+  { id: '15', sender: 'echo', content: 'Essa é a realidade de 90% dos caras. A conversa simplesmente... morre.', delay: 2500 },
+  { id: '16', sender: 'echo', content: 'Agora olha o que o sistema do NEO sugeriria nesse momento exato:', delay: 2000 },
   { id: '17', type: 'suggestion', content: 'Legal é fichinha. Me conta algo sobre você que eu não ia adivinhar nem em 10 tentativas', delay: 1000 },
-  { id: '18', sender: 'ana', content: 'Percebe? Não é forçado. Não é cantada brega. É só... a coisa certa na hora certa.', delay: 3000 },
-  { id: '19', sender: 'ana', content: 'Quer ver o que acontece quando você usa isso consistentemente?', delay: 2000, waitForResponse: true, options: ['MOSTRA'] },
+  { id: '18', sender: 'echo', content: 'Percebe? Não é forçado. Não é cantada brega. É só... a coisa certa na hora certa.', delay: 3000 },
+  { id: '19', sender: 'echo', content: 'Quer ver o que acontece quando você usa isso consistentemente?', delay: 2000, waitForResponse: true, options: ['MOSTRA'] },
 
   // Prova social
-  { id: '20', sender: 'ana', content: 'Olha esses resultados reais:', delay: 1500 },
+  { id: '20', sender: 'echo', content: 'Olha esses resultados reais:', delay: 1500 },
   { id: '21', type: 'image', content: '/assets/images/proofs/print_conversa_01.png', delay: 2000 },
   { id: '22', type: 'image', content: '/assets/images/proofs/print_conversa_02.png', delay: 2000 },
-  { id: '23', sender: 'ana', content: 'Isso é o que acontece quando você para de adivinhar e começa a SABER o que funciona.', delay: 2500 },
+  { id: '23', sender: 'echo', content: 'Isso é o que acontece quando você para de adivinhar e começa a SABER o que funciona.', delay: 2500 },
 
   // Revelação
-  { id: '24', sender: 'ana', content: 'Agora a parte que o Code não queria que eu contasse...', delay: 3000 },
-  { id: '25', sender: 'ana', content: 'Tudo que eu te mandei até agora...', delay: 2000 },
-  { id: '26', sender: 'ana', content: 'O tom. As respostas. O timing.', delay: 1500 },
-  { id: '27', sender: 'ana', content: 'Foi o sistema dele me guiando.', delay: 2000 },
-  { id: '28', sender: 'ana', content: 'Você acabou de conversar com a ferramenta sem perceber.', delay: 2500 },
-  { id: '29', sender: 'ana', content: 'E funcionou, não funcionou?', delay: 2000 },
-  { id: '30', sender: 'ana', content: 'Você respondeu. Você engajou. Você ficou até aqui.', delay: 2000 },
-  { id: '31', sender: 'ana', content: 'Imagina ter isso em TODA conversa. Todo match. Toda oportunidade.', delay: 2500 },
-  { id: '32', sender: 'ana', content: 'O Code me autorizou a liberar o acesso pra quem chegasse até aqui.', delay: 2500 },
-  { id: '33', sender: 'ana', content: 'Você chegou. 🔓', delay: 1500, waitForResponse: true, options: ['QUERO MEU ACESSO'] },
+  { id: '24', sender: 'echo', content: 'Agora a parte que o NEO não queria que eu contasse...', delay: 3000 },
+  { id: '25', sender: 'echo', content: 'Tudo que eu te mandei até agora...', delay: 2000 },
+  { id: '26', sender: 'echo', content: 'O tom. As respostas. O timing.', delay: 1500 },
+  { id: '27', sender: 'echo', content: 'Foi o sistema dele me guiando.', delay: 2000 },
+  { id: '28', sender: 'echo', content: 'Você acabou de conversar com a ferramenta sem perceber.', delay: 2500 },
+  { id: '29', sender: 'echo', content: 'E funcionou, não funcionou?', delay: 2000 },
+  { id: '30', sender: 'echo', content: 'Você respondeu. Você engajou. Você ficou até aqui.', delay: 2000 },
+  { id: '31', sender: 'echo', content: 'Imagina ter isso em TODA conversa. Todo match. Toda oportunidade.', delay: 2500 },
+  { id: '32', sender: 'echo', content: 'O NEO me autorizou a liberar o acesso pra quem chegasse até aqui.', delay: 2500 },
+  { id: '33', sender: 'echo', content: 'Você chegou. 🔓', delay: 1500, waitForResponse: true, options: ['QUERO MEU ACESSO'] },
 ]
 
 export default function Chat() {
@@ -64,7 +64,7 @@ export default function Chat() {
   const [isTyping, setIsTyping] = useState(false)
   const [waitingForResponse, setWaitingForResponse] = useState(false)
   const [currentOptions, setCurrentOptions] = useState<string[]>([])
-  const [currentPersona, setCurrentPersona] = useState<'ana' | 'mina'>('ana')
+  const [currentPersona, setCurrentPersona] = useState<'echo' | 'mina'>('echo')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -83,7 +83,7 @@ export default function Chat() {
 
     // Transição de persona
     if (step.type === 'transition') {
-      setCurrentPersona(step.persona as 'ana' | 'mina')
+      setCurrentPersona(step.persona as 'echo' | 'mina')
       setCurrentStep(prev => prev + 1)
       return
     }
@@ -101,7 +101,7 @@ export default function Chat() {
       const timer = setTimeout(() => {
         setMessages(prev => [...prev, {
           id: step.id,
-          sender: 'ana',
+          sender: 'echo',
           content: step.content!,
           type: 'suggestion'
         }])
@@ -115,7 +115,7 @@ export default function Chat() {
       const timer = setTimeout(() => {
         setMessages(prev => [...prev, {
           id: step.id,
-          sender: 'ana',
+          sender: 'echo',
           content: step.content!,
           type: 'image'
         }])
@@ -132,7 +132,7 @@ export default function Chat() {
         setIsTyping(false)
         setMessages(prev => [...prev, {
           id: step.id,
-          sender: step.sender as 'ana' | 'mina',
+          sender: step.sender as 'echo' | 'mina',
           content: step.content,
           type: 'text'
         }])
@@ -176,7 +176,7 @@ export default function Chat() {
     if (currentPersona === 'mina') {
       return { name: 'Mina do Tinder 🔥', color: 'from-pink-500 to-rose-500' }
     }
-    return { name: 'Ana', color: 'from-purple-500 to-pink-500' }
+    return { name: 'ECHO', color: 'from-purple-500 to-pink-500' }
   }
 
   const persona = getPersonaInfo()

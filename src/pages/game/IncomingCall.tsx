@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLocation } from 'wouter'
 import { motion } from 'framer-motion'
-import { Phone, PhoneOff, User } from 'lucide-react'
+import { Phone, PhoneOff } from 'lucide-react'
 import { useVibration } from '../../hooks/useVibration'
 import { useAudio } from '../../hooks/useAudio'
 
@@ -11,7 +11,7 @@ export default function IncomingCall() {
   const { startPhoneVibration, stopVibration } = useVibration()
 
   // Som de toque - usando um placeholder por enquanto
-  const ringtone = useAudio('/assets/audios/effects/toque_celular.mp3', {
+  const ringtone = useAudio('/assets/audios/effects/toque celular.m4a', {
     loop: true
   })
 
@@ -77,60 +77,72 @@ export default function IncomingCall() {
       {/* Fundo gradiente */}
       <div className="absolute inset-0 bg-gradient-to-b from-gray-900 to-black" />
 
-      {/* Conteúdo */}
-      <div className="relative z-10 flex flex-col items-center justify-between h-screen py-16 px-6">
+      {/* Conteudo */}
+      <div
+        className="relative z-10 flex flex-col items-center h-screen"
+        style={{ paddingLeft: '24px', paddingRight: '24px', paddingTop: '80px', paddingBottom: '60px' }}
+      >
         {/* Info do chamador */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center"
+          className="text-center flex flex-col items-center"
+          style={{ gap: '24px' }}
         >
           {/* Avatar */}
           <motion.div
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 2, repeat: Infinity }}
-            className="w-28 h-28 rounded-full bg-gradient-to-br from-gray-700 to-gray-800
-                       flex items-center justify-center mx-auto mb-6
-                       border-2 border-white/10"
+            className="rounded-full overflow-hidden border-2 border-white/10"
+            style={{ width: '112px', height: '112px' }}
           >
-            <User className="w-14 h-14 text-white/50" />
+            <img src="/assets/images/NEO.png" alt="NEO" className="w-full h-full object-cover" />
           </motion.div>
 
           {/* Nome */}
-          <h1 className="text-3xl font-light text-white mb-2">Número Desconhecido</h1>
-          <p className="text-white/50 text-lg">Ligação recebida...</p>
-        </motion.div>
+          <div>
+            <h1 className="text-3xl font-light text-white mb-2">NEO</h1>
+            <p className="text-white/50 text-lg">Ligacao recebida...</p>
+          </div>
 
-        {/* Indicador de chamada */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="flex items-center gap-2 text-white/50"
-        >
+          {/* Indicador de chamada */}
           <motion.div
-            animate={{ opacity: [1, 0.3, 1] }}
-            transition={{ duration: 1, repeat: Infinity }}
-            className="w-2 h-2 rounded-full bg-call-green"
-          />
-          <span>Chamando...</span>
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="flex items-center gap-2 text-white/50"
+          >
+            <motion.div
+              animate={{ opacity: [1, 0.3, 1] }}
+              transition={{ duration: 1, repeat: Infinity }}
+              className="w-2 h-2 rounded-full bg-call-green"
+            />
+            <span>Chamando...</span>
+          </motion.div>
         </motion.div>
 
-        {/* Botões de ação */}
+        {/* Spacer */}
+        <div style={{ flex: 1 }} />
+
+        {/* Botoes de acao */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="flex items-center justify-center gap-16"
+          className="flex items-center justify-center"
+          style={{ gap: '100px' }}
         >
           {/* Recusar */}
           <button
             onClick={handleDecline}
-            className="flex flex-col items-center gap-2"
+            className="flex flex-col items-center"
+            style={{ gap: '8px' }}
           >
-            <div className="w-16 h-16 rounded-full bg-call-red flex items-center justify-center
-                           transition-transform active:scale-90">
-              <PhoneOff className="w-7 h-7 text-white" />
+            <div
+              className="rounded-full bg-call-red flex items-center justify-center transition-transform active:scale-90"
+              style={{ width: '72px', height: '72px' }}
+            >
+              <PhoneOff className="w-8 h-8 text-white" />
             </div>
             <span className="text-white/70 text-sm">Recusar</span>
           </button>
@@ -138,15 +150,17 @@ export default function IncomingCall() {
           {/* Atender */}
           <button
             onClick={handleAnswer}
-            className="flex flex-col items-center gap-2"
+            className="flex flex-col items-center"
+            style={{ gap: '8px' }}
           >
             <motion.div
               animate={{ scale: [1, 1.1, 1] }}
               transition={{ duration: 0.5, repeat: Infinity }}
-              className="w-16 h-16 rounded-full bg-call-green flex items-center justify-center
+              className="rounded-full bg-call-green flex items-center justify-center
                          transition-transform active:scale-90 shadow-lg shadow-call-green/50"
+              style={{ width: '72px', height: '72px' }}
             >
-              <Phone className="w-7 h-7 text-white" />
+              <Phone className="w-8 h-8 text-white" />
             </motion.div>
             <span className="text-white/70 text-sm">Atender</span>
           </button>

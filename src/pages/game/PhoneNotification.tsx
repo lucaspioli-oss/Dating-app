@@ -11,7 +11,7 @@ export default function PhoneNotification() {
 
   useEffect(() => {
     // Pré-carrega o áudio da notificação
-    notificationSoundRef.current = new Audio('/assets/audios/effects/notificação_whats.m4a')
+    notificationSoundRef.current = new Audio('/assets/audios/effects/notificacao_whats.m4a')
     notificationSoundRef.current.load()
 
     // Atualiza o horário
