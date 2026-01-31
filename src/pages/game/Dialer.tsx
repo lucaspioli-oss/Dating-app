@@ -56,6 +56,11 @@ export default function Dialer() {
   const handleCall = useCallback(() => {
     setStage('calling')
 
+    // IMPORTANTE: Começa a carregar o áudio da Echo AGORA (8s antes de precisar)
+    if (echoAudioRef.current) {
+      echoAudioRef.current.load()
+    }
+
     // Toca som de chamando
     if (dialToneRef.current) {
       dialToneRef.current.currentTime = 0
