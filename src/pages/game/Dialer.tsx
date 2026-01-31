@@ -3,6 +3,7 @@ import { useLocation } from 'wouter'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Phone, Volume2, MessageCircle } from 'lucide-react'
 import { useTimer } from '../../hooks/useTimer'
+import { useAudio } from '../../hooks/useAudio'
 
 const PHONE_NUMBER = '345 9450-4335'
 const CONTACT_NAME = 'ECHO'
@@ -15,39 +16,29 @@ export default function Dialer() {
   const [showNotification, setShowNotification] = useState(false)
   const [currentTime, setCurrentTime] = useState('')
   const timer = useTimer()
-
-  // Refs para os áudios
-  const dialToneRef = useRef<HTMLAudioElement | null>(null)
-  const callAudioRef = useRef<HTMLAudioElement | null>(null)
   const notificationSoundRef = useRef<HTMLAudioElement | null>(null)
 
-  // Pré-carrega todos os áudios
-  useEffect(() => {
-    // Som de chamando
-    const dialTone = new Audio('/assets/audios/effects/chamada.mp3')
-    dialTone.loop = true
-    dialTone.preload = 'auto'
-    dialToneRef.current = dialTone
+  // Som de chamando (igual IncomingCall)
+  const dialTone = useAudio('/assets/audios/effects/chamada.mp3', {
+    loop: true
+  })
 
-    // Áudio da Echo
-    const callAudio = new Audio('/assets/audios/voices/audio_final_echo.m4a')
-    callAudio.preload = 'auto'
-    callAudio.onended = () => {
+  // Audio da ligacao da ECHO (igual IncomingCall)
+  const callAudio = useAudio('/assets/audios/voices/audio_final_echo.m4a', {
+    onEnded: () => {
       timer.stop()
       setTimeout(() => {
         setStage('notification')
       }, 1500)
     }
-    callAudioRef.current = callAudio
+  })
 
-    // Som de notificação
+  // Pré-carrega som de notificação
+  useEffect(() => {
     const notifSound = new Audio('/assets/audios/effects/notificacao_whats.m4a')
     notifSound.preload = 'auto'
     notificationSoundRef.current = notifSound
-
     return () => {
-      dialTone.pause()
-      callAudio.pause()
       notifSound.pause()
     }
   }, [])
@@ -55,15 +46,14 @@ export default function Dialer() {
   // Quando está chamando, após 8s inicia a ligação
   useEffect(() => {
     if (stage === 'calling') {
-      dialToneRef.current?.play().catch(() => {})
+      dialTone.play()
       const timeout = setTimeout(() => {
-        dialToneRef.current?.pause()
-        if (dialToneRef.current) dialToneRef.current.currentTime = 0
+        dialTone.stop()
         setStage('call')
       }, 8000)
       return () => {
         clearTimeout(timeout)
-        dialToneRef.current?.pause()
+        dialTone.stop()
       }
     }
   }, [stage])
@@ -72,9 +62,9 @@ export default function Dialer() {
   useEffect(() => {
     if (stage === 'call') {
       timer.start()
-      callAudioRef.current?.play().catch(() => {})
+      callAudio.play()
       return () => {
-        callAudioRef.current?.pause()
+        callAudio.stop()
       }
     }
   }, [stage])
