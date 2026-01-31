@@ -33,10 +33,12 @@ export default function Dialer() {
     // Som de chamando
     const dialTone = new Audio('/assets/audios/effects/chamada.mp3')
     dialTone.loop = true
+    dialTone.preload = 'auto'
     dialToneRef.current = dialTone
 
     // Áudio da Echo
     const echoAudio = new Audio('/assets/audios/voices/audio_final_echo.m4a')
+    echoAudio.preload = 'auto'
     echoAudioRef.current = echoAudio
 
     // Som de notificação
@@ -71,24 +73,35 @@ export default function Dialer() {
       setCallTime(0)
 
       // Inicia contador de tempo
-      callTimerRef.current = setInterval(() => {
+      callTimerRef.current = window.setInterval(() => {
         setCallTime(prev => prev + 1)
       }, 1000)
 
       // Toca áudio da Echo
-      if (echoAudioRef.current) {
-        echoAudioRef.current.currentTime = 0
-        echoAudioRef.current.play().catch(console.error)
-
+      const echoAudio = echoAudioRef.current
+      if (echoAudio) {
         // Quando terminar, vai para notificação
-        echoAudioRef.current.onended = () => {
+        echoAudio.onended = () => {
           if (callTimerRef.current) {
             clearInterval(callTimerRef.current)
           }
-
           setTimeout(() => {
             setStage('notification')
           }, 1500)
+        }
+
+        // Tenta tocar - se falhar, tenta de novo quando carregar
+        echoAudio.currentTime = 0
+        const playPromise = echoAudio.play()
+        if (playPromise !== undefined) {
+          playPromise.catch((error) => {
+            console.error('Echo audio failed:', error)
+            // Tenta de novo quando o áudio estiver pronto
+            echoAudio.oncanplaythrough = () => {
+              echoAudio.play().catch(console.error)
+            }
+            echoAudio.load()
+          })
         }
       }
     }, 8000)
