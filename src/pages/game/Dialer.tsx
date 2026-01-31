@@ -1,9 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useLocation } from 'wouter'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Phone, Volume2, MessageCircle } from 'lucide-react'
-import { useTimer } from '../../hooks/useTimer'
-import { useAudio } from '../../hooks/useAudio'
 
 const PHONE_NUMBER = '345 9450-4335'
 const CONTACT_NAME = 'ECHO'
@@ -15,64 +13,90 @@ export default function Dialer() {
   const [stage, setStage] = useState<Stage>('dialer')
   const [showNotification, setShowNotification] = useState(false)
   const [currentTime, setCurrentTime] = useState('')
-  const timer = useTimer()
-  const notificationSoundRef = useRef<HTMLAudioElement | null>(null)
+  const [callTime, setCallTime] = useState(0)
+  const callTimerRef = useRef<number | null>(null)
 
-  // Som de chamando (igual IncomingCall)
-  const dialTone = useAudio('/assets/audios/effects/chamada.mp3', {
-    loop: true
-  })
+  // Refs para os áudios
+  const dialToneRef = useRef<HTMLAudioElement | null>(null)
+  const echoAudioRef = useRef<HTMLAudioElement | null>(null)
+  const notifSoundRef = useRef<HTMLAudioElement | null>(null)
 
-  // Audio da ligacao da ECHO (igual IncomingCall)
-  const callAudio = useAudio('/assets/audios/voices/audio_final_echo.m4a', {
-    onEnded: () => {
-      timer.stop()
-      setTimeout(() => {
-        setStage('notification')
-      }, 1500)
-    }
-  })
+  // Formata o tempo da chamada
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  }
 
-  // Pré-carrega som de notificação
+  // Inicializa os áudios uma vez
   useEffect(() => {
+    // Som de chamando
+    const dialTone = new Audio('/assets/audios/effects/chamada.mp3')
+    dialTone.loop = true
+    dialToneRef.current = dialTone
+
+    // Áudio da Echo
+    const echoAudio = new Audio('/assets/audios/voices/audio_final_echo.m4a')
+    echoAudioRef.current = echoAudio
+
+    // Som de notificação
     const notifSound = new Audio('/assets/audios/effects/notificacao_whats.m4a')
-    notifSound.preload = 'auto'
-    notificationSoundRef.current = notifSound
+    notifSoundRef.current = notifSound
+
     return () => {
+      dialTone.pause()
+      echoAudio.pause()
       notifSound.pause()
     }
   }, [])
 
-  // Quando está chamando, após 8s inicia a ligação
-  useEffect(() => {
-    if (stage === 'calling') {
-      dialTone.play()
-      const timeout = setTimeout(() => {
-        dialTone.stop()
-        setStage('call')
-      }, 8000)
-      return () => {
-        clearTimeout(timeout)
-        dialTone.stop()
-      }
-    }
-  }, [stage])
+  // Função para iniciar a chamada (clicou em ligar)
+  const handleCall = useCallback(() => {
+    setStage('calling')
 
-  // Quando inicia a ligação
-  useEffect(() => {
-    if (stage === 'call') {
-      timer.start()
-      callAudio.play()
-      return () => {
-        callAudio.stop()
-      }
+    // Toca som de chamando
+    if (dialToneRef.current) {
+      dialToneRef.current.currentTime = 0
+      dialToneRef.current.play().catch(console.error)
     }
-  }, [stage])
+
+    // Após 8 segundos, para o som e inicia a ligação
+    setTimeout(() => {
+      if (dialToneRef.current) {
+        dialToneRef.current.pause()
+        dialToneRef.current.currentTime = 0
+      }
+
+      setStage('call')
+      setCallTime(0)
+
+      // Inicia contador de tempo
+      callTimerRef.current = setInterval(() => {
+        setCallTime(prev => prev + 1)
+      }, 1000)
+
+      // Toca áudio da Echo
+      if (echoAudioRef.current) {
+        echoAudioRef.current.currentTime = 0
+        echoAudioRef.current.play().catch(console.error)
+
+        // Quando terminar, vai para notificação
+        echoAudioRef.current.onended = () => {
+          if (callTimerRef.current) {
+            clearInterval(callTimerRef.current)
+          }
+
+          setTimeout(() => {
+            setStage('notification')
+          }, 1500)
+        }
+      }
+    }, 8000)
+  }, [])
 
   // Quando muda para tela de notificação
   useEffect(() => {
     if (stage === 'notification') {
-      // Atualiza horário
       const updateTime = () => {
         const now = new Date()
         setCurrentTime(now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
@@ -83,10 +107,9 @@ export default function Dialer() {
       // Mostra notificação após 2 segundos e toca som
       const notifTimer = setTimeout(() => {
         setShowNotification(true)
-        if (notificationSoundRef.current) {
-          notificationSoundRef.current.currentTime = 0
-          notificationSoundRef.current.volume = 1
-          notificationSoundRef.current.play().catch(() => {})
+        if (notifSoundRef.current) {
+          notifSoundRef.current.currentTime = 0
+          notifSoundRef.current.play().catch(console.error)
         }
       }, 2000)
 
@@ -97,15 +120,10 @@ export default function Dialer() {
     }
   }, [stage])
 
-  const handleCall = () => {
-    setStage('calling')
-  }
-
   const handleNotificationClick = () => {
     setLocation('/game/chat')
   }
 
-  // Teclado numérico decorativo
   const dialPad = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#']
 
   // ==================== TELA DE NOTIFICAÇÃO ====================
@@ -227,7 +245,7 @@ export default function Dialer() {
               <img src="/assets/images/proofs/Echo.png" alt="ECHO" className="w-full h-full object-cover" />
             </motion.div>
             <h1 className="text-2xl font-light text-white" style={{ marginBottom: '4px' }}>ECHO</h1>
-            <p className="text-call-green text-sm">{timer.formatted}</p>
+            <p className="text-call-green text-sm">{formatTime(callTime)}</p>
           </div>
 
           <div className="flex items-center justify-center" style={{ gap: '3px' }}>
