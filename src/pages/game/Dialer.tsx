@@ -1,35 +1,31 @@
 import { useState, useEffect } from 'react'
 import { useLocation } from 'wouter'
 import { motion } from 'framer-motion'
-import { Phone, User, Delete } from 'lucide-react'
+import { Phone } from 'lucide-react'
 import { useAudio } from '../../hooks/useAudio'
 
 const PHONE_NUMBER = '345 9450-4335'
-const CONTACT_NAME = 'Ana'
+const CONTACT_NAME = 'ECHO'
 
 export default function Dialer() {
   const [, setLocation] = useLocation()
   const [isCalling, setIsCalling] = useState(false)
-  const [ringCount, setRingCount] = useState(0)
 
   // Som de chamando
-  const dialTone = useAudio('/assets/audios/effects/chamando.mp3', {
-    onEnded: () => {
-      // Conta os toques
-      setRingCount(prev => prev + 1)
-    }
+  const dialTone = useAudio('/assets/audios/effects/chamada.mpeg', {
+    loop: true
   })
 
   useEffect(() => {
-    // Após 3 toques, vai para a ligação da Ana
-    if (ringCount >= 3) {
-      dialTone.stop()
-      setLocation('/game/ligacao/ana')
-    } else if (isCalling && ringCount > 0) {
-      // Toca novamente
-      dialTone.play()
+    // Após 4 segundos chamando, vai para a ligação da ECHO
+    if (isCalling) {
+      const timer = setTimeout(() => {
+        dialTone.stop()
+        setLocation('/game/ligacao/ana')
+      }, 8000)
+      return () => clearTimeout(timer)
     }
-  }, [ringCount, isCalling])
+  }, [isCalling])
 
   const handleCall = () => {
     setIsCalling(true)
@@ -41,30 +37,32 @@ export default function Dialer() {
 
   if (isCalling) {
     return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-black flex flex-col items-center">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-center"
+          className="text-center flex flex-col items-center"
+          style={{ paddingTop: '100px', gap: '40px' }}
         >
           {/* Avatar */}
           <motion.div
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 1.5, repeat: Infinity }}
-            className="w-24 h-24 rounded-full bg-gradient-to-br from-pink-500/30 to-purple-500/30
-                       flex items-center justify-center mx-auto mb-6
-                       border-2 border-white/20"
+            className="rounded-full overflow-hidden border-2 border-white/20"
+            style={{ width: '120px', height: '120px' }}
           >
-            <User className="w-12 h-12 text-white/70" />
+            <img src="/assets/images/proofs/Echo.png" alt="ECHO" className="w-full h-full object-cover" />
           </motion.div>
 
-          <h2 className="text-2xl text-white mb-2">{CONTACT_NAME}</h2>
-          <p className="text-white/50 mb-1">{PHONE_NUMBER}</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
+            <h2 className="text-2xl text-white">{CONTACT_NAME}</h2>
+            <p className="text-white/50">{PHONE_NUMBER}</p>
+          </div>
 
           <motion.p
             animate={{ opacity: [1, 0.5, 1] }}
             transition={{ duration: 1, repeat: Infinity }}
-            className="text-call-green"
+            className="text-call-green text-lg"
           >
             Chamando...
           </motion.p>
@@ -74,17 +72,18 @@ export default function Dialer() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex flex-col">
+    <div className="min-h-screen bg-black flex flex-col items-center">
       {/* Header com número */}
-      <div className="pt-12 pb-6 px-6 text-center">
+      <div className="text-center" style={{ paddingTop: '48px', paddingBottom: '24px' }}>
         {/* Avatar pequeno */}
-        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500/30 to-purple-500/30
-                       flex items-center justify-center mx-auto mb-3
-                       border border-white/20">
-          <User className="w-8 h-8 text-white/70" />
+        <div
+          className="rounded-full overflow-hidden border border-white/20"
+          style={{ width: '64px', height: '64px', margin: '0 auto 12px auto' }}
+        >
+          <img src="/assets/images/proofs/Echo.png" alt="ECHO" className="w-full h-full object-cover" />
         </div>
 
-        <p className="text-white/50 text-sm mb-1">{CONTACT_NAME}</p>
+        <p className="text-white/50 text-sm" style={{ marginBottom: '4px' }}>{CONTACT_NAME}</p>
 
         {/* Número */}
         <motion.div
@@ -97,38 +96,36 @@ export default function Dialer() {
       </div>
 
       {/* Teclado numérico (decorativo) */}
-      <div className="flex-1 px-8 py-4">
-        <div className="grid grid-cols-3 gap-4 max-w-xs mx-auto">
+      <div style={{ flex: 1, padding: '16px' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 64px)',
+            gap: '16px',
+            justifyContent: 'center'
+          }}
+        >
           {dialPad.map((digit) => (
             <button
               key={digit}
-              className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center
-                         text-2xl text-white/70 mx-auto
-                         transition-colors hover:bg-white/10 active:bg-white/20"
+              className="rounded-full bg-white/5 flex items-center justify-center text-white/70 transition-colors hover:bg-white/10 active:bg-white/20"
+              style={{ width: '64px', height: '64px', fontSize: '28px' }}
             >
               {digit}
             </button>
           ))}
         </div>
-
-        {/* Botão de apagar (decorativo) */}
-        <div className="flex justify-end max-w-xs mx-auto mt-2 pr-2">
-          <button className="p-3 text-white/50">
-            <Delete className="w-6 h-6" />
-          </button>
-        </div>
       </div>
 
       {/* Botão de ligar */}
-      <div className="pb-12 px-6">
+      <div style={{ paddingBottom: '100px' }}>
         <motion.button
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
           onClick={handleCall}
-          className="w-16 h-16 rounded-full bg-call-green flex items-center justify-center
-                     mx-auto shadow-lg shadow-call-green/30
-                     transition-transform active:scale-90 hover:bg-call-green/90"
+          className="rounded-full bg-call-green flex items-center justify-center shadow-lg shadow-call-green/30 transition-transform active:scale-90 hover:bg-call-green/90"
+          style={{ width: '64px', height: '64px' }}
         >
           <Phone className="w-7 h-7 text-white" />
         </motion.button>

@@ -10,8 +10,8 @@ export default function CallAna() {
   const [callEnded, setCallEnded] = useState(false)
   const timer = useTimer()
 
-  // Áudio da ligação da Ana
-  const callAudio = useAudio('/assets/audios/voices/ana_ligacao.mp3', {
+  // Audio da ligacao da ECHO
+  const callAudio = useAudio('/assets/audios/audio_final_echo.m4a', {
     onEnded: () => {
       setCallEnded(true)
       timer.stop()
@@ -19,14 +19,11 @@ export default function CallAna() {
   })
 
   useEffect(() => {
-    // Inicia a chamada após pequeno delay
-    const startTimer = setTimeout(() => {
-      timer.start()
-      callAudio.play()
-    }, 500)
+    // Inicia a chamada imediatamente
+    timer.start()
+    callAudio.play()
 
     return () => {
-      clearTimeout(startTimer)
       callAudio.stop()
     }
   }, [])
@@ -35,7 +32,7 @@ export default function CallAna() {
     // Quando a chamada termina, vai para o chat após 1.5s
     if (callEnded) {
       const redirectTimer = setTimeout(() => {
-        setLocation('/game/chat')
+        setLocation('/game/notificacao')
       }, 1500)
       return () => clearTimeout(redirectTimer)
     }
@@ -65,53 +62,47 @@ export default function CallAna() {
       <div className="absolute inset-0 bg-gradient-to-b from-pink-900/20 to-black" />
 
       {/* Conteúdo */}
-      <div className="relative z-10 flex flex-col items-center h-screen py-12 px-6">
+      <div
+        className="relative z-10 flex flex-col items-center h-screen"
+        style={{ paddingTop: '80px', paddingBottom: '100px', paddingLeft: '24px', paddingRight: '24px' }}
+      >
         {/* Info do chamador */}
-        <div className="text-center mb-8">
+        <div className="text-center" style={{ marginBottom: '40px' }}>
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="w-24 h-24 rounded-full overflow-hidden mx-auto mb-4
-                       border-2 border-pink-500/30"
+            className="rounded-full overflow-hidden border-2 border-pink-500/30"
+            style={{ width: '96px', height: '96px', margin: '0 auto 16px auto' }}
           >
-            {/* Avatar da Ana - placeholder */}
-            <div className="w-full h-full bg-gradient-to-br from-pink-500/40 to-purple-500/40
-                           flex items-center justify-center">
-              <span className="text-3xl font-semibold text-white">A</span>
-            </div>
+            <img src="/assets/images/proofs/Echo.png" alt="ECHO" className="w-full h-full object-cover" />
           </motion.div>
-          <h1 className="text-2xl font-light text-white mb-1">Ana</h1>
+          <h1 className="text-2xl font-light text-white" style={{ marginBottom: '4px' }}>ECHO</h1>
           <p className="text-call-green text-sm">{timer.formatted}</p>
         </div>
 
         {/* Waveform / Indicador de áudio */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="flex items-center justify-center gap-1 mb-8"
-        >
-          {[...Array(16)].map((_, i) => (
+        <div className="flex items-center justify-center" style={{ gap: '3px' }}>
+          {[8, 16, 24, 16, 28, 20, 12, 24, 16, 8, 20, 12].map((maxHeight, i) => (
             <motion.div
               key={i}
-              className="w-1 bg-pink-400 rounded-full"
-              animate={{
-                height: callAudio.isPlaying ? [4, 8 + Math.random() * 20, 4] : 4
-              }}
+              className="bg-pink-400 rounded-full"
+              style={{ width: '3px' }}
+              animate={{ height: [4, maxHeight, 4] }}
               transition={{
-                duration: 0.2 + Math.random() * 0.2,
+                duration: 0.8,
                 repeat: Infinity,
-                delay: i * 0.04
+                delay: i * 0.1,
+                ease: "easeInOut"
               }}
             />
           ))}
-        </motion.div>
+        </div>
 
         {/* Spacer */}
-        <div className="flex-1" />
+        <div style={{ flex: 1 }} />
 
         {/* Indicador de volume */}
-        <div className="flex items-center gap-2 text-white/50 mb-4">
+        <div className="flex items-center gap-2 text-white/50" style={{ marginBottom: '24px' }}>
           <Volume2 className="w-4 h-4" />
           <span className="text-sm">Alto-falante ativado</span>
         </div>
@@ -121,12 +112,11 @@ export default function CallAna() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="w-16 h-16 rounded-full bg-call-red/20 flex items-center justify-center
-                     border border-call-red/50"
+          className="rounded-full bg-call-red/20 flex items-center justify-center border border-call-red/50"
+          style={{ width: '64px', height: '64px' }}
         >
           <Phone className="w-7 h-7 text-call-red rotate-[135deg]" />
         </motion.div>
-        <p className="text-white/50 text-xs mt-2">Em chamada</p>
       </div>
     </div>
   )
