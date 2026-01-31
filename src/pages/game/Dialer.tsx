@@ -1,41 +1,273 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useLocation } from 'wouter'
-import { motion } from 'framer-motion'
-import { Phone } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Phone, Volume2, MessageCircle } from 'lucide-react'
 import { useAudio } from '../../hooks/useAudio'
+import { useTimer } from '../../hooks/useTimer'
 
 const PHONE_NUMBER = '345 9450-4335'
 const CONTACT_NAME = 'ECHO'
 
+type Stage = 'dialer' | 'calling' | 'call' | 'notification'
+
 export default function Dialer() {
   const [, setLocation] = useLocation()
-  const [isCalling, setIsCalling] = useState(false)
+  const [stage, setStage] = useState<Stage>('dialer')
+  const [showNotification, setShowNotification] = useState(false)
+  const [currentTime, setCurrentTime] = useState('')
+  const timer = useTimer()
+  const notificationSoundRef = useRef<HTMLAudioElement | null>(null)
 
   // Som de chamando
   const dialTone = useAudio('/assets/audios/effects/chamada.mp3', {
     loop: true
   })
 
+  // Audio da ligacao da ECHO
+  const callAudio = useAudio('/assets/audios/audio_final_echo.m4a', {
+    onEnded: () => {
+      timer.stop()
+      // Muda para tela de notificação após 1.5s
+      setTimeout(() => {
+        setStage('notification')
+      }, 1500)
+    }
+  })
+
+  // Pré-carrega o som de notificação
   useEffect(() => {
-    // Após 4 segundos chamando, vai para a ligação da ECHO
-    if (isCalling) {
+    const audio = new Audio('/assets/audios/effects/notificacao_whats.m4a')
+    audio.preload = 'auto'
+    notificationSoundRef.current = audio
+  }, [])
+
+  // Quando está chamando, após 8s inicia a ligação
+  useEffect(() => {
+    if (stage === 'calling') {
+      dialTone.play()
       const timer = setTimeout(() => {
         dialTone.stop()
-        setLocation('/game/ligacao/ana')
+        setStage('call')
       }, 8000)
-      return () => clearTimeout(timer)
+      return () => {
+        clearTimeout(timer)
+        dialTone.stop()
+      }
     }
-  }, [isCalling])
+  }, [stage])
+
+  // Quando inicia a ligação
+  useEffect(() => {
+    if (stage === 'call') {
+      timer.start()
+      callAudio.play()
+      return () => {
+        callAudio.stop()
+      }
+    }
+  }, [stage])
+
+  // Quando muda para tela de notificação
+  useEffect(() => {
+    if (stage === 'notification') {
+      // Atualiza horário
+      const updateTime = () => {
+        const now = new Date()
+        setCurrentTime(now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
+      }
+      updateTime()
+      const interval = setInterval(updateTime, 1000)
+
+      // Mostra notificação após 2 segundos e toca som
+      const notifTimer = setTimeout(() => {
+        setShowNotification(true)
+        if (notificationSoundRef.current) {
+          notificationSoundRef.current.currentTime = 0
+          notificationSoundRef.current.volume = 1
+          notificationSoundRef.current.play().catch(() => {})
+        }
+      }, 2000)
+
+      return () => {
+        clearInterval(interval)
+        clearTimeout(notifTimer)
+      }
+    }
+  }, [stage])
 
   const handleCall = () => {
-    setIsCalling(true)
-    dialTone.play()
+    setStage('calling')
+  }
+
+  const handleNotificationClick = () => {
+    setLocation('/game/chat')
   }
 
   // Teclado numérico decorativo
   const dialPad = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#']
 
-  if (isCalling) {
+  // ==================== TELA DE NOTIFICAÇÃO ====================
+  if (stage === 'notification') {
+    return (
+      <div className="min-h-screen bg-black flex flex-col">
+        <div className="absolute inset-0 bg-gradient-to-b from-gray-900 via-black to-black" />
+
+        <div
+          className="relative z-10 flex items-center justify-between text-white/70 text-sm"
+          style={{ padding: '12px 24px' }}
+        >
+          <span>{currentTime}</span>
+          <div className="flex items-center gap-1">
+            <div className="flex gap-0.5">
+              <div className="w-1 h-2 bg-white/70 rounded-sm" />
+              <div className="w-1 h-3 bg-white/70 rounded-sm" />
+              <div className="w-1 h-4 bg-white/70 rounded-sm" />
+              <div className="w-1 h-3 bg-white/50 rounded-sm" />
+            </div>
+            <span style={{ marginLeft: '8px' }}>85%</span>
+          </div>
+        </div>
+
+        <div className="relative z-10 text-center" style={{ marginTop: '80px' }}>
+          <h1 className="text-white font-light" style={{ fontSize: '72px', letterSpacing: '2px' }}>
+            {currentTime}
+          </h1>
+          <p className="text-white/50" style={{ fontSize: '18px', marginTop: '8px' }}>
+            {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </p>
+        </div>
+
+        <div className="relative z-10 flex-1" style={{ padding: '40px 16px' }}>
+          <AnimatePresence>
+            {showNotification && (
+              <motion.div
+                initial={{ opacity: 0, y: -50, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                onClick={handleNotificationClick}
+                className="cursor-pointer"
+              >
+                <div
+                  className="rounded-2xl backdrop-blur-xl"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    padding: '12px 16px'
+                  }}
+                >
+                  <div className="flex items-center gap-3" style={{ marginBottom: '8px' }}>
+                    <div
+                      className="rounded-full bg-green-500 flex items-center justify-center"
+                      style={{ width: '32px', height: '32px' }}
+                    >
+                      <MessageCircle className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-white font-medium" style={{ fontSize: '14px' }}>WhatsApp</span>
+                        <span className="text-white/50" style={{ fontSize: '12px' }}>agora</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginLeft: '44px' }}>
+                    <p className="text-white font-medium" style={{ fontSize: '15px', marginBottom: '2px' }}>
+                      ECHO
+                    </p>
+                    <p className="text-white/70" style={{ fontSize: '14px' }}>
+                      🎤 Mensagem de voz
+                    </p>
+                  </div>
+                </div>
+
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1 }}
+                  className="text-center text-white/40"
+                  style={{ fontSize: '12px', marginTop: '16px' }}
+                >
+                  Toque para abrir
+                </motion.p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        <div className="relative z-10" style={{ paddingBottom: '20px' }}>
+          <div
+            className="mx-auto rounded-full bg-white/30"
+            style={{ width: '120px', height: '4px' }}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  // ==================== TELA DE LIGAÇÃO (ECHO) ====================
+  if (stage === 'call') {
+    return (
+      <div className="min-h-screen bg-black flex flex-col">
+        <div className="absolute inset-0 bg-gradient-to-b from-pink-900/20 to-black" />
+
+        <div
+          className="relative z-10 flex flex-col items-center h-screen"
+          style={{ paddingTop: '80px', paddingBottom: '100px', paddingLeft: '24px', paddingRight: '24px' }}
+        >
+          <div className="text-center" style={{ marginBottom: '40px' }}>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="rounded-full overflow-hidden border-2 border-pink-500/30"
+              style={{ width: '96px', height: '96px', margin: '0 auto 16px auto' }}
+            >
+              <img src="/assets/images/proofs/Echo.png" alt="ECHO" className="w-full h-full object-cover" />
+            </motion.div>
+            <h1 className="text-2xl font-light text-white" style={{ marginBottom: '4px' }}>ECHO</h1>
+            <p className="text-call-green text-sm">{timer.formatted}</p>
+          </div>
+
+          <div className="flex items-center justify-center" style={{ gap: '3px' }}>
+            {[8, 16, 24, 16, 28, 20, 12, 24, 16, 8, 20, 12].map((maxHeight, i) => (
+              <motion.div
+                key={i}
+                className="bg-pink-400 rounded-full"
+                style={{ width: '3px' }}
+                animate={{ height: [4, maxHeight, 4] }}
+                transition={{
+                  duration: 0.8,
+                  repeat: Infinity,
+                  delay: i * 0.1,
+                  ease: "easeInOut"
+                }}
+              />
+            ))}
+          </div>
+
+          <div style={{ flex: 1 }} />
+
+          <div className="flex items-center gap-2 text-white/50" style={{ marginBottom: '24px' }}>
+            <Volume2 className="w-4 h-4" />
+            <span className="text-sm">Alto-falante ativado</span>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="rounded-full bg-call-red/20 flex items-center justify-center border border-call-red/50"
+            style={{ width: '64px', height: '64px' }}
+          >
+            <Phone className="w-7 h-7 text-call-red rotate-[135deg]" />
+          </motion.div>
+        </div>
+      </div>
+    )
+  }
+
+  // ==================== TELA CHAMANDO ====================
+  if (stage === 'calling') {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center">
         <motion.div
@@ -44,7 +276,6 @@ export default function Dialer() {
           className="text-center flex flex-col items-center"
           style={{ paddingTop: '100px', gap: '40px' }}
         >
-          {/* Avatar */}
           <motion.div
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 1.5, repeat: Infinity }}
@@ -71,11 +302,10 @@ export default function Dialer() {
     )
   }
 
+  // ==================== TELA DO DISCADOR ====================
   return (
     <div className="min-h-screen bg-black flex flex-col items-center">
-      {/* Header com número */}
       <div className="text-center" style={{ paddingTop: '48px', paddingBottom: '24px' }}>
-        {/* Avatar pequeno */}
         <div
           className="rounded-full overflow-hidden border border-white/20"
           style={{ width: '64px', height: '64px', margin: '0 auto 12px auto' }}
@@ -85,7 +315,6 @@ export default function Dialer() {
 
         <p className="text-white/50 text-sm" style={{ marginBottom: '4px' }}>{CONTACT_NAME}</p>
 
-        {/* Número */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -95,7 +324,6 @@ export default function Dialer() {
         </motion.div>
       </div>
 
-      {/* Teclado numérico (decorativo) */}
       <div style={{ flex: 1, padding: '16px' }}>
         <div
           style={{
@@ -117,7 +345,6 @@ export default function Dialer() {
         </div>
       </div>
 
-      {/* Botão de ligar */}
       <div style={{ paddingBottom: '100px' }}>
         <motion.button
           initial={{ opacity: 0, y: 20 }}
