@@ -154,7 +154,10 @@ export default function Dialer() {
   if (stage === 'notification') {
     return (
       <div className="min-h-screen bg-black flex flex-col">
-        <div className="absolute inset-0 bg-gradient-to-b from-gray-900 via-black to-black" />
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: 'url(/assets/images/background.png)' }}
+        />
 
         <div
           className="relative z-10 flex items-center justify-between text-white/70 text-sm"
