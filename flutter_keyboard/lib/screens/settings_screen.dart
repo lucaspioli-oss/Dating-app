@@ -183,15 +183,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
               subtitle: Text(AppConfig.appVersion),
             ),
             ListTile(
-              leading: const Icon(Icons.code),
-              title: const Text('GitHub'),
-              subtitle: const Text('lucaspioli-oss/Dating-app'),
+              leading: const Icon(Icons.privacy_tip_outlined),
+              title: const Text('Politica de Privacidade'),
               onTap: () {
-                launchUrl(Uri.parse('https://github.com/lucaspioli-oss/Dating-app'));
+                launchUrl(Uri.parse('https://desenrola-ia.web.app/privacy'));
               },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text('Sair da conta', style: TextStyle(color: Colors.red)),
+              onTap: () => _showLogoutDialog(context),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sair da conta'),
+        content: const Text('Tem certeza que deseja sair?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              await FirebaseAuth.instance.signOut();
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Sair'),
+          ),
+        ],
       ),
     );
   }
