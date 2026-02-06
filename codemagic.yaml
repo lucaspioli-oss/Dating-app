@@ -27,11 +27,14 @@ workflows:
           cp ios/Runner/AppDelegate.swift /tmp/AppDelegate.swift
           # Remove incomplete ios dir and regenerate
           rm -rf ios
-          flutter create --org com.desenrolaai --project-name desenrola_ai_keyboard --platforms ios .
+          flutter create --org com.desenrolaai --project-name app --platforms ios .
+          # Fix bundle ID in Xcode project (flutter create generates com.desenrolaai.app)
           # Restore custom files
           mkdir -p ios/FlirtKeyboardExtension
           cp -r /tmp/KeyboardExtension/* ios/FlirtKeyboardExtension/
           cp /tmp/AppDelegate.swift ios/Runner/AppDelegate.swift
+          # Set display name
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Desenrola AI" ios/Runner/Info.plist
 
       - name: Set up code signing
         script: |
