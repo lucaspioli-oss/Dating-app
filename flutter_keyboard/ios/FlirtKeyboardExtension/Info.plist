@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>$(DEVELOPMENT_LANGUAGE)</string>
+    <key>CFBundleDisplayName</key>
+    <string>Desenrola AI</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>$(PRODUCT_NAME)</string>
+    <key>CFBundlePackageType</key>
+    <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+
+    <!-- CONFIGURAÇÃO DO KEYBOARD EXTENSION -->
+    <key>NSExtension</key>
+    <dict>
+        <key>NSExtensionAttributes</key>
+        <dict>
+            <!-- IMPORTANTE: RequestsOpenAccess = YES para Full Access -->
+            <!-- Necessário para clipboard e chamadas de rede -->
+            <key>RequestsOpenAccess</key>
+            <true/>
+
+            <!-- Indica que este é um teclado customizado -->
+            <key>IsASCIICapable</key>
+            <false/>
+
+            <!-- Nome que aparece na lista de teclados -->
+            <key>PrimaryLanguage</key>
+            <string>pt-BR</string>
+        </dict>
+
+        <key>NSExtensionPointIdentifier</key>
+        <string>com.apple.keyboard-service</string>
+
+        <key>NSExtensionPrincipalClass</key>
+        <string>$(PRODUCT_MODULE_NAME).KeyboardViewController</string>
+    </dict>
+
+    <!-- PERMISSÃO PARA HTTP (localhost/desenvolvimento) -->
+    <!-- ATENÇÃO: Remover para produção, usar apenas HTTPS -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <true/>
+        <!-- Alternativa mais segura: permitir apenas localhost
+        <key>NSExceptionDomains</key>
+        <dict>
+            <key>localhost</key>
+            <dict>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <true/>
+            </dict>
+        </dict>
+        -->
+    </dict>
+</dict>
+</plist>
+
+<!--
+╔════════════════════════════════════════════════════════════════════════════╗
+║                    CONFIGURAÇÃO IMPORTANTE                                  ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+1. RequestsOpenAccess = YES
+   - Solicita "Full Access" (Acesso Total) ao usuário
+   - NECESSÁRIO para:
+     * Acessar UIPasteboard (clipboard)
+     * Fazer chamadas de rede (URLSession)
+   - Usuário deve ativar manualmente em Ajustes
+
+2. NSAppTransportSecurity
+   - NSAllowsArbitraryLoads = YES permite HTTP (não-HTTPS)
+   - Use APENAS para desenvolvimento local
+   - Para produção:
+     * Remova NSAllowsArbitraryLoads
+     * Use HTTPS no backend
+     * Ou configure NSExceptionDomains apenas para localhost
+
+3. Bundle Identifier
+   - Deve seguir o formato: com.desenrolaai.app.keyboard
+   - Configure no Xcode em: Target > General > Bundle Identifier
+
+4. App Groups (Configurar no Xcode)
+   - Necessário para compartilhar dados entre app e extension
+   - Vá em: Target > Signing & Capabilities > + Capability > App Groups
+   - Adicione: group.com.desenrolaai.app.shared
+   - FAÇA ISSO TANTO NO TARGET DO APP QUANTO NO TARGET DO KEYBOARD
+
+╚════════════════════════════════════════════════════════════════════════════╝
+-->

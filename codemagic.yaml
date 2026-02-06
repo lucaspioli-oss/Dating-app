@@ -1,0 +1,74 @@
+workflows:
+  ios-workflow:
+    name: Desenrola AI - iOS Build & Deploy
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+
+      vars:
+        BACKEND_URL: "https://dating-app-production-ac43.up.railway.app"
+        XCODE_PROJECT: "Runner.xcworkspace"
+        XCODE_SCHEME: "Runner"
+        BUNDLE_ID: "com.desenrolaai.app"
+        KEYBOARD_BUNDLE_ID: "com.desenrolaai.app.keyboard"
+
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.desenrolaai.app
+
+    working_directory: flutter_keyboard
+
+    scripts:
+      - name: Get Flutter packages
+        script: |
+          flutter packages pub get
+
+      - name: Install CocoaPods
+        script: |
+          cd ios
+          pod install
+
+      - name: Flutter build iOS
+        script: |
+          flutter build ios --release --no-codesign
+
+      - name: iOS code signing
+        script: |
+          xcode-project use-profiles
+
+      - name: Build iOS app
+        script: |
+          cd ios
+          xcodebuild \
+            -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -sdk iphoneos \
+            -configuration Release \
+            -archivePath $CM_BUILD_DIR/Runner.xcarchive \
+            archive
+
+      - name: Export IPA
+        script: |
+          xcode-project build-ipa \
+            --workspace ios/Runner.xcworkspace \
+            --scheme Runner
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      email:
+        recipients:
+          - lucasfbpioli@gmail.com
+        notify:
+          success: true
+          failure: true
+
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
