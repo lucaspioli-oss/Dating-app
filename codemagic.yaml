@@ -36,8 +36,9 @@ workflows:
           keychain add-certificates
           xcode-project use-profiles
 
-      - name: Get Flutter packages
+      - name: Initialize iOS project
         script: |
+          flutter create --org com.desenrolaai --project-name desenrola_ai_keyboard --platforms ios .
           flutter pub get
 
       - name: Install CocoaPods
