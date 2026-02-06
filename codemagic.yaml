@@ -13,32 +13,20 @@ workflows:
       cocoapods: default
 
       groups:
-        - codemagic
+        - codemagic  # Deve conter CERTIFICATE_PRIVATE_KEY
 
       vars:
         BUNDLE_ID: "com.desenrolaai.app"
-        KEYBOARD_BUNDLE_ID: "com.desenrolaai.app.keyboard"
 
     working_directory: flutter_keyboard
 
     scripts:
       - name: Initialize iOS project
         script: |
-          cp -r ios/FlirtKeyboardExtension /tmp/KeyboardExtension
           cp ios/Runner/AppDelegate.swift /tmp/AppDelegate.swift
           rm -rf ios
           flutter create --org com.desenrolaai --project-name app --platforms ios .
-          mkdir -p ios/FlirtKeyboardExtension
-          cp -r /tmp/KeyboardExtension/* ios/FlirtKeyboardExtension/
           cp /tmp/AppDelegate.swift ios/Runner/AppDelegate.swift
-
-      - name: Fetch signing files
-        script: |
-          keychain initialize
-          app-store-connect fetch-signing-files $BUNDLE_ID \
-            --type IOS_APP_STORE \
-            --create
-          keychain add-certificates
 
       - name: Get Flutter packages
         script: |
@@ -46,9 +34,17 @@ workflows:
 
       - name: Install pods
         script: |
-          find . -name "Podfile" -execdir pod install \;
+          cd ios && pod install
 
-      - name: Set up code signing settings on Xcode project
+      - name: Set up keychain and fetch signing files
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
+
+      - name: Set up code signing on Xcode project
         script: |
           xcode-project use-profiles
 
