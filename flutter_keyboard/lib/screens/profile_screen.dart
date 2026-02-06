@@ -155,6 +155,13 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       appBar: AppBar(
         title: const Text('Minha Conta'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => _showUserMenu(),
+            tooltip: 'Menu',
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
