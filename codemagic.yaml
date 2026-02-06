@@ -12,51 +12,42 @@ workflows:
       xcode: latest
       cocoapods: default
 
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.desenrolaai.app
+
       vars:
-        BACKEND_URL: "https://dating-app-production-ac43.up.railway.app"
         BUNDLE_ID: "com.desenrolaai.app"
-        KEYBOARD_BUNDLE_ID: "com.desenrolaai.app.keyboard"
 
     working_directory: flutter_keyboard
 
     scripts:
       - name: Initialize iOS project
         script: |
-          # Save custom files
           cp -r ios/FlirtKeyboardExtension /tmp/KeyboardExtension
           cp ios/Runner/AppDelegate.swift /tmp/AppDelegate.swift
-          # Remove incomplete ios dir and regenerate
           rm -rf ios
           flutter create --org com.desenrolaai --project-name app --platforms ios .
-          # Fix bundle ID in Xcode project (flutter create generates com.desenrolaai.app)
-          # Restore custom files
           mkdir -p ios/FlirtKeyboardExtension
           cp -r /tmp/KeyboardExtension/* ios/FlirtKeyboardExtension/
           cp /tmp/AppDelegate.swift ios/Runner/AppDelegate.swift
-          # Set display name
-          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Desenrola AI" ios/Runner/Info.plist
 
-      - name: Fetch signing files
-        script: |
-          openssl genrsa -out /tmp/cert_key.pem 2048
-          export CM_CERTIFICATE_PRIVATE_KEY="$(cat /tmp/cert_key.pem)"
-          keychain initialize
-          app-store-connect fetch-signing-files $BUNDLE_ID \
-            --type IOS_APP_STORE \
-            --create
-          app-store-connect fetch-signing-files $KEYBOARD_BUNDLE_ID \
-            --type IOS_APP_STORE \
-            --create
-          keychain add-certificates
-
-      - name: Build IPA
+      - name: Get Flutter packages
         script: |
           flutter pub get
+
+      - name: Install pods
+        script: |
           find . -name "Podfile" -execdir pod install \;
+
+      - name: Set up code signing settings on Xcode project
+        script: |
           xcode-project use-profiles
-          xcode-project build-ipa \
-            --workspace ios/Runner.xcworkspace \
-            --scheme Runner
+
+      - name: Flutter build ipa
+        script: |
+          flutter build ipa --release \
+            --export-options-plist=/Users/builder/export_options.plist
 
     artifacts:
       - build/ios/ipa/*.ipa
