@@ -22,10 +22,20 @@ workflows:
     scripts:
       - name: Initialize iOS project
         script: |
+          # Preserve custom files
           cp ios/Runner/AppDelegate.swift /tmp/AppDelegate.swift
+          if [ -f GoogleService-Info.plist ]; then
+            cp GoogleService-Info.plist /tmp/GoogleService-Info.plist
+          fi
+
           rm -rf ios
           flutter create --org com.desenrolaai --project-name app --platforms ios .
+
+          # Restore custom files
           cp /tmp/AppDelegate.swift ios/Runner/AppDelegate.swift
+          if [ -f /tmp/GoogleService-Info.plist ]; then
+            cp /tmp/GoogleService-Info.plist ios/Runner/GoogleService-Info.plist
+          fi
 
       - name: Get Flutter packages
         script: |
