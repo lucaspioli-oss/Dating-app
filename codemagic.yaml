@@ -38,13 +38,17 @@ workflows:
 
       - name: Initialize iOS project
         script: |
+          # Save custom files
+          cp -r ios/FlirtKeyboardExtension /tmp/KeyboardExtension
+          cp ios/Runner/AppDelegate.swift /tmp/AppDelegate.swift
+          # Remove incomplete ios dir and regenerate
+          rm -rf ios
           flutter create --org com.desenrolaai --project-name desenrola_ai_keyboard --platforms ios .
+          # Restore custom files
+          cp -r /tmp/KeyboardExtension ios/FlirtKeyboardExtension
+          cp /tmp/AppDelegate.swift ios/Runner/AppDelegate.swift
           flutter pub get
-
-      - name: Install CocoaPods
-        script: |
-          cd ios
-          pod install
+          cd ios && pod install
 
       - name: Flutter build iOS
         script: |
