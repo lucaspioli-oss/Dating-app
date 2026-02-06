@@ -2,6 +2,6 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "serve dist -p $PORT"
+startCommand = "node dist/index.js"
 healthcheckPath = "/"
 healthcheckTimeout = 100
