@@ -12,15 +12,12 @@ workflows:
       xcode: latest
       cocoapods: default
 
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.desenrolaai.app
-
       groups:
         - codemagic
 
       vars:
         BUNDLE_ID: "com.desenrolaai.app"
+        KEYBOARD_BUNDLE_ID: "com.desenrolaai.app.keyboard"
 
     working_directory: flutter_keyboard
 
@@ -34,6 +31,14 @@ workflows:
           mkdir -p ios/FlirtKeyboardExtension
           cp -r /tmp/KeyboardExtension/* ios/FlirtKeyboardExtension/
           cp /tmp/AppDelegate.swift ios/Runner/AppDelegate.swift
+
+      - name: Fetch signing files
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files $BUNDLE_ID \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
 
       - name: Get Flutter packages
         script: |
