@@ -28,12 +28,9 @@ workflows:
           flutter create --org com.desenrolaai --project-name app --platforms ios .
           cp /tmp/AppDelegate.swift ios/Runner/AppDelegate.swift
 
-      - name: Get Flutter packages
+      - name: Get Flutter packages and install pods
         script: |
           flutter pub get
-
-      - name: Install pods
-        script: |
           cd ios && pod install
 
       - name: Set up keychain and fetch signing files
