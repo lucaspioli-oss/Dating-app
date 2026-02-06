@@ -10,7 +10,6 @@ workflows:
     environment:
       flutter: stable
       xcode: latest
-      cocoapods: default
 
       groups:
         - codemagic  # Deve conter CERTIFICATE_PRIVATE_KEY
@@ -31,11 +30,6 @@ workflows:
       - name: Get Flutter packages
         script: |
           flutter pub get
-
-      - name: Generate Podfile and install pods
-        script: |
-          flutter precache --ios
-          cd ios && pod install
 
       - name: Set up keychain and fetch signing files
         script: |
