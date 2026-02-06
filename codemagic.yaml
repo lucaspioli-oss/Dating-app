@@ -16,6 +16,9 @@ workflows:
         distribution_type: app_store
         bundle_identifier: com.desenrolaai.app
 
+      groups:
+        - codemagic
+
       vars:
         BUNDLE_ID: "com.desenrolaai.app"
 
