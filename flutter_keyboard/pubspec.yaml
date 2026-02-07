@@ -1,7 +1,7 @@
 name: desenrola_ai_keyboard
 description: Desenrola AI - Assistente de mensagens para dating
 publish_to: 'none'
-version: 1.0.0+4
+version: 1.0.0+5
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -45,6 +45,13 @@ dev_dependencies:
   flutter_lints: ^3.0.0
   json_serializable: ^6.7.1
   build_runner: ^2.4.8
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  ios: true
+  android: false
+  image_path: "assets/app_icon.png"
+  remove_alpha_ios: true
 
 flutter:
   uses-material-design: true

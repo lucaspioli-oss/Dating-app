@@ -41,6 +41,10 @@ workflows:
         script: |
           flutter pub get
 
+      - name: Generate app icons
+        script: |
+          dart run flutter_launcher_icons
+
       - name: Set up keychain and fetch signing files
         script: |
           keychain initialize
