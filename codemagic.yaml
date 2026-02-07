@@ -37,6 +37,9 @@ workflows:
             cp /tmp/GoogleService-Info.plist ios/Runner/GoogleService-Info.plist
           fi
 
+          # Set iPhone only (remove iPad support)
+          sed -i '' 's/TARGETED_DEVICE_FAMILY = "1,2"/TARGETED_DEVICE_FAMILY = 1/g' ios/Runner.xcodeproj/project.pbxproj
+
       - name: Get Flutter packages
         script: |
           flutter pub get
