@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 import '../../config/app_config.dart';
 import '../../config/app_theme.dart';
+import '../../services/apple_iap_service.dart';
 import '../../services/firebase_auth_service.dart';
 import '../../services/subscription_service.dart';
 
@@ -20,7 +22,10 @@ class SubscriptionRequiredScreen extends StatefulWidget {
 
 class _SubscriptionRequiredScreenState
     extends State<SubscriptionRequiredScreen> {
-  int _selectedPlan = 1; // 0 = monthly, 1 = quarterly (default), 2 = yearly
+  int _selectedPlan = 1; // 0 = monthly, 1 = quarterly, 2 = yearly
+  bool _isPurchasing = false;
+  final AppleIAPService _iapService = AppleIAPService();
+  StreamSubscription<PurchaseStatus>? _purchaseSubscription;
 
   static const double monthlyPrice = 29.90;
   static const double quarterlyPrice = 69.90;
@@ -29,6 +34,52 @@ class _SubscriptionRequiredScreenState
   double get monthlyPerDay => monthlyPrice / 30;
   double get quarterlyPerDay => quarterlyPrice / 90;
   double get yearlyPerDay => yearlyPrice / 365;
+
+  @override
+  void initState() {
+    super.initState();
+    _initIAP();
+  }
+
+  Future<void> _initIAP() async {
+    await _iapService.initialize();
+    _purchaseSubscription = _iapService.purchaseStatusStream.listen((status) {
+      if (!mounted) return;
+      switch (status) {
+        case PurchaseStatus.purchased:
+        case PurchaseStatus.restored:
+          setState(() => _isPurchasing = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Assinatura ativada com sucesso!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          break;
+        case PurchaseStatus.error:
+          setState(() => _isPurchasing = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Erro ao processar compra. Tente novamente.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          break;
+        case PurchaseStatus.canceled:
+          setState(() => _isPurchasing = false);
+          break;
+        case PurchaseStatus.pending:
+          break;
+      }
+    });
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _purchaseSubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +99,6 @@ class _SubscriptionRequiredScreenState
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 24),
-              // Title
               const Text(
                 'Desenrola AI',
                 textAlign: TextAlign.center,
@@ -89,6 +139,7 @@ class _SubscriptionRequiredScreenState
                     totalPrice: monthlyPrice,
                     period: '/mes',
                     isPopular: false,
+                    productId: AppConfig.appleMonthlyProductId,
                   ),
                   const SizedBox(height: 16),
                   _buildPricingCard(
@@ -99,6 +150,7 @@ class _SubscriptionRequiredScreenState
                     period: '/3 meses',
                     isPopular: true,
                     savingsPercent: 22,
+                    productId: AppConfig.appleQuarterlyProductId,
                   ),
                   const SizedBox(height: 16),
                   _buildPricingCard(
@@ -108,11 +160,30 @@ class _SubscriptionRequiredScreenState
                     totalPrice: yearlyPrice,
                     period: '/ano',
                     isPopular: false,
+                    productId: AppConfig.appleYearlyProductId,
                   ),
                 ],
               ),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 20),
+
+              // Restore purchases
+              TextButton(
+                onPressed: _isPurchasing
+                    ? null
+                    : () async {
+                        setState(() => _isPurchasing = true);
+                        await _iapService.restorePurchases();
+                        await Future.delayed(const Duration(seconds: 3));
+                        if (mounted) setState(() => _isPurchasing = false);
+                      },
+                child: Text(
+                  'Restaurar compras',
+                  style: TextStyle(color: Colors.grey[400], fontSize: 13),
+                ),
+              ),
+
+              const SizedBox(height: 8),
 
               // Logout button
               TextButton.icon(
@@ -126,7 +197,7 @@ class _SubscriptionRequiredScreenState
                   style: TextStyle(color: AppColors.textTertiary),
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 16),
             ],
           ),
         ),
@@ -141,9 +212,12 @@ class _SubscriptionRequiredScreenState
     required double totalPrice,
     required String period,
     required bool isPopular,
+    required String productId,
     int? savingsPercent,
   }) {
     final isSelected = _selectedPlan == index;
+    final iapProduct = _iapService.getProduct(productId);
+    final displayPrice = iapProduct?.price ?? 'R\$ ${totalPrice.toStringAsFixed(2).replaceAll('.', ',')}';
 
     return GestureDetector(
       onTap: () => setState(() => _selectedPlan = index),
@@ -300,9 +374,9 @@ class _SubscriptionRequiredScreenState
                   ),
                   const SizedBox(height: 8),
 
-                  // Total price
+                  // Total price (from App Store if available)
                   Text(
-                    'R\$ ${totalPrice.toStringAsFixed(2).replaceAll('.', ',')}$period',
+                    '$displayPrice$period',
                     style: TextStyle(
                       color: Colors.grey[500],
                       fontSize: 14,
@@ -314,10 +388,12 @@ class _SubscriptionRequiredScreenState
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {
-                        setState(() => _selectedPlan = index);
-                        _openCheckout(context);
-                      },
+                      onPressed: _isPurchasing
+                          ? null
+                          : () {
+                              setState(() => _selectedPlan = index);
+                              _purchase(productId);
+                            },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFE91E63),
                         foregroundColor: Colors.white,
@@ -327,13 +403,22 @@ class _SubscriptionRequiredScreenState
                         ),
                         elevation: 0,
                       ),
-                      child: const Text(
-                        'Assinar Agora',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
-                      ),
+                      child: _isPurchasing
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'Assinar Agora',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
                     ),
                   ),
                 ],
@@ -345,29 +430,42 @@ class _SubscriptionRequiredScreenState
     );
   }
 
-  void _openCheckout(BuildContext context) {
-    String plan;
-    switch (_selectedPlan) {
-      case 0:
-        plan = 'monthly';
-        break;
-      case 1:
-        plan = 'quarterly';
-        break;
-      case 2:
-        plan = 'yearly';
-        break;
-      default:
-        plan = 'quarterly';
+  Future<void> _purchase(String productId) async {
+    if (!_iapService.isAvailable) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Loja nao disponivel. Tente novamente mais tarde.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
     }
 
-    final authService = FirebaseAuthService();
-    final userEmail = authService.currentUser?.email ?? '';
+    final product = _iapService.getProduct(productId);
+    if (product == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Produto nao encontrado. Tente novamente mais tarde.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
-    // Open checkout in browser via url_launcher
-    final checkoutUrl = Uri.parse(
-      '${AppConfig.firebaseHostingUrl}/checkout?plan=$plan&email=$userEmail',
-    );
-    launchUrl(checkoutUrl, mode: LaunchMode.externalApplication);
+    setState(() => _isPurchasing = true);
+
+    try {
+      await _iapService.buySubscription(productId);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isPurchasing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

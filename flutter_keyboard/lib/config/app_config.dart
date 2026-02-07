@@ -23,4 +23,15 @@ class AppConfig {
   static const double monthlyPrice = 29.90;
   static const double quarterlyPrice = 69.90;
   static const double yearlyPrice = 199.90;
+
+  // Apple In-App Purchase Product IDs
+  static const String appleMonthlyProductId = 'desenrola_ai_monthly';
+  static const String appleQuarterlyProductId = 'desenrola_ai_quarterly';
+  static const String appleYearlyProductId = 'desenrola_ai_yearly';
+
+  static const Set<String> appleProductIds = {
+    appleMonthlyProductId,
+    appleQuarterlyProductId,
+    appleYearlyProductId,
+  };
 }

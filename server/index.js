@@ -581,6 +581,73 @@ fastify.post('/webhook/stripe', async (request, reply) => {
         });
     }
 });
+// ═══════════════════════════════════════════════════════════════════
+// 🍎 APPLE IN-APP PURCHASE ENDPOINTS
+// ═══════════════════════════════════════════════════════════════════
+fastify.post('/apple/activate-subscription', {
+    preHandler: auth_1.verifyAuthOnly,
+}, async (request, reply) => {
+    try {
+        const { productId, transactionId, plan, verificationData } = request.body;
+        const user = request.user;
+        if (!productId || !transactionId || !plan) {
+            return reply.code(400).send({
+                error: 'Missing required fields',
+                message: 'productId, transactionId, and plan are required',
+            });
+        }
+        const admin = require('firebase-admin');
+        const db = admin.firestore();
+        // Calculate expiration based on plan
+        const now = new Date();
+        let expiresAt;
+        switch (plan) {
+            case 'monthly':
+                expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+                break;
+            case 'quarterly':
+                expiresAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+                break;
+            case 'yearly':
+                expiresAt = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+                break;
+            default:
+                expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+        }
+        // Update user subscription in Firestore
+        await db.collection('users').doc(user.uid).set({
+            email: user.email,
+            subscription: {
+                status: 'active',
+                plan,
+                provider: 'apple',
+                appleProductId: productId,
+                appleTransactionId: transactionId,
+                expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
+                startedAt: admin.firestore.FieldValue.serverTimestamp(),
+            },
+        }, { merge: true });
+        console.log(`✅ Apple subscription activated for ${user.email}:`, {
+            userId: user.uid,
+            plan,
+            productId,
+            transactionId,
+            expiresAt,
+        });
+        return reply.code(200).send({
+            success: true,
+            plan,
+            expiresAt: expiresAt.toISOString(),
+        });
+    }
+    catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send({
+            error: 'Failed to activate subscription',
+            message: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
 const start = async () => {
     try {
         await fastify.listen({ port: env_1.env.PORT, host: '0.0.0.0' });
