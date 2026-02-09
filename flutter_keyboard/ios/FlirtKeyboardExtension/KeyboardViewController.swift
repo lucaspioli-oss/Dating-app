@@ -88,6 +88,7 @@ class KeyboardViewController: UIInputViewController {
     private var searchText: String = ""
     private var selectedToneIndex: Int = 0
     private var selectedObjectiveIndex: Int = 0
+    private var isLoadingSuggestions = false
 
     // Shared config
     private var sharedDefaults: UserDefaults? {
@@ -411,11 +412,12 @@ class KeyboardViewController: UIInputViewController {
     }
 
     @objc private func pasteBoxTapped() {
-        if let text = UIPasteboard.general.string, !text.isEmpty, text != previousClipboard {
+        if let text = UIPasteboard.general.string, !text.isEmpty {
             clipboardText = text
             previousClipboard = text
             stopClipboardPolling()
             suggestions = []
+            isLoadingSuggestions = true
             currentState = .suggestions
             renderCurrentState()
             analyzeText(text, tone: currentTone(), conversationId: selectedConversation?.conversationId, objective: currentObjective())
@@ -445,12 +447,27 @@ class KeyboardViewController: UIInputViewController {
         ])
 
         if suggestions.isEmpty {
-            let loadingLabel = makeLabel("Gerando sugestoes...", size: 13)
-            loadingLabel.textColor = Theme.textSecondary
-            containerView.addSubview(loadingLabel)
+            let loadingStack = UIStackView()
+            loadingStack.axis = .horizontal
+            loadingStack.spacing = 10
+            loadingStack.alignment = .center
+            loadingStack.translatesAutoresizingMaskIntoConstraints = false
+            containerView.addSubview(loadingStack)
+
+            let spinner = UIActivityIndicatorView(style: .medium)
+            spinner.color = Theme.rose
+            spinner.startAnimating()
+            loadingStack.addArrangedSubview(spinner)
+
+            let loadLabel = UILabel()
+            loadLabel.text = "Gerando sugestões..."
+            loadLabel.textColor = Theme.textSecondary
+            loadLabel.font = UIFont.systemFont(ofSize: 14)
+            loadingStack.addArrangedSubview(loadLabel)
+
             NSLayoutConstraint.activate([
-                loadingLabel.topAnchor.constraint(equalTo: headerLabel.bottomAnchor, constant: 30),
-                loadingLabel.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
+                loadingStack.topAnchor.constraint(equalTo: headerLabel.bottomAnchor, constant: 30),
+                loadingStack.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
             ])
             return
         }
@@ -714,6 +731,30 @@ class KeyboardViewController: UIInputViewController {
                     bottomStack.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
                     bottomStack.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -6),
                     bottomStack.heightAnchor.constraint(equalToConstant: 28),
+                ])
+            } else if isLoadingSuggestions {
+                // Loading indicator
+                let loadingStack = UIStackView()
+                loadingStack.axis = .horizontal
+                loadingStack.spacing = 10
+                loadingStack.alignment = .center
+                loadingStack.translatesAutoresizingMaskIntoConstraints = false
+                containerView.addSubview(loadingStack)
+
+                let spinner = UIActivityIndicatorView(style: .medium)
+                spinner.color = Theme.rose
+                spinner.startAnimating()
+                loadingStack.addArrangedSubview(spinner)
+
+                let loadLabel = UILabel()
+                loadLabel.text = "Gerando sugestões..."
+                loadLabel.textColor = Theme.textSecondary
+                loadLabel.font = UIFont.systemFont(ofSize: 14)
+                loadingStack.addArrangedSubview(loadLabel)
+
+                NSLayoutConstraint.activate([
+                    loadingStack.topAnchor.constraint(equalTo: clipLabel.bottomAnchor, constant: 30),
+                    loadingStack.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
                 ])
             } else {
                 // Pills + Generate button
@@ -1103,6 +1144,7 @@ class KeyboardViewController: UIInputViewController {
     @objc private func regenerateTapped() {
         guard let clip = clipboardText else { return }
         suggestions = []
+        isLoadingSuggestions = true
         renderCurrentState()
         analyzeText(clip, tone: currentTone(), conversationId: selectedConversation?.conversationId, objective: currentObjective())
     }
@@ -1111,6 +1153,7 @@ class KeyboardViewController: UIInputViewController {
         guard let clip = getClipboardText() else { return }
         clipboardText = clip
         suggestions = []
+        isLoadingSuggestions = true
         currentState = .basicMode
         renderCurrentState()
         analyzeText(clip, tone: currentTone(), conversationId: nil, objective: currentObjective())
@@ -1119,6 +1162,7 @@ class KeyboardViewController: UIInputViewController {
     @objc private func basicRegenTapped() {
         guard let clip = clipboardText else { return }
         suggestions = []
+        isLoadingSuggestions = true
         renderCurrentState()
         analyzeText(clip, tone: currentTone(), conversationId: nil, objective: currentObjective())
     }
@@ -1261,6 +1305,7 @@ class KeyboardViewController: UIInputViewController {
         URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             guard let data = data, error == nil else {
                 DispatchQueue.main.async {
+                    self?.isLoadingSuggestions = false
                     self?.suggestions = ["Erro de conexão. Tente novamente."]
                     self?.renderCurrentState()
                 }
@@ -1272,12 +1317,14 @@ class KeyboardViewController: UIInputViewController {
                    let analysis = json["analysis"] as? String {
                     let parsed = self?.parseSuggestions(analysis) ?? [analysis]
                     DispatchQueue.main.async {
+                        self?.isLoadingSuggestions = false
                         self?.suggestions = parsed
                         self?.renderCurrentState()
                     }
                 }
             } catch {
                 DispatchQueue.main.async {
+                    self?.isLoadingSuggestions = false
                     self?.suggestions = ["Erro ao processar resposta."]
                     self?.renderCurrentState()
                 }
@@ -1332,6 +1379,7 @@ class KeyboardViewController: UIInputViewController {
         clipboardText = current
         previousClipboard = current
         suggestions = []
+        isLoadingSuggestions = true
         currentState = .suggestions
         renderCurrentState()
 

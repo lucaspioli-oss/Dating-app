@@ -153,6 +153,19 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                   _showTypeMessageDialog();
                 },
               ),
+              const SizedBox(height: 12),
+
+              // Option 3: Import WhatsApp conversation
+              _buildOptionTile(
+                icon: Icons.chat,
+                title: 'Importar WhatsApp',
+                subtitle: 'Cole o texto exportado da conversa',
+                color: const Color(0xFF25D366),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showImportWhatsAppDialog();
+                },
+              ),
               const SizedBox(height: 20),
             ],
           ),
@@ -482,6 +495,217 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         ],
       ),
     );
+  }
+
+  void _showImportWhatsAppDialog() {
+    final chatController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        title: const Text(
+          'Importar conversa do WhatsApp',
+          style: TextStyle(color: Colors.white, fontSize: 18),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'No WhatsApp: Abra a conversa > Menu (⋮) > Mais > Exportar conversa > Sem midia > Copie o texto e cole aqui.',
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 12, height: 1.4),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: chatController,
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+                maxLines: 8,
+                minLines: 5,
+                decoration: InputDecoration(
+                  hintText: 'Cole a conversa exportada aqui...',
+                  hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  filled: true,
+                  fillColor: const Color(0xFF0D0D1A),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancelar', style: TextStyle(color: Colors.grey.shade500)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final text = chatController.text.trim();
+              if (text.isNotEmpty) {
+                Navigator.pop(ctx);
+                _importWhatsAppChat(text);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF25D366),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Importar', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _importWhatsAppChat(String chatText) async {
+    final matchName = _conversation?.avatar.matchName ?? '';
+
+    // Parse WhatsApp messages
+    final parsed = _parseWhatsAppChat(chatText, matchName);
+
+    if (parsed.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Nenhuma mensagem encontrada. Verifique o formato.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Show progress
+    setState(() => _isGeneratingSuggestions = true);
+
+    try {
+      final appState = context.read<AppState>();
+      final service = ConversationService(baseUrl: appState.backendUrl);
+
+      // Add messages in order
+      for (final msg in parsed) {
+        await service.addMessage(
+          conversationId: widget.conversationId,
+          role: msg['role']!,
+          content: msg['content']!,
+        );
+      }
+
+      await _loadConversation();
+
+      setState(() => _isGeneratingSuggestions = false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${parsed.length} mensagens importadas!'),
+            backgroundColor: const Color(0xFF25D366),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isGeneratingSuggestions = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao importar: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  List<Map<String, String>> _parseWhatsAppChat(String text, String matchName) {
+    final messages = <Map<String, String>>[];
+    final lines = text.split('\n');
+
+    // WhatsApp export formats:
+    // [DD/MM/YYYY, HH:MM:SS] Name: message
+    // DD/MM/YYYY, HH:MM - Name: message
+    // DD/MM/YY HH:MM - Name: message
+    final regexBracket = RegExp(r'^\[(\d{1,2}/\d{1,2}/\d{2,4}),?\s+\d{1,2}:\d{2}(?::\d{2})?\]\s+([^:]+):\s*(.+)');
+    final regexDash = RegExp(r'^\d{1,2}/\d{1,2}/\d{2,4},?\s+\d{1,2}:\d{2}(?::\d{2})?\s*[-–]\s*([^:]+):\s*(.+)');
+
+    // Detect all participant names first
+    final names = <String>{};
+    for (final line in lines) {
+      final m1 = regexBracket.firstMatch(line);
+      if (m1 != null) {
+        names.add(m1.group(2)!.trim());
+        continue;
+      }
+      final m2 = regexDash.firstMatch(line);
+      if (m2 != null) {
+        names.add(m2.group(1)!.trim());
+      }
+    }
+
+    // Determine which name is the match (fuzzy match)
+    String? matchDetected;
+    final matchLower = matchName.toLowerCase();
+    for (final name in names) {
+      if (name.toLowerCase().contains(matchLower) || matchLower.contains(name.toLowerCase())) {
+        matchDetected = name;
+        break;
+      }
+    }
+
+    // If no fuzzy match, pick the name that isn't the majority sender (heuristic: the other person)
+    if (matchDetected == null && names.length == 2) {
+      matchDetected = names.first;
+    }
+
+    // Parse messages with multiline support
+    String? currentRole;
+    String? currentContent;
+
+    for (final line in lines) {
+      String? sender;
+      String? content;
+
+      final m1 = regexBracket.firstMatch(line);
+      if (m1 != null) {
+        sender = m1.group(2)!.trim();
+        content = m1.group(3)!.trim();
+      } else {
+        final m2 = regexDash.firstMatch(line);
+        if (m2 != null) {
+          sender = m2.group(1)!.trim();
+          content = m2.group(2)!.trim();
+        }
+      }
+
+      if (sender != null && content != null) {
+        // Save previous message
+        if (currentRole != null && currentContent != null && currentContent!.isNotEmpty) {
+          // Skip system messages
+          if (!currentContent!.contains('mensagens e chamadas são protegidas') &&
+              !currentContent!.contains('criou este grupo') &&
+              currentContent != '<Mídia oculta>') {
+            messages.add({'role': currentRole!, 'content': currentContent!});
+          }
+        }
+
+        currentRole = (sender == matchDetected) ? 'match' : 'user';
+        currentContent = content;
+      } else if (currentContent != null && line.trim().isNotEmpty) {
+        // Continuation of previous message
+        currentContent = '$currentContent\n${line.trim()}';
+      }
+    }
+
+    // Save last message
+    if (currentRole != null && currentContent != null && currentContent!.isNotEmpty) {
+      if (!currentContent!.contains('mensagens e chamadas são protegidas') &&
+          !currentContent!.contains('criou este grupo') &&
+          currentContent != '<Mídia oculta>') {
+        messages.add({'role': currentRole!, 'content': currentContent!});
+      }
+    }
+
+    return messages;
   }
 
   Future<void> _generateSuggestionsFromText(String herMessage) async {
