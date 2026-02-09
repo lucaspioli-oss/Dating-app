@@ -106,18 +106,23 @@ ENTITLEMENTS
 
 File.write('ios/Runner/Runner.entitlements', runner_entitlements_content)
 
-# Set entitlements for Runner target
+# Set entitlements and disable phase fusing for Runner target
+# FUSE_BUILD_SCRIPT_PHASES = NO prevents Xcode from fusing the embed
+# extension phase with script phases, which causes a dependency cycle
 app_target.build_configurations.each do |config|
   config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'Runner/Runner.entitlements'
+  config.build_settings['FUSE_BUILD_SCRIPT_PHASES'] = 'NO'
 end
 
 # Add the extension as a dependency of the main app
 app_target.add_dependency(extension_target)
 
-# Add "Embed App Extensions" copy phase
-embed_phase = app_target.new_copy_files_build_phase('Embed App Extensions')
+# Add "Embed Foundation Extensions" copy phase
+embed_phase = app_target.new_copy_files_build_phase('Embed Foundation Extensions')
 embed_phase.dst_subfolder_spec = '13' # PlugIns folder
-embed_phase.add_file_reference(extension_target.product_reference, true)
+embed_phase.dst_path = ''
+build_file = embed_phase.add_file_reference(extension_target.product_reference)
+build_file.settings = { 'ATTRIBUTES' => ['RemoveHeadersOnCopy'] }
 
 # Save project
 project.save
