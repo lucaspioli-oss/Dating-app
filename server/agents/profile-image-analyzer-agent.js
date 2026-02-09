@@ -48,7 +48,7 @@ IMPORTANTE:
 - Se algo não estiver visível, use null
 - Nas descrições de fotos, seja específico e útil
 - Capture TUDO que possa ser útil para criar uma primeira mensagem
-- Para facePosition: se houver um rosto visível na imagem, retorne a posição aproximada em porcentagem (centerX e centerY = centro do rosto, size = tamanho do rosto, todos de 0 a 100 em relação à largura/altura da imagem). Se houver mais de um rosto, use o rosto principal/maior. Se não houver rosto visível, use null.`;
+- Para facePosition: SEMPRE tente localizar um rosto humano na imagem. Retorne centerX e centerY (centro do rosto) e size (tamanho do rosto), todos em porcentagem (0-100) em relação às dimensões da imagem. IMPORTANTE: Em screenshots de perfis de redes sociais (Instagram, Tinder, etc.), o rosto geralmente está dentro da foto de perfil circular/quadrada que aparece no topo do perfil — localize essa foto de perfil e retorne a posição do rosto DENTRO dela. Mesmo que a foto de perfil seja pequena (ex: 10-15% da largura da tela), retorne as coordenadas corretas. Se houver múltiplos rostos, use o da foto de perfil principal. Se realmente não houver nenhum rosto visível, use null.`;
     }
     async analyzeImage(input, systemPrompt) {
         const message = await this.client.messages.create({

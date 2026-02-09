@@ -354,11 +354,34 @@ class KeyboardViewController: UIInputViewController {
         let pillSpacer = UIView()
         pillsStack.addArrangedSubview(pillSpacer)
 
-        let instructionLabel = makeLabel("📋 Copie a mensagem dela\ne volte para o teclado", size: 14)
-        instructionLabel.textColor = Theme.textSecondary
-        instructionLabel.numberOfLines = 2
-        instructionLabel.textAlignment = .center
-        containerView.addSubview(instructionLabel)
+        // Paste input box
+        let pasteBox = UIButton(type: .system)
+        pasteBox.translatesAutoresizingMaskIntoConstraints = false
+        pasteBox.backgroundColor = UIColor.white.withAlphaComponent(0.08)
+        pasteBox.layer.cornerRadius = 12
+        pasteBox.layer.borderWidth = 1
+        pasteBox.layer.borderColor = UIColor.white.withAlphaComponent(0.15).cgColor
+
+        let pasteIcon = UIImageView(image: UIImage(systemName: "doc.on.clipboard"))
+        pasteIcon.tintColor = Theme.rose
+        pasteIcon.translatesAutoresizingMaskIntoConstraints = false
+        pasteIcon.contentMode = .scaleAspectFit
+        pasteBox.addSubview(pasteIcon)
+
+        let pasteLabel = UILabel()
+        pasteLabel.text = "Cole a mensagem dela aqui"
+        pasteLabel.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+        pasteLabel.textColor = UIColor.white.withAlphaComponent(0.5)
+        pasteLabel.translatesAutoresizingMaskIntoConstraints = false
+        pasteBox.addSubview(pasteLabel)
+
+        pasteBox.addTarget(self, action: #selector(pasteBoxTapped), for: .touchUpInside)
+        containerView.addSubview(pasteBox)
+
+        let hintLabel = makeLabel("Copie a mensagem no app de conversa e toque aqui", size: 11)
+        hintLabel.textColor = Theme.textSecondary
+        hintLabel.textAlignment = .center
+        containerView.addSubview(hintLabel)
 
         NSLayoutConstraint.activate([
             headerView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
@@ -370,11 +393,32 @@ class KeyboardViewController: UIInputViewController {
             pillsStack.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
             pillsStack.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
             pillsStack.heightAnchor.constraint(equalToConstant: 28),
-            instructionLabel.topAnchor.constraint(equalTo: pillsStack.bottomAnchor, constant: 20),
-            instructionLabel.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
+            pasteBox.topAnchor.constraint(equalTo: pillsStack.bottomAnchor, constant: 12),
+            pasteBox.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
+            pasteBox.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+            pasteBox.heightAnchor.constraint(equalToConstant: 48),
+            pasteIcon.leadingAnchor.constraint(equalTo: pasteBox.leadingAnchor, constant: 14),
+            pasteIcon.centerYAnchor.constraint(equalTo: pasteBox.centerYAnchor),
+            pasteIcon.widthAnchor.constraint(equalToConstant: 20),
+            pasteIcon.heightAnchor.constraint(equalToConstant: 20),
+            pasteLabel.leadingAnchor.constraint(equalTo: pasteIcon.trailingAnchor, constant: 10),
+            pasteLabel.centerYAnchor.constraint(equalTo: pasteBox.centerYAnchor),
+            hintLabel.topAnchor.constraint(equalTo: pasteBox.bottomAnchor, constant: 8),
+            hintLabel.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
         ])
 
         startClipboardPolling()
+    }
+
+    @objc private func pasteBoxTapped() {
+        if let text = UIPasteboard.general.string, !text.isEmpty, text != previousClipboard {
+            clipboardText = text
+            previousClipboard = text
+            stopClipboardPolling()
+            currentState = .suggestions
+            renderCurrentState()
+            sendMessageToServer()
+        }
     }
 
     // MARK: - Estado 3: Suggestions (PRO)
@@ -382,60 +426,51 @@ class KeyboardViewController: UIInputViewController {
     private func renderSuggestions() {
         guard let conv = selectedConversation else { return }
 
-        let headerLabel = makeLabel("👤 \(conv.matchName)  |  Ela disse:", size: 12, bold: true)
+        // Compact header with message preview
+        let headerLabel = makeLabel("👤 \(conv.matchName)", size: 11, bold: true)
         containerView.addSubview(headerLabel)
 
-        let clipLabel = makeLabel("\"\(clipboardText ?? "")\"", size: 11)
-        clipLabel.textColor = Theme.clipText
-        clipLabel.numberOfLines = 2
-        containerView.addSubview(clipLabel)
+        let clipPreview = makeLabel("💬 \"\(clipboardText?.prefix(50) ?? "")\"", size: 10)
+        clipPreview.textColor = Theme.clipText
+        clipPreview.numberOfLines = 1
+        containerView.addSubview(clipPreview)
 
         NSLayoutConstraint.activate([
             headerLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 6),
             headerLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
-            headerLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
-            clipLabel.topAnchor.constraint(equalTo: headerLabel.bottomAnchor, constant: 2),
-            clipLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
-            clipLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+            clipPreview.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 6),
+            clipPreview.leadingAnchor.constraint(equalTo: headerLabel.trailingAnchor, constant: 8),
+            clipPreview.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
         ])
 
         if suggestions.isEmpty {
-            let loadingLabel = makeLabel("Gerando sugestões...", size: 13)
+            let loadingLabel = makeLabel("Gerando sugestoes...", size: 13)
             loadingLabel.textColor = Theme.textSecondary
             containerView.addSubview(loadingLabel)
             NSLayoutConstraint.activate([
-                loadingLabel.topAnchor.constraint(equalTo: clipLabel.bottomAnchor, constant: 16),
+                loadingLabel.topAnchor.constraint(equalTo: headerLabel.bottomAnchor, constant: 30),
                 loadingLabel.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
             ])
             return
         }
 
-        var lastAnchor = clipLabel.bottomAnchor
-        for (index, suggestion) in suggestions.prefix(3).enumerated() {
-            let btn = UIButton(type: .system)
-            let displayText = suggestion.count > 60 ? String(suggestion.prefix(57)) + "..." : suggestion
-            btn.setTitle("\(index + 1). \(displayText)", for: .normal)
-            btn.setTitleColor(.white, for: .normal)
-            btn.backgroundColor = Theme.suggestionBg
-            btn.contentHorizontalAlignment = .left
-            btn.contentEdgeInsets = UIEdgeInsets(top: 4, left: 10, bottom: 4, right: 10)
-            btn.layer.cornerRadius = 8
-            btn.layer.borderWidth = 0.5
-            btn.layer.borderColor = Theme.rose.withAlphaComponent(0.2).cgColor
-            btn.titleLabel?.font = UIFont.systemFont(ofSize: 12)
-            btn.titleLabel?.numberOfLines = 1
-            btn.tag = index
-            btn.translatesAutoresizingMaskIntoConstraints = false
-            btn.addTarget(self, action: #selector(suggestionTapped(_:)), for: .touchUpInside)
-            containerView.addSubview(btn)
+        // Scrollable suggestions area
+        let scrollView = UIScrollView()
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.showsVerticalScrollIndicator = true
+        scrollView.indicatorStyle = .white
+        scrollView.alwaysBounceVertical = false
+        containerView.addSubview(scrollView)
 
-            NSLayoutConstraint.activate([
-                btn.topAnchor.constraint(equalTo: lastAnchor, constant: 4),
-                btn.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
-                btn.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
-                btn.heightAnchor.constraint(equalToConstant: 30),
-            ])
-            lastAnchor = btn.bottomAnchor
+        let contentStack = UIStackView()
+        contentStack.axis = .vertical
+        contentStack.spacing = 6
+        contentStack.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.addSubview(contentStack)
+
+        for (index, suggestion) in suggestions.prefix(3).enumerated() {
+            let card = makeSuggestionCard(index: index, text: suggestion)
+            contentStack.addArrangedSubview(card)
         }
 
         // Bottom bar
@@ -466,11 +501,85 @@ class KeyboardViewController: UIInputViewController {
         bottomStack.addArrangedSubview(tonePill)
 
         NSLayoutConstraint.activate([
-            bottomStack.topAnchor.constraint(equalTo: lastAnchor, constant: 6),
+            scrollView.topAnchor.constraint(equalTo: headerLabel.bottomAnchor, constant: 6),
+            scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 10),
+            scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -10),
+            scrollView.bottomAnchor.constraint(equalTo: bottomStack.topAnchor, constant: -4),
+            contentStack.topAnchor.constraint(equalTo: scrollView.topAnchor),
+            contentStack.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
+            contentStack.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
+            contentStack.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
+            contentStack.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
             bottomStack.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
             bottomStack.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+            bottomStack.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -6),
             bottomStack.heightAnchor.constraint(equalToConstant: 28),
         ])
+    }
+
+    private func makeSuggestionCard(index: Int, text: String) -> UIView {
+        let card = UIView()
+        card.translatesAutoresizingMaskIntoConstraints = false
+        card.backgroundColor = Theme.suggestionBg
+        card.layer.cornerRadius = 10
+        card.layer.borderWidth = 0.5
+        card.layer.borderColor = Theme.rose.withAlphaComponent(0.15).cgColor
+
+        let numberLabel = UILabel()
+        numberLabel.text = "\(index + 1)"
+        numberLabel.font = UIFont.systemFont(ofSize: 10, weight: .bold)
+        numberLabel.textColor = .white
+        numberLabel.textAlignment = .center
+        numberLabel.backgroundColor = Theme.rose.withAlphaComponent(0.6)
+        numberLabel.layer.cornerRadius = 9
+        numberLabel.layer.masksToBounds = true
+        numberLabel.translatesAutoresizingMaskIntoConstraints = false
+        card.addSubview(numberLabel)
+
+        let textLabel = UILabel()
+        textLabel.text = text
+        textLabel.font = UIFont.systemFont(ofSize: 13)
+        textLabel.textColor = .white
+        textLabel.numberOfLines = 0
+        textLabel.lineBreakMode = .byWordWrapping
+        textLabel.translatesAutoresizingMaskIntoConstraints = false
+        card.addSubview(textLabel)
+
+        let copyBtn = UIButton(type: .system)
+        copyBtn.setImage(UIImage(systemName: "doc.on.doc"), for: .normal)
+        copyBtn.tintColor = Theme.rose.withAlphaComponent(0.7)
+        copyBtn.translatesAutoresizingMaskIntoConstraints = false
+        copyBtn.tag = index
+        copyBtn.addTarget(self, action: #selector(suggestionTapped(_:)), for: .touchUpInside)
+        card.addSubview(copyBtn)
+
+        // Make entire card tappable
+        let tapBtn = UIButton(type: .system)
+        tapBtn.translatesAutoresizingMaskIntoConstraints = false
+        tapBtn.tag = index
+        tapBtn.addTarget(self, action: #selector(suggestionTapped(_:)), for: .touchUpInside)
+        card.insertSubview(tapBtn, at: 0)
+
+        NSLayoutConstraint.activate([
+            numberLabel.topAnchor.constraint(equalTo: card.topAnchor, constant: 8),
+            numberLabel.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 8),
+            numberLabel.widthAnchor.constraint(equalToConstant: 18),
+            numberLabel.heightAnchor.constraint(equalToConstant: 18),
+            textLabel.topAnchor.constraint(equalTo: card.topAnchor, constant: 7),
+            textLabel.leadingAnchor.constraint(equalTo: numberLabel.trailingAnchor, constant: 8),
+            textLabel.trailingAnchor.constraint(equalTo: copyBtn.leadingAnchor, constant: -6),
+            textLabel.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -7),
+            copyBtn.topAnchor.constraint(equalTo: card.topAnchor, constant: 6),
+            copyBtn.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -6),
+            copyBtn.widthAnchor.constraint(equalToConstant: 28),
+            copyBtn.heightAnchor.constraint(equalToConstant: 28),
+            tapBtn.topAnchor.constraint(equalTo: card.topAnchor),
+            tapBtn.leadingAnchor.constraint(equalTo: card.leadingAnchor),
+            tapBtn.trailingAnchor.constraint(equalTo: copyBtn.leadingAnchor),
+            tapBtn.bottomAnchor.constraint(equalTo: card.bottomAnchor),
+        ])
+
+        return card
     }
 
     // MARK: - Estado 3B: Write Own (PRO)
