@@ -69,10 +69,12 @@ class KeyboardViewController: UIInputViewController {
     private var containerView: UIView!
 
     private struct ConversationContext {
-        let conversationId: String
+        let conversationId: String?
+        let profileId: String?
         let matchName: String
         let platform: String
         let lastMessage: String?
+        let faceImageBase64: String?
     }
 
     private var conversations: [ConversationContext] = []
@@ -957,8 +959,8 @@ class KeyboardViewController: UIInputViewController {
         let text = suggestions[index]
         textDocumentProxy.insertText(text)
 
-        if let conv = selectedConversation {
-            sendMessageToServer(conversationId: conv.conversationId, content: text, wasAiSuggestion: true)
+        if let conv = selectedConversation, let convId = conv.conversationId {
+            sendMessageToServer(conversationId: convId, content: text, wasAiSuggestion: true)
         }
 
         suggestions = []
@@ -988,8 +990,8 @@ class KeyboardViewController: UIInputViewController {
               let text = textField.text, !text.isEmpty else { return }
         textDocumentProxy.insertText(text)
 
-        if let conv = selectedConversation {
-            sendMessageToServer(conversationId: conv.conversationId, content: text, wasAiSuggestion: false)
+        if let conv = selectedConversation, let convId = conv.conversationId {
+            sendMessageToServer(conversationId: convId, content: text, wasAiSuggestion: false)
         }
 
         suggestions = []
@@ -1102,12 +1104,14 @@ class KeyboardViewController: UIInputViewController {
                 if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let arr = json["conversations"] as? [[String: Any]] {
                     let contexts = arr.compactMap { dict -> ConversationContext? in
-                        guard let id = dict["conversationId"] as? String,
-                              let name = dict["matchName"] as? String else { return nil }
+                        guard let name = dict["matchName"] as? String else { return nil }
                         return ConversationContext(
-                            conversationId: id, matchName: name,
+                            conversationId: dict["conversationId"] as? String,
+                            profileId: dict["profileId"] as? String,
+                            matchName: name,
                             platform: dict["platform"] as? String ?? "tinder",
-                            lastMessage: dict["lastMessage"] as? String
+                            lastMessage: dict["lastMessage"] as? String,
+                            faceImageBase64: dict["faceImageBase64"] as? String
                         )
                     }
                     DispatchQueue.main.async {
@@ -1331,22 +1335,102 @@ class KeyboardViewController: UIInputViewController {
         return btn
     }
 
-    private func makeProfileButton(_ conv: ConversationContext, tag: Int) -> UIButton {
-        let btn = UIButton(type: .system)
-        btn.setTitle("\(conv.matchName)\n\(conv.platform)", for: .normal)
-        btn.setTitleColor(.white, for: .normal)
-        btn.backgroundColor = Theme.cardBg
-        btn.layer.cornerRadius = 10
-        btn.layer.borderWidth = 0.5
-        btn.layer.borderColor = Theme.rose.withAlphaComponent(0.2).cgColor
-        btn.titleLabel?.font = UIFont.systemFont(ofSize: 12)
-        btn.titleLabel?.textAlignment = .center
-        btn.titleLabel?.numberOfLines = 2
-        btn.translatesAutoresizingMaskIntoConstraints = false
-        btn.tag = tag
-        btn.addTarget(self, action: #selector(profileTapped(_:)), for: .touchUpInside)
-        btn.widthAnchor.constraint(equalToConstant: 80).isActive = true
-        return btn
+    private func makeProfileButton(_ conv: ConversationContext, tag: Int) -> UIView {
+        let container = UIView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        container.widthAnchor.constraint(equalToConstant: 64).isActive = true
+
+        // Circular photo container with gradient border (like stories)
+        let photoSize: CGFloat = 48
+        let borderView = UIView()
+        borderView.translatesAutoresizingMaskIntoConstraints = false
+
+        let gradientLayer = CAGradientLayer()
+        gradientLayer.colors = [
+            UIColor(red: 1.0, green: 0.23, blue: 0.19, alpha: 1.0).cgColor,
+            UIColor(red: 0.91, green: 0.12, blue: 0.39, alpha: 1.0).cgColor,
+            UIColor(red: 0.48, green: 0.18, blue: 0.74, alpha: 1.0).cgColor,
+        ]
+        gradientLayer.startPoint = CGPoint(x: 0, y: 0)
+        gradientLayer.endPoint = CGPoint(x: 1, y: 1)
+        gradientLayer.frame = CGRect(x: 0, y: 0, width: photoSize + 4, height: photoSize + 4)
+        gradientLayer.cornerRadius = (photoSize + 4) / 2
+        borderView.layer.addSublayer(gradientLayer)
+        container.addSubview(borderView)
+
+        let photoView = UIView()
+        photoView.backgroundColor = Theme.cardBg
+        photoView.layer.cornerRadius = photoSize / 2
+        photoView.clipsToBounds = true
+        photoView.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(photoView)
+
+        // Decode and show photo if available
+        if let base64 = conv.faceImageBase64,
+           let data = Data(base64Encoded: base64),
+           let image = UIImage(data: data) {
+            let imageView = UIImageView(image: image)
+            imageView.contentMode = .scaleAspectFill
+            imageView.translatesAutoresizingMaskIntoConstraints = false
+            photoView.addSubview(imageView)
+            NSLayoutConstraint.activate([
+                imageView.topAnchor.constraint(equalTo: photoView.topAnchor),
+                imageView.leadingAnchor.constraint(equalTo: photoView.leadingAnchor),
+                imageView.trailingAnchor.constraint(equalTo: photoView.trailingAnchor),
+                imageView.bottomAnchor.constraint(equalTo: photoView.bottomAnchor),
+            ])
+        } else {
+            // Placeholder with initials
+            let initialsLabel = UILabel()
+            initialsLabel.text = String(conv.matchName.prefix(1)).uppercased()
+            initialsLabel.textColor = .white
+            initialsLabel.font = UIFont.boldSystemFont(ofSize: 18)
+            initialsLabel.textAlignment = .center
+            initialsLabel.translatesAutoresizingMaskIntoConstraints = false
+            photoView.addSubview(initialsLabel)
+            NSLayoutConstraint.activate([
+                initialsLabel.centerXAnchor.constraint(equalTo: photoView.centerXAnchor),
+                initialsLabel.centerYAnchor.constraint(equalTo: photoView.centerYAnchor),
+            ])
+        }
+
+        // Name label below
+        let nameLabel = UILabel()
+        nameLabel.text = conv.matchName.count > 8 ? String(conv.matchName.prefix(7)) + "…" : conv.matchName
+        nameLabel.textColor = .white
+        nameLabel.font = UIFont.systemFont(ofSize: 10)
+        nameLabel.textAlignment = .center
+        nameLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(nameLabel)
+
+        NSLayoutConstraint.activate([
+            borderView.topAnchor.constraint(equalTo: container.topAnchor),
+            borderView.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            borderView.widthAnchor.constraint(equalToConstant: photoSize + 4),
+            borderView.heightAnchor.constraint(equalToConstant: photoSize + 4),
+            photoView.centerXAnchor.constraint(equalTo: borderView.centerXAnchor),
+            photoView.centerYAnchor.constraint(equalTo: borderView.centerYAnchor),
+            photoView.widthAnchor.constraint(equalToConstant: photoSize),
+            photoView.heightAnchor.constraint(equalToConstant: photoSize),
+            nameLabel.topAnchor.constraint(equalTo: borderView.bottomAnchor, constant: 2),
+            nameLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            nameLabel.widthAnchor.constraint(equalTo: container.widthAnchor),
+        ])
+
+        // Tap gesture
+        let tapBtn = UIButton(type: .system)
+        tapBtn.translatesAutoresizingMaskIntoConstraints = false
+        tapBtn.tag = tag
+        tapBtn.addTarget(self, action: #selector(profileTapped(_:)), for: .touchUpInside)
+        container.addSubview(tapBtn)
+        NSLayoutConstraint.activate([
+            tapBtn.topAnchor.constraint(equalTo: container.topAnchor),
+            tapBtn.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            tapBtn.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            tapBtn.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+        ])
+
+        return container
     }
 
     private func makeKeyboardSwitchButton() -> UIButton {
