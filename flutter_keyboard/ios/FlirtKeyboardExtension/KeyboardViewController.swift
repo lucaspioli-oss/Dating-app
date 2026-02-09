@@ -161,43 +161,114 @@ class KeyboardViewController: UIInputViewController {
             titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
         ])
 
-        let searchField = UITextField()
-        searchField.attributedPlaceholder = NSAttributedString(
-            string: "Buscar perfil...",
-            attributes: [.foregroundColor: Theme.textSecondary]
-        )
-        searchField.textColor = .white
-        searchField.backgroundColor = Theme.cardBg
-        searchField.layer.cornerRadius = 8
-        searchField.layer.borderWidth = 1
-        searchField.layer.borderColor = UIColor.clear.cgColor
-        searchField.font = UIFont.systemFont(ofSize: 13)
-        searchField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 10, height: 0))
-        searchField.leftViewMode = .always
-        searchField.autocorrectionType = .no
-        searchField.translatesAutoresizingMaskIntoConstraints = false
-        searchField.tag = 888
-        searchField.addTarget(self, action: #selector(searchTextChanged(_:)), for: .editingChanged)
-        searchField.text = searchText
-        containerView.addSubview(searchField)
+        // Search label (shows current filter text)
+        let searchLabel = UILabel()
+        searchLabel.text = searchText.isEmpty ? "🔍 Buscar..." : "🔍 \(searchText)"
+        searchLabel.textColor = searchText.isEmpty ? Theme.textSecondary : .white
+        searchLabel.backgroundColor = Theme.cardBg
+        searchLabel.font = UIFont.systemFont(ofSize: 13)
+        searchLabel.layer.cornerRadius = 8
+        searchLabel.clipsToBounds = true
+        searchLabel.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(searchLabel)
+
+        // Add padding to label
+        let searchContainer = UIView()
+        searchContainer.backgroundColor = Theme.cardBg
+        searchContainer.layer.cornerRadius = 8
+        searchContainer.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(searchContainer)
+        searchContainer.addSubview(searchLabel)
 
         NSLayoutConstraint.activate([
-            searchField.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 6),
-            searchField.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
-            searchField.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
-            searchField.heightAnchor.constraint(equalToConstant: 32),
+            searchContainer.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
+            searchContainer.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+            searchContainer.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+            searchContainer.heightAnchor.constraint(equalToConstant: 26),
+            searchLabel.leadingAnchor.constraint(equalTo: searchContainer.leadingAnchor, constant: 8),
+            searchLabel.trailingAnchor.constraint(equalTo: searchContainer.trailingAnchor, constant: -8),
+            searchLabel.centerYAnchor.constraint(equalTo: searchContainer.centerYAnchor),
         ])
 
+        // Mini keyboard: scrollable A-Z row + backspace
+        let keyboardScroll = UIScrollView()
+        keyboardScroll.translatesAutoresizingMaskIntoConstraints = false
+        keyboardScroll.showsHorizontalScrollIndicator = false
+        containerView.addSubview(keyboardScroll)
+
+        let keyStack = UIStackView()
+        keyStack.axis = .horizontal
+        keyStack.spacing = 3
+        keyStack.translatesAutoresizingMaskIntoConstraints = false
+        keyboardScroll.addSubview(keyStack)
+
+        let letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        for (i, char) in letters.enumerated() {
+            let keyBtn = UIButton(type: .system)
+            keyBtn.setTitle(String(char), for: .normal)
+            keyBtn.setTitleColor(.white, for: .normal)
+            keyBtn.backgroundColor = Theme.suggestionBg
+            keyBtn.layer.cornerRadius = 4
+            keyBtn.titleLabel?.font = UIFont.systemFont(ofSize: 11, weight: .medium)
+            keyBtn.translatesAutoresizingMaskIntoConstraints = false
+            keyBtn.tag = 600 + i
+            keyBtn.addTarget(self, action: #selector(miniKeyTapped(_:)), for: .touchUpInside)
+            keyBtn.widthAnchor.constraint(equalToConstant: 24).isActive = true
+            keyBtn.heightAnchor.constraint(equalToConstant: 24).isActive = true
+            keyStack.addArrangedSubview(keyBtn)
+        }
+
+        // Backspace button
+        let bksp = UIButton(type: .system)
+        bksp.setTitle("⌫", for: .normal)
+        bksp.setTitleColor(Theme.orange, for: .normal)
+        bksp.backgroundColor = Theme.suggestionBg
+        bksp.layer.cornerRadius = 4
+        bksp.titleLabel?.font = UIFont.systemFont(ofSize: 12)
+        bksp.translatesAutoresizingMaskIntoConstraints = false
+        bksp.tag = 650
+        bksp.addTarget(self, action: #selector(miniKeyBackspace), for: .touchUpInside)
+        bksp.widthAnchor.constraint(equalToConstant: 32).isActive = true
+        bksp.heightAnchor.constraint(equalToConstant: 24).isActive = true
+        keyStack.addArrangedSubview(bksp)
+
+        // Clear button
+        let clearBtn = UIButton(type: .system)
+        clearBtn.setTitle("✕", for: .normal)
+        clearBtn.setTitleColor(Theme.errorText, for: .normal)
+        clearBtn.backgroundColor = Theme.suggestionBg
+        clearBtn.layer.cornerRadius = 4
+        clearBtn.titleLabel?.font = UIFont.systemFont(ofSize: 12)
+        clearBtn.translatesAutoresizingMaskIntoConstraints = false
+        clearBtn.tag = 651
+        clearBtn.addTarget(self, action: #selector(miniKeyClear), for: .touchUpInside)
+        clearBtn.widthAnchor.constraint(equalToConstant: 28).isActive = true
+        clearBtn.heightAnchor.constraint(equalToConstant: 24).isActive = true
+        keyStack.addArrangedSubview(clearBtn)
+
+        NSLayoutConstraint.activate([
+            keyboardScroll.topAnchor.constraint(equalTo: searchContainer.bottomAnchor, constant: 3),
+            keyboardScroll.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+            keyboardScroll.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+            keyboardScroll.heightAnchor.constraint(equalToConstant: 26),
+            keyStack.topAnchor.constraint(equalTo: keyboardScroll.topAnchor),
+            keyStack.leadingAnchor.constraint(equalTo: keyboardScroll.leadingAnchor),
+            keyStack.trailingAnchor.constraint(equalTo: keyboardScroll.trailingAnchor),
+            keyStack.bottomAnchor.constraint(equalTo: keyboardScroll.bottomAnchor),
+            keyStack.heightAnchor.constraint(equalTo: keyboardScroll.heightAnchor),
+        ])
+
+        // Profile list
         let scrollView = UIScrollView()
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.showsHorizontalScrollIndicator = false
         containerView.addSubview(scrollView)
 
         NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: searchField.bottomAnchor, constant: 6),
+            scrollView.topAnchor.constraint(equalTo: keyboardScroll.bottomAnchor, constant: 4),
             scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
             scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
-            scrollView.heightAnchor.constraint(equalToConstant: 60),
+            scrollView.heightAnchor.constraint(equalToConstant: 56),
         ])
 
         let stackView = UIStackView()
@@ -837,16 +908,31 @@ class KeyboardViewController: UIInputViewController {
         renderCurrentState()
     }
 
-    @objc private func searchTextChanged(_ sender: UITextField) {
-        searchText = sender.text ?? ""
+    @objc private func miniKeyTapped(_ sender: UIButton) {
+        let letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        let index = sender.tag - 600
+        guard index >= 0, index < letters.count else { return }
+        let char = String(letters[letters.index(letters.startIndex, offsetBy: index)])
+        searchText += char.lowercased()
+        filteredConversations = conversations.filter {
+            $0.matchName.localizedCaseInsensitiveContains(searchText)
+        }
+        renderCurrentState()
+    }
+
+    @objc private func miniKeyBackspace() {
+        guard !searchText.isEmpty else { return }
+        searchText = String(searchText.dropLast())
         filteredConversations = searchText.isEmpty ? conversations : conversations.filter {
             $0.matchName.localizedCaseInsensitiveContains(searchText)
         }
-        let wasFirstResponder = sender.isFirstResponder
         renderCurrentState()
-        if wasFirstResponder, let field = containerView.viewWithTag(888) as? UITextField {
-            field.becomeFirstResponder()
-        }
+    }
+
+    @objc private func miniKeyClear() {
+        searchText = ""
+        filteredConversations = conversations
+        renderCurrentState()
     }
 
     @objc private func quickModeTapped() {
@@ -970,7 +1056,16 @@ class KeyboardViewController: UIInputViewController {
                 return
             }
 
-            if let http = response as? HTTPURLResponse, http.statusCode == 401 || http.statusCode == 403 {
+            guard let http = response as? HTTPURLResponse else {
+                DispatchQueue.main.async {
+                    self?.isLoadingProfiles = false
+                    self?.profilesError = "Sem resposta do servidor."
+                    self?.renderCurrentState()
+                }
+                return
+            }
+
+            if http.statusCode == 401 || http.statusCode == 403 {
                 DispatchQueue.main.async {
                     self?.isLoadingProfiles = false
                     self?.profilesError = "Sessão expirada. Abra o app para renovar."
@@ -982,7 +1077,22 @@ class KeyboardViewController: UIInputViewController {
             guard let data = data else {
                 DispatchQueue.main.async {
                     self?.isLoadingProfiles = false
-                    self?.profilesError = "Sem resposta do servidor."
+                    self?.profilesError = "Sem dados (HTTP \(http.statusCode))."
+                    self?.renderCurrentState()
+                }
+                return
+            }
+
+            // Handle non-200 status codes
+            if http.statusCode != 200 {
+                var errorMsg = "Erro do servidor (HTTP \(http.statusCode))"
+                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let msg = json["message"] as? String ?? json["error"] as? String {
+                    errorMsg = msg
+                }
+                DispatchQueue.main.async {
+                    self?.isLoadingProfiles = false
+                    self?.profilesError = errorMsg
                     self?.renderCurrentState()
                 }
                 return
@@ -1008,16 +1118,18 @@ class KeyboardViewController: UIInputViewController {
                         self?.renderCurrentState()
                     }
                 } else {
+                    // Show raw response for debugging
+                    let raw = String(data: data, encoding: .utf8) ?? "?"
                     DispatchQueue.main.async {
                         self?.isLoadingProfiles = false
-                        self?.profilesError = "Resposta inesperada do servidor."
+                        self?.profilesError = "Formato inesperado: \(raw.prefix(80))"
                         self?.renderCurrentState()
                     }
                 }
             } catch {
                 DispatchQueue.main.async {
                     self?.isLoadingProfiles = false
-                    self?.profilesError = "Erro ao processar dados."
+                    self?.profilesError = "Erro ao processar: \(error.localizedDescription)"
                     self?.renderCurrentState()
                 }
             }
