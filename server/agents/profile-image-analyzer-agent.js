@@ -32,6 +32,7 @@ Use null para campos não visíveis.
 
 {
   "name": "Nome extraído ou null",
+  "username": "@usuario ou null (para Instagram/redes sociais)",
   "age": "Idade ou null",
   "bio": "Bio completa ou null",
   "photoDescriptions": ["descrição foto 1", "descrição foto 2", ...] ou null,
@@ -39,7 +40,8 @@ Use null para campos não visíveis.
   "occupation": "Trabalho/faculdade ou null",
   "interests": ["interesse 1", "interesse 2", ...] ou null,
   "additionalInfo": "Outras informações relevantes ou null",
-  "facePosition": {"centerX": 50, "centerY": 30, "size": 25} ou null
+  "faceDescription": "Breve descrição da aparência (cabelo, etnia, etc) ou null",
+  "facePosition": {"centerX": 15, "centerY": 8, "size": 12} ou null
 }
 
 IMPORTANTE:
@@ -48,7 +50,14 @@ IMPORTANTE:
 - Se algo não estiver visível, use null
 - Nas descrições de fotos, seja específico e útil
 - Capture TUDO que possa ser útil para criar uma primeira mensagem
-- Para facePosition: SEMPRE tente localizar um rosto humano na imagem. Retorne centerX e centerY (centro do rosto) e size (tamanho do rosto), todos em porcentagem (0-100) em relação às dimensões da imagem. IMPORTANTE: Em screenshots de perfis de redes sociais (Instagram, Tinder, etc.), o rosto geralmente está dentro da foto de perfil circular/quadrada que aparece no topo do perfil — localize essa foto de perfil e retorne a posição do rosto DENTRO dela. Mesmo que a foto de perfil seja pequena (ex: 10-15% da largura da tela), retorne as coordenadas corretas. Se houver múltiplos rostos, use o da foto de perfil principal. Se realmente não houver nenhum rosto visível, use null.`;
+- Para facePosition: Localize o rosto principal na imagem e retorne as coordenadas em porcentagem (0-100) RELATIVAS À IMAGEM COMPLETA (não relativas a nenhum elemento interno).
+  - centerX: posição horizontal do centro do rosto na imagem completa (0=esquerda, 100=direita)
+  - centerY: posição vertical do centro do rosto na imagem completa (0=topo, 100=base)
+  - size: largura do rosto como porcentagem da largura total da imagem
+  - EXEMPLO para screenshot de Instagram: a foto de perfil circular fica no canto superior esquerdo (aprox. centerX=15, centerY=8, size=12). Retorne essas coordenadas relativas ao screenshot inteiro.
+  - EXEMPLO para foto de Tinder/dating app: o rosto geralmente ocupa boa parte da foto (aprox. centerX=50, centerY=35, size=40).
+  - Se houver múltiplos rostos, use o da foto de perfil principal/maior.
+  - Se realmente não houver nenhum rosto visível, use null.`;
     }
     async analyzeImage(input, systemPrompt) {
         const message = await this.client.messages.create({
@@ -106,6 +115,7 @@ IMPORTANTE:
             }
             const result = {
                 name: parsed.name && parsed.name !== 'null' ? parsed.name : undefined,
+                username: parsed.username && parsed.username !== 'null' ? parsed.username : undefined,
                 age: parsed.age && parsed.age !== 'null' ? parsed.age : undefined,
                 bio: parsed.bio && parsed.bio !== 'null' ? parsed.bio : undefined,
                 photoDescriptions: parsed.photoDescriptions && parsed.photoDescriptions !== 'null' ? parsed.photoDescriptions : undefined,
@@ -113,6 +123,7 @@ IMPORTANTE:
                 occupation: parsed.occupation && parsed.occupation !== 'null' ? parsed.occupation : undefined,
                 interests: parsed.interests && parsed.interests !== 'null' ? parsed.interests : undefined,
                 additionalInfo: parsed.additionalInfo && parsed.additionalInfo !== 'null' ? parsed.additionalInfo : undefined,
+                faceDescription: parsed.faceDescription && parsed.faceDescription !== 'null' ? parsed.faceDescription : undefined,
                 facePosition: parsed.facePosition && parsed.facePosition !== 'null' && typeof parsed.facePosition === 'object' ? parsed.facePosition : undefined,
             };
             console.log('Dados extraídos:', result);

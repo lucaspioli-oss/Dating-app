@@ -518,65 +518,51 @@ class KeyboardViewController: UIInputViewController {
         ])
     }
 
-    private func makeSuggestionCard(index: Int, text: String) -> UIView {
+    private func makeSuggestionCard(index: Int, text: String, isBasicMode: Bool = false) -> UIView {
         let card = UIView()
         card.translatesAutoresizingMaskIntoConstraints = false
         card.backgroundColor = Theme.suggestionBg
-        card.layer.cornerRadius = 10
+        card.layer.cornerRadius = 12
         card.layer.borderWidth = 0.5
-        card.layer.borderColor = Theme.rose.withAlphaComponent(0.15).cgColor
-
-        let numberLabel = UILabel()
-        numberLabel.text = "\(index + 1)"
-        numberLabel.font = UIFont.systemFont(ofSize: 10, weight: .bold)
-        numberLabel.textColor = .white
-        numberLabel.textAlignment = .center
-        numberLabel.backgroundColor = Theme.rose.withAlphaComponent(0.6)
-        numberLabel.layer.cornerRadius = 9
-        numberLabel.layer.masksToBounds = true
-        numberLabel.translatesAutoresizingMaskIntoConstraints = false
-        card.addSubview(numberLabel)
+        card.layer.borderColor = Theme.rose.withAlphaComponent(0.2).cgColor
 
         let textLabel = UILabel()
         textLabel.text = text
-        textLabel.font = UIFont.systemFont(ofSize: 13)
+        textLabel.font = UIFont.systemFont(ofSize: 14)
         textLabel.textColor = .white
         textLabel.numberOfLines = 0
         textLabel.lineBreakMode = .byWordWrapping
         textLabel.translatesAutoresizingMaskIntoConstraints = false
         card.addSubview(textLabel)
 
-        let copyBtn = UIButton(type: .system)
-        copyBtn.setImage(UIImage(systemName: "doc.on.doc"), for: .normal)
-        copyBtn.tintColor = Theme.rose.withAlphaComponent(0.7)
-        copyBtn.translatesAutoresizingMaskIntoConstraints = false
-        copyBtn.tag = index
-        copyBtn.addTarget(self, action: #selector(suggestionTapped(_:)), for: .touchUpInside)
-        card.addSubview(copyBtn)
+        // Send/select button
+        let sendBtn = UIButton(type: .system)
+        sendBtn.setImage(UIImage(systemName: "arrow.up.circle.fill"), for: .normal)
+        sendBtn.tintColor = Theme.rose
+        sendBtn.translatesAutoresizingMaskIntoConstraints = false
+        sendBtn.tag = isBasicMode ? (100 + index) : index
+        sendBtn.addTarget(self, action: isBasicMode ? #selector(basicSuggestionTapped(_:)) : #selector(suggestionTapped(_:)), for: .touchUpInside)
+        card.addSubview(sendBtn)
 
         // Make entire card tappable
         let tapBtn = UIButton(type: .system)
         tapBtn.translatesAutoresizingMaskIntoConstraints = false
-        tapBtn.tag = index
-        tapBtn.addTarget(self, action: #selector(suggestionTapped(_:)), for: .touchUpInside)
+        tapBtn.tag = isBasicMode ? (100 + index) : index
+        tapBtn.addTarget(self, action: isBasicMode ? #selector(basicSuggestionTapped(_:)) : #selector(suggestionTapped(_:)), for: .touchUpInside)
         card.insertSubview(tapBtn, at: 0)
 
         NSLayoutConstraint.activate([
-            numberLabel.topAnchor.constraint(equalTo: card.topAnchor, constant: 8),
-            numberLabel.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 8),
-            numberLabel.widthAnchor.constraint(equalToConstant: 18),
-            numberLabel.heightAnchor.constraint(equalToConstant: 18),
-            textLabel.topAnchor.constraint(equalTo: card.topAnchor, constant: 7),
-            textLabel.leadingAnchor.constraint(equalTo: numberLabel.trailingAnchor, constant: 8),
-            textLabel.trailingAnchor.constraint(equalTo: copyBtn.leadingAnchor, constant: -6),
-            textLabel.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -7),
-            copyBtn.topAnchor.constraint(equalTo: card.topAnchor, constant: 6),
-            copyBtn.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -6),
-            copyBtn.widthAnchor.constraint(equalToConstant: 28),
-            copyBtn.heightAnchor.constraint(equalToConstant: 28),
+            textLabel.topAnchor.constraint(equalTo: card.topAnchor, constant: 10),
+            textLabel.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 12),
+            textLabel.trailingAnchor.constraint(equalTo: sendBtn.leadingAnchor, constant: -8),
+            textLabel.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -10),
+            sendBtn.centerYAnchor.constraint(equalTo: card.centerYAnchor),
+            sendBtn.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -10),
+            sendBtn.widthAnchor.constraint(equalToConstant: 30),
+            sendBtn.heightAnchor.constraint(equalToConstant: 30),
             tapBtn.topAnchor.constraint(equalTo: card.topAnchor),
             tapBtn.leadingAnchor.constraint(equalTo: card.leadingAnchor),
-            tapBtn.trailingAnchor.constraint(equalTo: copyBtn.leadingAnchor),
+            tapBtn.trailingAnchor.constraint(equalTo: sendBtn.leadingAnchor),
             tapBtn.bottomAnchor.constraint(equalTo: card.bottomAnchor),
         ])
 
@@ -677,32 +663,23 @@ class KeyboardViewController: UIInputViewController {
             ])
 
             if !suggestions.isEmpty {
-                var lastAnchor = clipLabel.bottomAnchor
-                for (index, suggestion) in suggestions.prefix(3).enumerated() {
-                    let btn = UIButton(type: .system)
-                    let displayText = suggestion.count > 60 ? String(suggestion.prefix(57)) + "..." : suggestion
-                    btn.setTitle("\(index + 1). \(displayText)", for: .normal)
-                    btn.setTitleColor(.white, for: .normal)
-                    btn.backgroundColor = Theme.suggestionBg
-                    btn.contentHorizontalAlignment = .left
-                    btn.contentEdgeInsets = UIEdgeInsets(top: 4, left: 10, bottom: 4, right: 10)
-                    btn.layer.cornerRadius = 8
-                    btn.layer.borderWidth = 0.5
-                    btn.layer.borderColor = Theme.rose.withAlphaComponent(0.2).cgColor
-                    btn.titleLabel?.font = UIFont.systemFont(ofSize: 12)
-                    btn.titleLabel?.numberOfLines = 1
-                    btn.tag = 100 + index
-                    btn.translatesAutoresizingMaskIntoConstraints = false
-                    btn.addTarget(self, action: #selector(basicSuggestionTapped(_:)), for: .touchUpInside)
-                    containerView.addSubview(btn)
+                // Scrollable suggestions area (same card style as PRO mode)
+                let scrollView = UIScrollView()
+                scrollView.translatesAutoresizingMaskIntoConstraints = false
+                scrollView.showsVerticalScrollIndicator = true
+                scrollView.indicatorStyle = .white
+                scrollView.alwaysBounceVertical = false
+                containerView.addSubview(scrollView)
 
-                    NSLayoutConstraint.activate([
-                        btn.topAnchor.constraint(equalTo: lastAnchor, constant: 4),
-                        btn.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
-                        btn.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
-                        btn.heightAnchor.constraint(equalToConstant: 30),
-                    ])
-                    lastAnchor = btn.bottomAnchor
+                let contentStack = UIStackView()
+                contentStack.axis = .vertical
+                contentStack.spacing = 6
+                contentStack.translatesAutoresizingMaskIntoConstraints = false
+                scrollView.addSubview(contentStack)
+
+                for (index, suggestion) in suggestions.prefix(3).enumerated() {
+                    let card = makeSuggestionCard(index: index, text: suggestion, isBasicMode: true)
+                    contentStack.addArrangedSubview(card)
                 }
 
                 let bottomStack = UIStackView()
@@ -724,9 +701,19 @@ class KeyboardViewController: UIInputViewController {
                 bottomStack.addArrangedSubview(makeTonePill(compact: true))
 
                 NSLayoutConstraint.activate([
-                    bottomStack.topAnchor.constraint(equalTo: lastAnchor, constant: 6),
+                    scrollView.topAnchor.constraint(equalTo: clipLabel.bottomAnchor, constant: 6),
+                    scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 10),
+                    scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -10),
+                    scrollView.bottomAnchor.constraint(equalTo: bottomStack.topAnchor, constant: -4),
+                    contentStack.topAnchor.constraint(equalTo: scrollView.topAnchor),
+                    contentStack.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
+                    contentStack.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
+                    contentStack.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
+                    contentStack.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
                     bottomStack.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
                     bottomStack.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+                    bottomStack.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -6),
+                    bottomStack.heightAnchor.constraint(equalToConstant: 28),
                 ])
             } else {
                 // Pills + Generate button
@@ -1065,8 +1052,9 @@ class KeyboardViewController: UIInputViewController {
 
     @objc private func suggestionTapped(_ sender: UIButton) {
         let index = sender.tag
-        guard index < suggestions.count else { return }
+        guard index >= 0, index < suggestions.count else { return }
         let text = suggestions[index]
+        UIPasteboard.general.string = text
         textDocumentProxy.insertText(text)
 
         if let conv = selectedConversation, let convId = conv.conversationId {
@@ -1081,8 +1069,10 @@ class KeyboardViewController: UIInputViewController {
 
     @objc private func basicSuggestionTapped(_ sender: UIButton) {
         let index = sender.tag - 100
-        guard index < suggestions.count else { return }
-        textDocumentProxy.insertText(suggestions[index])
+        guard index >= 0, index < suggestions.count else { return }
+        let text = suggestions[index]
+        UIPasteboard.general.string = text
+        textDocumentProxy.insertText(text)
     }
 
     @objc private func writeOwnTapped() {
@@ -1358,19 +1348,76 @@ class KeyboardViewController: UIInputViewController {
 
     private func parseSuggestions(_ text: String) -> [String] {
         let lines = text.components(separatedBy: "\n")
-        var results: [String] = []
+        var numberedItems: [String] = []
+
+        // Headers/analysis keywords to skip
+        let skipPatterns = ["#", "⚠️", "🚩", "📊", "📋", "═", "───", "❌", "✅", "✓",
+                           "ANÁLISE", "ANALISE", "RED FLAG", "GRAU DE", "CHECKLIST",
+                           "INVESTIMENTO", "LEI #", "CALIBRA", "VALIDAÇÃO", "SITUAÇÃO"]
 
         for line in lines {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if let range = trimmed.range(of: #"^\d+[\.\)\:]\s*"#, options: .regularExpression) {
-                let suggestion = String(trimmed[range.upperBound...]).trimmingCharacters(in: .whitespaces)
-                if !suggestion.isEmpty {
-                    results.append(suggestion.trimmingCharacters(in: CharacterSet(charactersIn: "\"'")))
+            guard !trimmed.isEmpty else { continue }
+
+            // Check if this is a numbered line (1. / 1) / 1: etc)
+            guard let range = trimmed.range(of: #"^\d+[\.\)\:]\s*"#, options: .regularExpression) else { continue }
+
+            var suggestion = String(trimmed[range.upperBound...]).trimmingCharacters(in: .whitespaces)
+            if suggestion.isEmpty { continue }
+
+            // Skip lines that look like analysis headers
+            let upper = suggestion.uppercased()
+            let isHeader = skipPatterns.contains(where: { upper.contains($0) })
+            if isHeader { continue }
+
+            // Remove surrounding quotes
+            if (suggestion.hasPrefix("\"") && suggestion.hasSuffix("\"")) ||
+               (suggestion.hasPrefix("'") && suggestion.hasSuffix("'")) ||
+               (suggestion.hasPrefix("\u{201C}") && suggestion.hasSuffix("\u{201D}")) {
+                suggestion = String(suggestion.dropFirst().dropLast())
+            }
+
+            if !suggestion.isEmpty {
+                numberedItems.append(suggestion)
+            }
+        }
+
+        if !numberedItems.isEmpty {
+            return Array(numberedItems.prefix(3))
+        }
+
+        // Fallback: try to find any quoted text in the response
+        var quoted: [String] = []
+        let quoteRegex = try? NSRegularExpression(pattern: #""([^"]{5,})""#)
+        if let regex = quoteRegex {
+            let matches = regex.matches(in: text, range: NSRange(text.startIndex..., in: text))
+            for match in matches {
+                if let range = Range(match.range(at: 1), in: text) {
+                    quoted.append(String(text[range]))
                 }
             }
         }
 
-        return results.isEmpty ? [text] : results
+        if !quoted.isEmpty {
+            return Array(quoted.prefix(3))
+        }
+
+        // Last resort: split into sentences, filter out analysis content
+        let sentences = text.components(separatedBy: "\n")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { line in
+                !line.isEmpty &&
+                line.count > 3 &&
+                !skipPatterns.contains(where: { line.uppercased().contains($0) }) &&
+                !line.hasPrefix("-") &&
+                !line.hasPrefix("*")
+            }
+
+        if !sentences.isEmpty {
+            return Array(sentences.prefix(3))
+        }
+
+        return ["Erro ao processar sugestões. Tente novamente."]
     }
 
     // MARK: - UI Component Helpers

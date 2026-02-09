@@ -30,6 +30,15 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   String? _errorMessage;
 
   @override
+  void dispose() {
+    for (final entry in _platformEntries) {
+      entry.nameController.dispose();
+      entry.bioController.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D1A),
@@ -540,13 +549,8 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                   ),
                 ],
               ] else ...[
-                // Individual photos mode (existing behavior)
-                Text(
-                  'Adicione as fotos do perfil dela (pode adicionar várias)',
-                  style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-                ),
-                const SizedBox(height: 12),
-                _buildProfileImagesGrid(index, entry),
+                // Individual photos mode - Instagram-like layout
+                _buildIndividualPhotosLayout(index, entry),
               ],
             ],
           ] else ...[
@@ -571,8 +575,8 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             _buildProfileImagesGrid(index, entry),
           ],
 
-          // Stories (apenas Instagram)
-          if (entry.type == PlatformType.instagram && entry.instagramUploadMode != InstagramUploadMode.none) ...[
+          // Stories (apenas Instagram - general screenshot mode; individual photos has stories inline)
+          if (entry.type == PlatformType.instagram && entry.instagramUploadMode == InstagramUploadMode.generalScreenshot) ...[
             const SizedBox(height: 16),
             const Text(
               'Stories (opcional)',
@@ -623,6 +627,113 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildIndividualPhotosLayout(int platformIndex, _PlatformEntry entry) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Name field
+        TextField(
+          controller: entry.nameController,
+          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+          decoration: InputDecoration(
+            hintText: 'Nome dela',
+            hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 16, fontWeight: FontWeight.w600),
+            filled: true,
+            fillColor: const Color(0xFF2A2A3E),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            prefixIcon: Icon(Icons.person_outline, color: Colors.grey.shade500, size: 20),
+          ),
+        ),
+        const SizedBox(height: 10),
+        // Bio field
+        TextField(
+          controller: entry.bioController,
+          style: const TextStyle(color: Colors.white, fontSize: 14),
+          maxLines: 3,
+          minLines: 2,
+          decoration: InputDecoration(
+            hintText: 'Bio / descricao do perfil',
+            hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+            filled: true,
+            fillColor: const Color(0xFF2A2A3E),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            prefixIcon: Padding(
+              padding: const EdgeInsets.only(bottom: 28),
+              child: Icon(Icons.info_outline, color: Colors.grey.shade500, size: 20),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Stories section (horizontal scroll, Instagram-style)
+        Row(
+          children: [
+            const Text(
+              'Stories',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '(opcional)',
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 100,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              ...entry.storyImages.asMap().entries.map((storyEntry) {
+                return _buildStoryThumbnail(platformIndex, storyEntry.key, storyEntry.value);
+              }),
+              _buildAddStoryButton(platformIndex),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Divider
+        Container(
+          height: 1,
+          color: const Color(0xFF2A2A3E),
+        ),
+        const SizedBox(height: 16),
+        // Photos section - grid layout
+        Row(
+          children: [
+            const Text(
+              'Fotos do Perfil',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              'A 1a foto vira avatar',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _buildProfileImagesGrid(platformIndex, entry),
+      ],
     );
   }
 
@@ -1241,8 +1352,10 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         final cx = (image.width * (facePosition['centerX'] as num) / 100).round();
         final cy = (image.height * (facePosition['centerY'] as num) / 100).round();
         final faceSize = (image.width * (facePosition['size'] as num) / 100).round();
-        // Add 50% padding around face for natural avatar
-        cropSize = (faceSize * 1.5).round().clamp(1, [image.width, image.height].reduce((a, b) => a < b ? a : b));
+        // For small faces (Instagram profile pics), use more padding for better avatar
+        final padding = faceSize < (image.width * 0.2) ? 2.5 : 1.5;
+        final maxDim = image.width < image.height ? image.width : image.height;
+        cropSize = (faceSize * padding).round().clamp(1, maxDim);
         cropX = (cx - cropSize ~/ 2).clamp(0, image.width - cropSize);
         cropY = (cy - cropSize ~/ 2).clamp(0, image.height - cropSize);
       } else {
@@ -1370,6 +1483,10 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
 
         if (entry.profileImages.isEmpty) continue;
 
+        // Check if user manually entered name/bio (individual photos mode)
+        final manualName = entry.nameController.text.trim();
+        final manualBio = entry.bioController.text.trim();
+
         // Analisar todas as imagens do perfil e combinar resultados
         List<String> allPhotoDescriptions = [];
         List<String> allInterests = [];
@@ -1395,12 +1512,13 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           }
 
           // Usar o primeiro nome/face encontrado
-          if (profileName == null && result.name != null) {
-            profileName = result.name;
-            faceDescription = result.faceDescription;
+          if (faceImageBase64 == null) {
+            if (profileName == null) {
+              profileName = result.name;
+              faceDescription = result.faceDescription;
+            }
             // Crop avatar using AI face coordinates, fallback to pre-crop or center-top
             if (result.facePosition != null) {
-              // AI detected a face — re-crop from original image with precise coordinates
               try {
                 final croppedBytes = _cropAvatarFromImage(
                   entry.profileImages[imgIndex],
@@ -1412,13 +1530,10 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
               }
             } else if (entry.croppedProfilePicBase64 != null) {
               faceImageBase64 = entry.croppedProfilePicBase64;
-            } else if (faceImageBase64 == null) {
-              // Crop avatar using AI-provided face position
+            } else {
+              // Fallback: center-top crop
               try {
-                final croppedBytes = _cropAvatarFromImage(
-                  entry.profileImages[imgIndex],
-                  facePosition: result.facePosition,
-                );
+                final croppedBytes = _cropAvatarFromImage(entry.profileImages[imgIndex]);
                 faceImageBase64 = base64Encode(croppedBytes);
               } catch (_) {
                 faceImageBase64 = imageBase64;
@@ -1445,6 +1560,10 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             }
           }
         }
+
+        // Manual name/bio override from individual photos mode
+        if (manualName.isNotEmpty) profileName = manualName;
+        if (manualBio.isNotEmpty) bio = manualBio;
 
         // Criar lista de stories para Instagram
         List<StoryData>? stories;
@@ -1559,6 +1678,9 @@ class _PlatformEntry {
   InstagramUploadMode instagramUploadMode = InstagramUploadMode.none;
   Uint8List? croppedProfilePicBytes;
   String? croppedProfilePicBase64;
+  // Manual name/bio for individual photos mode
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController bioController = TextEditingController();
 
   _PlatformEntry({required this.type});
 

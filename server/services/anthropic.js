@@ -51,7 +51,7 @@ async function analyzeMessage(request) {
             messages: [
                 {
                     role: 'user',
-                    content: `Mensagem recebida: "${request.text}"\n\nForneça APENAS 2-3 sugestões de respostas.`,
+                    content: `${request.text}\n\nIMPORTANTE: Retorne APENAS as sugestões de resposta numeradas (1. 2. 3.). NÃO inclua análise, explicações, headers, red flags, grau de investimento, raciocínio ou qualquer outro texto. SOMENTE as mensagens prontas para enviar.`,
                 },
             ],
         });
