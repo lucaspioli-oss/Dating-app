@@ -1,12 +1,9 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:image/image.dart' as img;
-import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
-import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
 import '../models/profile_model.dart';
 import '../providers/app_state.dart';
 import '../services/agent_service.dart';
@@ -1227,58 +1224,22 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
     });
   }
 
-  /// Detects a face in the image and crops a square region around it for the avatar.
-  /// Falls back to center crop if no face is detected.
-  Future<Uint8List> _cropFaceFromImage(Uint8List bytes) async {
+  /// Crops a square avatar from the center-top area of the image.
+  /// Profile photos typically have the face in the upper-center region.
+  Uint8List _cropAvatarFromImage(Uint8List bytes) {
     try {
-      // Write bytes to temp file (ML Kit needs a file path)
-      final tempDir = await getTemporaryDirectory();
-      final tempFile = File('${tempDir.path}/face_detect_${DateTime.now().millisecondsSinceEpoch}.jpg');
-      await tempFile.writeAsBytes(bytes);
-
-      final inputImage = InputImage.fromFilePath(tempFile.path);
-      final faceDetector = FaceDetector(options: FaceDetectorOptions(
-        enableLandmarks: false,
-        enableClassification: false,
-        performanceMode: FaceDetectorMode.fast,
-      ));
-
-      final faces = await faceDetector.processImage(inputImage);
-      await faceDetector.close();
-      await tempFile.delete().catchError((_) => tempFile); // cleanup
-
       final image = img.decodeImage(bytes);
       if (image == null) return bytes;
 
-      int cropX, cropY, cropSize;
-
-      if (faces.isNotEmpty) {
-        // Use the largest face
-        final face = faces.reduce((a, b) =>
-            a.boundingBox.width * a.boundingBox.height >
-            b.boundingBox.width * b.boundingBox.height ? a : b);
-
-        final rect = face.boundingBox;
-        // Add 40% padding around the face for a natural avatar look
-        final padding = (rect.width * 0.4).round();
-        final size = (rect.width + padding * 2).round();
-
-        cropX = (rect.left - padding).round().clamp(0, image.width - 1);
-        cropY = (rect.top - padding).round().clamp(0, image.height - 1);
-        cropSize = size.clamp(1, [image.width - cropX, image.height - cropY].reduce((a, b) => a < b ? a : b));
-      } else {
-        // No face detected: center crop (top third, likely where face is)
-        cropSize = (image.width * 0.5).round().clamp(1, image.height);
-        cropX = ((image.width - cropSize) / 2).round().clamp(0, image.width - 1);
-        cropY = (image.height * 0.1).round().clamp(0, image.height - cropSize);
-      }
+      // Crop a square from center-top (where faces usually are)
+      final cropSize = (image.width * 0.5).round().clamp(1, image.height);
+      final cropX = ((image.width - cropSize) / 2).round().clamp(0, image.width - 1);
+      final cropY = (image.height * 0.08).round().clamp(0, image.height - cropSize);
 
       final cropped = img.copyCrop(image, x: cropX, y: cropY, width: cropSize, height: cropSize);
-      // Resize to a small avatar (200x200) for storage efficiency
       final resized = img.copyResize(cropped, width: 200, height: 200);
       return Uint8List.fromList(img.encodeJpg(resized, quality: 85));
     } catch (e) {
-      // Fallback: return original bytes
       return bytes;
     }
   }
@@ -1301,8 +1262,8 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         _errorMessage = null;
       });
 
-      // Detect face and crop avatar (async)
-      final croppedBytes = await _cropFaceFromImage(bytes);
+      // Crop avatar from center-top region
+      final croppedBytes = _cropAvatarFromImage(bytes);
       final croppedBase64 = base64Encode(croppedBytes);
 
       if (mounted) {
@@ -1425,9 +1386,9 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             if (entry.croppedProfilePicBase64 != null) {
               faceImageBase64 = entry.croppedProfilePicBase64;
             } else if (faceImageBase64 == null) {
-              // Detect face in the first image and crop avatar
+              // Crop avatar from the first image
               try {
-                final croppedBytes = await _cropFaceFromImage(entry.profileImages[imgIndex]);
+                final croppedBytes = _cropAvatarFromImage(entry.profileImages[imgIndex]);
                 faceImageBase64 = base64Encode(croppedBytes);
               } catch (_) {
                 faceImageBase64 = imageBase64;

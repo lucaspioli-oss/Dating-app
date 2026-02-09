@@ -103,10 +103,9 @@ ENTITLEMENTS
 
 File.write('ios/Runner/Runner.entitlements', runner_entitlements_content)
 
-# Set entitlements and deployment target for Runner target
+# Set entitlements for Runner target
 app_target.build_configurations.each do |config|
   config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'Runner/Runner.entitlements'
-  config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
 end
 
 # Add the extension as a dependency of the main app
