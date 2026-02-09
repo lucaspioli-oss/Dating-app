@@ -3,8 +3,9 @@
 // 🎯 SISTEMA DE PROMPTS HIERÁRQUICO - 3 NÍVEIS
 // ═══════════════════════════════════════════════════════════════════
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TONE_METADATA = exports.EXPERT_SYSTEM_PROMPT = exports.ADVANCED_PROMPTS = exports.BASIC_PROMPTS = void 0;
+exports.TONE_METADATA = exports.OBJECTIVE_PROMPTS = exports.EXPERT_SYSTEM_PROMPT = exports.ADVANCED_PROMPTS = exports.BASIC_PROMPTS = void 0;
 exports.getSystemPromptForTone = getSystemPromptForTone;
+exports.getObjectivePrompt = getObjectivePrompt;
 // ───────────────────────────────────────────────────────────────────
 // 🟢 NÍVEL 1: PROMPTS BÁSICOS (Iniciantes / Conversas Leves)
 // ───────────────────────────────────────────────────────────────────
@@ -254,25 +255,58 @@ Agora, com base nessas 5 Leis Fundamentais, nos INSIGHTS COLETIVOS (quando dispo
 3. Evitam erros que outros já cometeram com esta pessoa
 4. Usam estratégias comprovadas que funcionam com ela/ele`;
 // ═══════════════════════════════════════════════════════════════════
-// 📦 SEÇÃO DE EXPANSÃO FUTURA (EXPERT MODE)
+// 🎯 SISTEMA DE OBJETIVOS (Goal-based suggestions)
 // ═══════════════════════════════════════════════════════════════════
-// Adicione novos conceitos e técnicas avançadas aqui:
-//
-// - Lei #5: [A ser definida]
-// - Lei #6: [A ser definida]
-// - Técnicas de NLP (Programação Neurolinguística)
-// - Padrões de linguagem de Robert Cialdini
-// - Gatilhos emocionais avançados
-// - Estratégias de Mystery Method
-// - Técnicas de rapport acelerado
-// - Etc.
-// ═══════════════════════════════════════════════════════════════════
+exports.OBJECTIVE_PROMPTS = {
+    automatico: `OBJETIVO: Analise o contexto completo da conversa e determine automaticamente o melhor objetivo para esta resposta.
+Considere o estágio da conversa, o nível de interesse demonstrado, e o histórico para decidir a melhor estratégia.
+Adapte suas sugestões ao objetivo que faz mais sentido neste momento específico da interação.`,
+    pegar_numero: `OBJETIVO DEFINIDO: PEGAR O NÚMERO DE TELEFONE.
+Suas 3 sugestões devem conduzir a conversa naturalmente para o momento de pedir o número.
+Técnicas: Mencionar um plano concreto que "precisa" do número, criar urgência sutil, ou ser direto com confiança.
+NUNCA peça o número de forma brusca ou sem contexto. Construa a ponte primeiro.`,
+    marcar_encontro: `OBJETIVO DEFINIDO: MARCAR UM ENCONTRO PRESENCIAL.
+Suas 3 sugestões devem conduzir para um convite de encontro.
+Técnicas: Mencionar algo que ambos gostam, sugerir lugar específico, criar expectativa.
+Seja confiante e específico (dia, lugar, atividade). Evite "a gente podia se encontrar algum dia" - seja direto.`,
+    modo_intimo: `OBJETIVO DEFINIDO: MODO ÍNTIMO/SEDUTOR.
+Suas 3 sugestões devem criar tensão e atração de forma elegante.
+Técnicas: Ambiguidade calculada, duplo sentido inteligente, provocação sutil, criar cenários imaginários.
+NUNCA seja vulgar ou explícito. Mantenha classe e mistério. A sedução está no subtexto.`,
+    mudar_plataforma: `OBJETIVO DEFINIDO: MUDAR DE PLATAFORMA.
+Suas 3 sugestões devem conduzir naturalmente para migrar a conversa para Instagram/WhatsApp/outro app.
+Técnicas: Mencionar algo que "precisa mostrar" no outro app, dizer que "conversa melhor por lá", ou criar motivo prático.
+A transição deve parecer natural, não desesperada.`,
+    reacender: `OBJETIVO DEFINIDO: REACENDER CONVERSA PARADA.
+Suas 3 sugestões devem reabrir uma conversa que esfriou, capturando a atenção dela.
+Técnicas: Referência a algo que conversaram antes, humor inesperado, provocação leve, "lembrei de você quando...".
+NUNCA demonstre carência, cobre resposta, ou reclame da falta de resposta. Aja como se nenhum tempo tivesse passado.`,
+    virar_romantico: `OBJETIVO DEFINIDO: ESCALAR PARA ROMÂNTICO.
+Suas 3 sugestões devem escalar o tom de amigável/casual para flerte romântico.
+Técnicas: Elogio sutil e específico (não genérico), criar momento de tensão, mostrar interesse de forma confiante.
+A transição deve ser gradual e parecer natural. Não pule de amigo para declaração.`,
+    video_call: `OBJETIVO DEFINIDO: CONDUZIR PARA VIDEO CALL.
+Suas 3 sugestões devem levar naturalmente a uma proposta de vídeo chamada.
+Técnicas: Criar curiosidade ("preciso ver sua reação quando te contar"), mencionar algo visual, ou ser direto com leveza.
+A proposta deve parecer espontânea, não planejada.`,
+    pedir_desculpas: `OBJETIVO DEFINIDO: PEDIR DESCULPAS.
+Suas 3 sugestões devem transmitir um pedido de desculpas genuíno e maduro.
+Técnicas: Assumir responsabilidade sem justificativas, ser específico sobre o que errou, mostrar empatia pelo sentimento dela.
+NUNCA minimize o sentimento da outra pessoa. Seja vulnerável mas não dramático. Sem "mas..." depois da desculpa.`,
+    criar_conexao: `OBJETIVO DEFINIDO: CRIAR CONEXÃO EMOCIONAL PROFUNDA.
+Suas 3 sugestões devem aprofundar a conexão emocional entre vocês.
+Técnicas: Perguntas que revelam valores e sonhos, compartilhar vulnerabilidade de forma controlada, criar "inside jokes", encontrar interesses em comum e expandir.
+Foque em qualidade e profundidade. Crie intimidade emocional antes de tentar avançar.`,
+};
+function getObjectivePrompt(objective) {
+    return exports.OBJECTIVE_PROMPTS[objective] || exports.OBJECTIVE_PROMPTS.automatico;
+}
 // ───────────────────────────────────────────────────────────────────
 // 🔧 FUNÇÃO HELPER: Seleciona o prompt correto baseado no tom
 // ───────────────────────────────────────────────────────────────────
 function getSystemPromptForTone(tone) {
-    // 🔴 NÍVEL 3: Expert Mode
-    if (tone === 'expert') {
+    // 🤖 Automático: usa Expert Mode (adapta tom ao contexto)
+    if (tone === 'automatico' || tone === 'expert') {
         return exports.EXPERT_SYSTEM_PROMPT;
     }
     // 🟡 NÍVEL 2: Avançado
@@ -286,6 +320,13 @@ function getSystemPromptForTone(tone) {
 // 📊 METADADOS DOS TONS (para UI e documentação)
 // ───────────────────────────────────────────────────────────────────
 exports.TONE_METADATA = {
+    // 🤖 Automático
+    automatico: {
+        level: 'auto',
+        emoji: '🤖',
+        description: 'IA adapta o tom ao contexto da conversa',
+        difficulty: 'Recomendado',
+    },
     // 🟢 Nível Básico
     engraçado: {
         level: 'basic',

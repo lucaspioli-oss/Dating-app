@@ -39,15 +39,23 @@ const analyzeSchema = {
             text: { type: 'string', minLength: 1 },
             tone: {
                 type: 'string',
-                enum: ['engraçado', 'ousado', 'romântico', 'casual', 'confiante', 'expert'],
+                enum: ['automatico', 'engraçado', 'ousado', 'romântico', 'casual', 'confiante', 'expert'],
             },
             conversationId: { type: 'string' },
+            objective: {
+                type: 'string',
+                enum: [
+                    'automatico', 'pegar_numero', 'marcar_encontro', 'modo_intimo',
+                    'mudar_plataforma', 'reacender', 'virar_romantico', 'video_call',
+                    'pedir_desculpas', 'criar_conexao',
+                ],
+            },
         },
     },
 };
 fastify.post('/analyze', { schema: analyzeSchema }, async (request, reply) => {
     try {
-        const { text, tone, conversationId } = request.body;
+        const { text, tone, conversationId, objective } = request.body;
         // PRO MODE: If conversationId is provided, use rich context pipeline
         if (conversationId) {
             try {
@@ -121,11 +129,14 @@ fastify.post('/analyze', { schema: analyzeSchema }, async (request, reply) => {
                         if (patterns.flirtLevel) {
                             calibrationStr += `\nNível de flerte: ${patterns.flirtLevel}`;
                         }
+                        const objectiveInstruction = (0, prompts_1.getObjectivePrompt)(objective || 'automatico');
                         const richPrompt = `Você está ajudando a responder mensagens de dating.
 Perfil da match: ${avatar.matchName || 'Desconhecida'} (${avatar.platform || 'dating app'})
 ${avatar.bio ? `Bio: ${avatar.bio}` : ''}
 ${calibrationStr}
 ${collectiveStr}
+
+${objectiveInstruction}
 
 Histórico recente:
 ${historyStr}
@@ -134,7 +145,7 @@ A última mensagem dela foi:
 "${text}"
 
 Gere APENAS 3 sugestões de resposta numeradas (1. 2. 3.), cada uma curta (1-2 frases).
-Calibre com base no histórico e no tom detectado.`;
+Calibre com base no histórico, tom detectado, e OBJETIVO definido acima.`;
                         const analysis = await (0, anthropic_1.analyzeMessage)({ text: richPrompt, tone });
                         return reply.code(200).send({ analysis, mode: 'pro' });
                     }
@@ -146,7 +157,9 @@ Calibre com base no histórico e no tom detectado.`;
             }
         }
         // BASIC MODE: Simple analysis without context
-        const analysis = await (0, anthropic_1.analyzeMessage)({ text, tone });
+        const basicObjective = (0, prompts_1.getObjectivePrompt)(objective || 'automatico');
+        const textWithObjective = `${basicObjective}\n\nMensagem recebida:\n"${text}"\n\nGere APENAS 3 sugestões de resposta numeradas (1. 2. 3.), cada uma curta (1-2 frases).`;
+        const analysis = await (0, anthropic_1.analyzeMessage)({ text: textWithObjective, tone });
         const response = {
             analysis,
             mode: 'basic',
@@ -728,7 +741,7 @@ fastify.post('/keyboard/send-message', {
 }, async (request, reply) => {
     try {
         const userId = request.user.uid;
-        const { conversationId, content, wasAiSuggestion, tone } = request.body;
+        const { conversationId, content, wasAiSuggestion, tone, objective } = request.body;
         if (!conversationId || !content) {
             return reply.code(400).send({
                 error: 'Missing required fields',
@@ -751,6 +764,7 @@ fastify.post('/keyboard/send-message', {
             timestamp: new Date().toISOString(),
             wasAiSuggestion: wasAiSuggestion || false,
             tone: tone || null,
+            objective: objective || null,
             source: 'keyboard',
         };
         await convRef.update({
