@@ -52,7 +52,7 @@ extension_target.build_configurations.each do |config|
   config.build_settings['TARGETED_DEVICE_FAMILY'] = '1'
   config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
   config.build_settings['GENERATE_INFOPLIST_FILE'] = 'NO'
-  config.build_settings['CURRENT_PROJECT_VERSION'] = '8'
+  config.build_settings['CURRENT_PROJECT_VERSION'] = '9'
   config.build_settings['MARKETING_VERSION'] = '1.0.0'
   config.build_settings['SKIP_INSTALL'] = 'YES'
   config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'FlirtKeyboardExtension/FlirtKeyboardExtension.entitlements'
