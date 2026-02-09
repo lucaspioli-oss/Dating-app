@@ -31,6 +31,10 @@ extension_target = project.new_target(
   '15.0'
 )
 
+# Ensure product reference has correct name and type
+extension_target.product_reference.name = 'FlirtKeyboardExtension.appex'
+extension_target.product_reference.path = 'FlirtKeyboardExtension.appex'
+
 # Get DEVELOPMENT_TEAM from main target
 dev_team = ''
 app_target.build_configurations.each do |config|
@@ -43,6 +47,7 @@ end
 
 # Set build settings for extension
 extension_target.build_configurations.each do |config|
+  config.build_settings['PRODUCT_NAME'] = 'FlirtKeyboardExtension'
   config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'com.desenrolaai.app.keyboard'
   config.build_settings['INFOPLIST_FILE'] = 'FlirtKeyboardExtension/Info.plist'
   config.build_settings['SWIFT_VERSION'] = '5.0'
@@ -53,7 +58,9 @@ extension_target.build_configurations.each do |config|
   config.build_settings['GENERATE_INFOPLIST_FILE'] = 'NO'
   config.build_settings['CURRENT_PROJECT_VERSION'] = '1'
   config.build_settings['MARKETING_VERSION'] = '1.0'
+  config.build_settings['SKIP_INSTALL'] = 'YES'
   config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'FlirtKeyboardExtension/FlirtKeyboardExtension.entitlements'
+  config.build_settings['LD_RUNPATH_SEARCH_PATHS'] = '$(inherited) @executable_path/../../Frameworks'
 end
 
 # Create file group for extension (path relative to ios/)
