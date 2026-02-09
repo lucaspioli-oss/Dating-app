@@ -415,9 +415,10 @@ class KeyboardViewController: UIInputViewController {
             clipboardText = text
             previousClipboard = text
             stopClipboardPolling()
+            suggestions = []
             currentState = .suggestions
             renderCurrentState()
-            sendMessageToServer()
+            analyzeText(text, tone: currentTone(), conversationId: selectedConversation?.conversationId, objective: currentObjective())
         }
     }
 
