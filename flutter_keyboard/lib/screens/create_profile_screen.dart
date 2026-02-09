@@ -1,9 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:image/image.dart' as img;
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
 import '../models/profile_model.dart';
 import '../providers/app_state.dart';
 import '../services/agent_service.dart';
@@ -1224,20 +1227,58 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
     });
   }
 
-  Uint8List _cropInstagramProfilePic(Uint8List bytes) {
+  /// Detects a face in the image and crops a square region around it for the avatar.
+  /// Falls back to center crop if no face is detected.
+  Future<Uint8List> _cropFaceFromImage(Uint8List bytes) async {
     try {
+      // Write bytes to temp file (ML Kit needs a file path)
+      final tempDir = await getTemporaryDirectory();
+      final tempFile = File('${tempDir.path}/face_detect_${DateTime.now().millisecondsSinceEpoch}.jpg');
+      await tempFile.writeAsBytes(bytes);
+
+      final inputImage = InputImage.fromFilePath(tempFile.path);
+      final faceDetector = FaceDetector(options: FaceDetectorOptions(
+        enableLandmarks: false,
+        enableClassification: false,
+        performanceMode: FaceDetectorMode.fast,
+      ));
+
+      final faces = await faceDetector.processImage(inputImage);
+      await faceDetector.close();
+      await tempFile.delete().catchError((_) => tempFile); // cleanup
+
       final image = img.decodeImage(bytes);
       if (image == null) return bytes;
-      final x = (image.width * 0.04).round();
-      final y = (image.height * 0.13).round();
-      final size = (image.width * 0.24).round();
-      // Clamp to image bounds
-      final safeX = x.clamp(0, image.width - 1);
-      final safeY = y.clamp(0, image.height - 1);
-      final safeSize = size.clamp(1, (image.width - safeX).clamp(1, image.height - safeY));
-      final cropped = img.copyCrop(image, x: safeX, y: safeY, width: safeSize, height: safeSize);
-      return Uint8List.fromList(img.encodeJpg(cropped, quality: 80));
+
+      int cropX, cropY, cropSize;
+
+      if (faces.isNotEmpty) {
+        // Use the largest face
+        final face = faces.reduce((a, b) =>
+            a.boundingBox.width * a.boundingBox.height >
+            b.boundingBox.width * b.boundingBox.height ? a : b);
+
+        final rect = face.boundingBox;
+        // Add 40% padding around the face for a natural avatar look
+        final padding = (rect.width * 0.4).round();
+        final size = (rect.width + padding * 2).round();
+
+        cropX = (rect.left - padding).round().clamp(0, image.width - 1);
+        cropY = (rect.top - padding).round().clamp(0, image.height - 1);
+        cropSize = size.clamp(1, [image.width - cropX, image.height - cropY].reduce((a, b) => a < b ? a : b));
+      } else {
+        // No face detected: center crop (top third, likely where face is)
+        cropSize = (image.width * 0.5).round().clamp(1, image.height);
+        cropX = ((image.width - cropSize) / 2).round().clamp(0, image.width - 1);
+        cropY = (image.height * 0.1).round().clamp(0, image.height - cropSize);
+      }
+
+      final cropped = img.copyCrop(image, x: cropX, y: cropY, width: cropSize, height: cropSize);
+      // Resize to a small avatar (200x200) for storage efficiency
+      final resized = img.copyResize(cropped, width: 200, height: 200);
+      return Uint8List.fromList(img.encodeJpg(resized, quality: 85));
     } catch (e) {
+      // Fallback: return original bytes
       return bytes;
     }
   }
@@ -1252,19 +1293,24 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
       final base64str = base64Encode(bytes);
       const mediaType = 'image/jpeg';
 
-      // Crop the profile pic area
-      final croppedBytes = _cropInstagramProfilePic(bytes);
-      final croppedBase64 = base64Encode(croppedBytes);
-
       setState(() {
         final entry = _platformEntries[platformIndex];
         entry.profileImages = [bytes];
         entry.profileBase64s = [base64str];
         entry.profileMediaTypes = [mediaType];
-        entry.croppedProfilePicBytes = croppedBytes;
-        entry.croppedProfilePicBase64 = croppedBase64;
         _errorMessage = null;
       });
+
+      // Detect face and crop avatar (async)
+      final croppedBytes = await _cropFaceFromImage(bytes);
+      final croppedBase64 = base64Encode(croppedBytes);
+
+      if (mounted) {
+        setState(() {
+          _platformEntries[platformIndex].croppedProfilePicBytes = croppedBytes;
+          _platformEntries[platformIndex].croppedProfilePicBase64 = croppedBase64;
+        });
+      }
     } catch (e) {
       setState(() {
         _errorMessage = 'Erro ao carregar imagem: $e';
@@ -1375,11 +1421,17 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           if (profileName == null && result.name != null) {
             profileName = result.name;
             faceDescription = result.faceDescription;
-            // Use cropped profile pic if available (Instagram general screenshot mode)
+            // Use pre-cropped pic (Instagram screenshot mode) or detect face
             if (entry.croppedProfilePicBase64 != null) {
               faceImageBase64 = entry.croppedProfilePicBase64;
-            } else {
-              faceImageBase64 = imageBase64;
+            } else if (faceImageBase64 == null) {
+              // Detect face in the first image and crop avatar
+              try {
+                final croppedBytes = await _cropFaceFromImage(entry.profileImages[imgIndex]);
+                faceImageBase64 = base64Encode(croppedBytes);
+              } catch (_) {
+                faceImageBase64 = imageBase64;
+              }
             }
           }
 
