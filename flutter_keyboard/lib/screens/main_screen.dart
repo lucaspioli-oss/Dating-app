@@ -39,7 +39,7 @@ class _MainScreenState extends State<MainScreen> {
           NavigationDestination(
             icon: Icon(Icons.people_outlined),
             selectedIcon: Icon(Icons.people),
-            label: 'Perfis',
+            label: 'Contatos',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outlined),

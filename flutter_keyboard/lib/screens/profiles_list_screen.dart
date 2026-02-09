@@ -17,6 +17,14 @@ class ProfilesListScreen extends StatefulWidget {
 
 class _ProfilesListScreenState extends State<ProfilesListScreen> {
   final ProfileService _profileService = ProfileService();
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,8 +92,47 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 24),
-            // Lista de perfis
+            const SizedBox(height: 16),
+            // Search bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
+                style: const TextStyle(color: Colors.white, fontSize: 15),
+                decoration: InputDecoration(
+                  hintText: 'Buscar por nome...',
+                  hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 15),
+                  prefixIcon: Icon(Icons.search, color: Colors.grey.shade600, size: 22),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: Icon(Icons.close, color: Colors.grey.shade500, size: 20),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: const Color(0xFF1A1A2E),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: Color(0xFF2A2A3E)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: Color(0xFF2A2A3E)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: Color(0xFFE91E63), width: 1),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Lista de contatos
             Expanded(
               child: StreamBuilder<List<Profile>>(
                 stream: _profileService.getProfiles(userId),
@@ -123,7 +170,20 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
                     return _buildEmptyState();
                   }
 
-                  return _buildProfilesGrid(profiles);
+                  final filtered = _searchQuery.isEmpty
+                      ? profiles
+                      : profiles.where((p) => p.name.toLowerCase().contains(_searchQuery)).toList();
+
+                  if (filtered.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'Nenhum contato encontrado',
+                        style: TextStyle(color: Colors.grey.shade500, fontSize: 15),
+                      ),
+                    );
+                  }
+
+                  return _buildProfilesGrid(filtered);
                 },
               ),
             ),
