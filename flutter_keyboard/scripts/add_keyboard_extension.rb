@@ -103,23 +103,34 @@ ENTITLEMENTS
 
 File.write('ios/Runner/Runner.entitlements', runner_entitlements_content)
 
-# Set entitlements and disable phase fusing for Runner target
-# FUSE_BUILD_SCRIPT_PHASES = NO prevents Xcode from fusing the embed
-# extension phase with script phases, which causes a dependency cycle
+# Set entitlements for Runner target
 app_target.build_configurations.each do |config|
   config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'Runner/Runner.entitlements'
-  config.build_settings['FUSE_BUILD_SCRIPT_PHASES'] = 'NO'
 end
 
 # Add the extension as a dependency of the main app
 app_target.add_dependency(extension_target)
 
-# Add "Embed Foundation Extensions" copy phase
-embed_phase = app_target.new_copy_files_build_phase('Embed Foundation Extensions')
-embed_phase.dst_subfolder_spec = '13' # PlugIns folder
-embed_phase.dst_path = ''
-build_file = embed_phase.add_file_reference(extension_target.product_reference)
-build_file.settings = { 'ATTRIBUTES' => ['RemoveHeadersOnCopy'] }
+# Embed the extension using a SHELL SCRIPT phase instead of PBXCopyFilesBuildPhase.
+# PBXCopyFilesBuildPhase gets fused with "[CP] Embed Pods Frameworks" by Xcode's
+# new build system, creating a dependency cycle with "Thin Binary".
+# A shell script with explicit input/output paths avoids fusing entirely.
+embed_script = app_target.new_shell_script_build_phase('Embed Keyboard Extension')
+embed_script.shell_script = <<~'SCRIPT'
+  EXTENSION="${BUILT_PRODUCTS_DIR}/FlirtKeyboardExtension.appex"
+  DESTINATION="${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/PlugIns"
+  if [ -d "$EXTENSION" ]; then
+    mkdir -p "$DESTINATION"
+    rm -rf "$DESTINATION/FlirtKeyboardExtension.appex"
+    cp -r "$EXTENSION" "$DESTINATION/"
+    echo "Embedded FlirtKeyboardExtension.appex into PlugIns"
+  else
+    echo "error: FlirtKeyboardExtension.appex not found at $EXTENSION"
+    exit 1
+  fi
+SCRIPT
+embed_script.input_paths = ['$(BUILT_PRODUCTS_DIR)/FlirtKeyboardExtension.appex']
+embed_script.output_paths = ['$(BUILT_PRODUCTS_DIR)/$(PRODUCT_NAME).app/PlugIns/FlirtKeyboardExtension.appex']
 
 # Save project
 project.save
@@ -128,4 +139,4 @@ puts "FlirtKeyboardExtension target added successfully!"
 puts "  Bundle ID: com.desenrolaai.app.keyboard"
 puts "  App Group: group.com.desenrolaai.app.shared"
 puts "  Module Name: FlirtKeyboardExtension"
-puts "  Build version: 7 (1.0.0)"
+puts "  Embed method: Shell script (avoids Xcode fused phase cycle)"
