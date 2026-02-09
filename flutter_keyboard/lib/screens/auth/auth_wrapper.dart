@@ -47,7 +47,7 @@ class SubscriptionWrapper extends StatefulWidget {
   State<SubscriptionWrapper> createState() => _SubscriptionWrapperState();
 }
 
-class _SubscriptionWrapperState extends State<SubscriptionWrapper> {
+class _SubscriptionWrapperState extends State<SubscriptionWrapper> with WidgetsBindingObserver {
   final SubscriptionService _subscriptionService = SubscriptionService();
   bool _isLoading = true;
   SubscriptionStatus _status = SubscriptionStatus.inactive;
@@ -56,7 +56,22 @@ class _SubscriptionWrapperState extends State<SubscriptionWrapper> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _checkSubscription();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Re-share fresh auth token every time app comes to foreground
+      _shareAuthWithKeyboard();
+    }
   }
 
   Future<void> _checkSubscription() async {
@@ -95,7 +110,7 @@ class _SubscriptionWrapperState extends State<SubscriptionWrapper> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        final token = await user.getIdToken();
+        final token = await user.getIdToken(true);
         if (token != null) {
           final keyboardService = KeyboardService();
           await keyboardService.shareAuthWithKeyboard(token, user.uid);
