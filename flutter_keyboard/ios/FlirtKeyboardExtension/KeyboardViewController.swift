@@ -1,262 +1,937 @@
 import UIKit
 
-/*
- IMPORTANTE: CONFIGURAÇÃO DO KEYBOARD EXTENSION
-
- Este arquivo deve estar em um Target separado chamado "FlirtKeyboardExtension"
-
- Para criar o Keyboard Extension no Xcode:
- 1. File > New > Target > Custom Keyboard Extension
- 2. Nome: FlirtKeyboardExtension
- 3. Substitua o KeyboardViewController.swift gerado por este arquivo
-
- CONFIGURAÇÕES NECESSÁRIAS:
- - App Groups: Compartilhar dados entre app e keyboard
- - Full Access: Habilitado no Info.plist do Extension
-*/
-
 class KeyboardViewController: UIInputViewController {
+
+    // MARK: - State Machine
+
+    enum KeyboardState {
+        case profileSelector   // Estado 1: Seletor de perfis
+        case awaitingClipboard // Estado 2: Aguardando clipboard (PRO)
+        case suggestions       // Estado 3: Sugestões (PRO)
+        case writeOwn          // Estado 3B: Escrever própria (PRO)
+        case basicMode         // Estado 4: Modo rápido (BASIC)
+    }
 
     // MARK: - Properties
 
-    private var suggestionButton: UIButton!
-    private var toneSelector: UISegmentedControl!
-    private var statusLabel: UILabel!
+    private var currentState: KeyboardState = .profileSelector
+    private var containerView: UIView!
 
-    private let availableTones = ["engraçado", "ousado", "romântico", "casual", "confiante"]
-    private var selectedTone: String {
-        return availableTones[toneSelector.selectedSegmentIndex]
+    // Profiles data
+    private struct ConversationContext {
+        let conversationId: String
+        let matchName: String
+        let platform: String
+        let lastMessage: String?
     }
 
-    // Configurações compartilhadas com o app principal via App Groups
+    private var conversations: [ConversationContext] = []
+    private var selectedConversation: ConversationContext?
+    private var clipboardText: String?
+    private var suggestions: [String] = []
+    private var previousClipboard: String?
+
+    // Tone
+    private let availableTones = ["engraçado", "ousado", "romântico", "casual", "confiante"]
+    private let toneEmojis = ["😄", "🔥", "❤️", "😎", "💪"]
+    private var selectedToneIndex: Int = 3 // casual default
+
+    // Shared config
     private var sharedDefaults: UserDefaults? {
         return UserDefaults(suiteName: "group.com.desenrolaai.app.shared")
     }
 
     private var backendUrl: String {
-        return sharedDefaults?.string(forKey: "backendUrl") ?? "http://localhost:3000"
+        return sharedDefaults?.string(forKey: "backendUrl") ?? "https://dating-app-production-ac43.up.railway.app"
+    }
+
+    private var authToken: String? {
+        return sharedDefaults?.string(forKey: "authToken")
+    }
+
+    private var userId: String? {
+        return sharedDefaults?.string(forKey: "userId")
     }
 
     // MARK: - Lifecycle
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        setupUI()
-        loadDefaultTone()
+        view.backgroundColor = UIColor(white: 0.1, alpha: 1.0)
+        previousClipboard = UIPasteboard.general.string
+
+        // Load default tone
+        if let defaultTone = sharedDefaults?.string(forKey: "defaultTone"),
+           let index = availableTones.firstIndex(of: defaultTone) {
+            selectedToneIndex = index
+        }
+
+        // Determine initial state
+        if authToken != nil {
+            currentState = .profileSelector
+            fetchConversations()
+        } else {
+            currentState = .basicMode
+        }
+
+        renderCurrentState()
     }
 
-    // MARK: - UI Setup
+    // MARK: - State Rendering
 
-    private func setupUI() {
-        view.backgroundColor = UIColor(white: 0.1, alpha: 1.0)
+    private func renderCurrentState() {
+        // Clear previous UI
+        view.subviews.forEach { $0.removeFromSuperview() }
 
-        // Criar container
-        let containerView = UIView()
+        containerView = UIView()
         containerView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(containerView)
 
-        // Status Label
-        statusLabel = UILabel()
-        statusLabel.text = "Copie uma mensagem primeiro"
-        statusLabel.textColor = .white
-        statusLabel.font = UIFont.systemFont(ofSize: 12)
-        statusLabel.textAlignment = .center
-        statusLabel.translatesAutoresizingMaskIntoConstraints = false
-        containerView.addSubview(statusLabel)
-
-        // Seletor de Tons
-        toneSelector = UISegmentedControl(items: ["😄", "🔥", "❤️", "😎", "💪"])
-        toneSelector.selectedSegmentIndex = 3 // Casual por padrão
-        toneSelector.translatesAutoresizingMaskIntoConstraints = false
-        containerView.addSubview(toneSelector)
-
-        // Botão de Sugestão
-        suggestionButton = UIButton(type: .system)
-        suggestionButton.setTitle("✨ Sugerir Resposta", for: .normal)
-        suggestionButton.backgroundColor = UIColor.systemBlue
-        suggestionButton.setTitleColor(.white, for: .normal)
-        suggestionButton.titleLabel?.font = UIFont.boldSystemFont(ofSize: 16)
-        suggestionButton.layer.cornerRadius = 10
-        suggestionButton.translatesAutoresizingMaskIntoConstraints = false
-        suggestionButton.addTarget(self, action: #selector(suggestionButtonTapped), for: .touchUpInside)
-        containerView.addSubview(suggestionButton)
-
-        // Botão de Trocar Teclado
-        let nextKeyboardButton = UIButton(type: .system)
-        nextKeyboardButton.setTitle("🌐", for: .normal)
-        nextKeyboardButton.titleLabel?.font = UIFont.systemFont(ofSize: 24)
-        nextKeyboardButton.translatesAutoresizingMaskIntoConstraints = false
-        nextKeyboardButton.addTarget(self, action: #selector(handleInputModeList(from:with:)), for: .allTouchEvents)
-        containerView.addSubview(nextKeyboardButton)
-
-        // Constraints
         NSLayoutConstraint.activate([
             containerView.topAnchor.constraint(equalTo: view.topAnchor),
             containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             containerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             containerView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            containerView.heightAnchor.constraint(equalToConstant: 220)
+        ])
 
-            statusLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
-            statusLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
-            statusLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+        switch currentState {
+        case .profileSelector:
+            renderProfileSelector()
+        case .awaitingClipboard:
+            renderAwaitingClipboard()
+        case .suggestions:
+            renderSuggestions()
+        case .writeOwn:
+            renderWriteOwn()
+        case .basicMode:
+            renderBasicMode()
+        }
+    }
 
-            toneSelector.topAnchor.constraint(equalTo: statusLabel.bottomAnchor, constant: 8),
-            toneSelector.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
-            toneSelector.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
-            toneSelector.heightAnchor.constraint(equalToConstant: 32),
+    // MARK: - Estado 1: Profile Selector
 
-            suggestionButton.topAnchor.constraint(equalTo: toneSelector.bottomAnchor, constant: 12),
-            suggestionButton.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
-            suggestionButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -56),
-            suggestionButton.heightAnchor.constraint(equalToConstant: 44),
+    private func renderProfileSelector() {
+        let titleLabel = makeLabel("Com quem você está falando?", size: 14, bold: true)
+        containerView.addSubview(titleLabel)
 
-            nextKeyboardButton.centerYAnchor.constraint(equalTo: suggestionButton.centerYAnchor),
-            nextKeyboardButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
-            nextKeyboardButton.widthAnchor.constraint(equalToConstant: 32),
-            nextKeyboardButton.heightAnchor.constraint(equalToConstant: 44),
+        NSLayoutConstraint.activate([
+            titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 10),
+            titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
+            titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+        ])
 
-            containerView.heightAnchor.constraint(equalToConstant: 130)
+        // Horizontal scroll for profiles
+        let scrollView = UIScrollView()
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.showsHorizontalScrollIndicator = false
+        containerView.addSubview(scrollView)
+
+        NSLayoutConstraint.activate([
+            scrollView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
+            scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+            scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+            scrollView.heightAnchor.constraint(equalToConstant: 70),
+        ])
+
+        let stackView = UIStackView()
+        stackView.axis = .horizontal
+        stackView.spacing = 8
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.addSubview(stackView)
+
+        NSLayoutConstraint.activate([
+            stackView.topAnchor.constraint(equalTo: scrollView.topAnchor),
+            stackView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
+            stackView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
+            stackView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
+            stackView.heightAnchor.constraint(equalTo: scrollView.heightAnchor),
+        ])
+
+        if conversations.isEmpty {
+            let loadingLabel = makeLabel("Carregando perfis...", size: 12)
+            loadingLabel.textColor = .lightGray
+            stackView.addArrangedSubview(loadingLabel)
+        } else {
+            for (index, conv) in conversations.enumerated() {
+                let button = makeProfileButton(conv, tag: index)
+                stackView.addArrangedSubview(button)
+            }
+        }
+
+        // Quick mode button
+        let quickButton = UIButton(type: .system)
+        quickButton.setTitle("⚡ Modo Rápido — sem perfil", for: .normal)
+        quickButton.setTitleColor(.white, for: .normal)
+        quickButton.backgroundColor = UIColor(white: 0.25, alpha: 1.0)
+        quickButton.layer.cornerRadius = 8
+        quickButton.titleLabel?.font = UIFont.systemFont(ofSize: 13)
+        quickButton.translatesAutoresizingMaskIntoConstraints = false
+        quickButton.addTarget(self, action: #selector(quickModeTapped), for: .touchUpInside)
+        containerView.addSubview(quickButton)
+
+        // Keyboard switch button
+        let switchBtn = makeKeyboardSwitchButton()
+        containerView.addSubview(switchBtn)
+
+        NSLayoutConstraint.activate([
+            quickButton.topAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: 8),
+            quickButton.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
+            quickButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -56),
+            quickButton.heightAnchor.constraint(equalToConstant: 36),
+
+            switchBtn.centerYAnchor.constraint(equalTo: quickButton.centerYAnchor),
+            switchBtn.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+            switchBtn.widthAnchor.constraint(equalToConstant: 32),
         ])
     }
 
-    // MARK: - Settings
+    // MARK: - Estado 2: Awaiting Clipboard (PRO)
 
-    private func loadDefaultTone() {
-        if let defaultTone = sharedDefaults?.string(forKey: "defaultTone"),
-           let index = availableTones.firstIndex(of: defaultTone) {
-            toneSelector.selectedSegmentIndex = index
+    private func renderAwaitingClipboard() {
+        guard let conv = selectedConversation else { return }
+
+        let headerView = makeHeader("👤 \(conv.matchName) (\(conv.platform))", showBack: true)
+        containerView.addSubview(headerView)
+
+        let instructionLabel = makeLabel("📋 Copie a mensagem dela e volte para o teclado", size: 13)
+        instructionLabel.textColor = .lightGray
+        instructionLabel.numberOfLines = 2
+        containerView.addSubview(instructionLabel)
+
+        // Tone selector
+        let toneView = makeToneSelector()
+        containerView.addSubview(toneView)
+
+        let switchBtn = makeKeyboardSwitchButton()
+        containerView.addSubview(switchBtn)
+
+        NSLayoutConstraint.activate([
+            headerView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
+            headerView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
+            headerView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+
+            instructionLabel.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 20),
+            instructionLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
+            instructionLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+
+            toneView.topAnchor.constraint(equalTo: instructionLabel.bottomAnchor, constant: 16),
+            toneView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
+            toneView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -56),
+            toneView.heightAnchor.constraint(equalToConstant: 32),
+
+            switchBtn.centerYAnchor.constraint(equalTo: toneView.centerYAnchor),
+            switchBtn.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+        ])
+
+        // Start polling clipboard
+        startClipboardPolling()
+    }
+
+    // MARK: - Estado 3: Suggestions (PRO)
+
+    private func renderSuggestions() {
+        guard let conv = selectedConversation else { return }
+
+        let headerLabel = makeLabel("👤 \(conv.matchName)  |  Ela disse:", size: 12, bold: true)
+        containerView.addSubview(headerLabel)
+
+        let clipLabel = makeLabel("\"\(clipboardText ?? "")\"", size: 11)
+        clipLabel.textColor = UIColor(red: 0.6, green: 0.8, blue: 1.0, alpha: 1.0)
+        clipLabel.numberOfLines = 2
+        containerView.addSubview(clipLabel)
+
+        NSLayoutConstraint.activate([
+            headerLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 6),
+            headerLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+            headerLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+
+            clipLabel.topAnchor.constraint(equalTo: headerLabel.bottomAnchor, constant: 2),
+            clipLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+            clipLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+        ])
+
+        if suggestions.isEmpty {
+            let loadingLabel = makeLabel("🔄 Gerando sugestões...", size: 13)
+            loadingLabel.textColor = .lightGray
+            containerView.addSubview(loadingLabel)
+            NSLayoutConstraint.activate([
+                loadingLabel.topAnchor.constraint(equalTo: clipLabel.bottomAnchor, constant: 12),
+                loadingLabel.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
+            ])
+            return
+        }
+
+        // Suggestion buttons
+        var lastAnchor = clipLabel.bottomAnchor
+        for (index, suggestion) in suggestions.prefix(3).enumerated() {
+            let btn = UIButton(type: .system)
+            let displayText = suggestion.count > 60 ? String(suggestion.prefix(57)) + "..." : suggestion
+            btn.setTitle("\(index + 1). \(displayText)", for: .normal)
+            btn.setTitleColor(.white, for: .normal)
+            btn.backgroundColor = UIColor(white: 0.2, alpha: 1.0)
+            btn.contentHorizontalAlignment = .left
+            btn.contentEdgeInsets = UIEdgeInsets(top: 4, left: 8, bottom: 4, right: 8)
+            btn.layer.cornerRadius = 6
+            btn.titleLabel?.font = UIFont.systemFont(ofSize: 12)
+            btn.titleLabel?.numberOfLines = 1
+            btn.tag = index
+            btn.translatesAutoresizingMaskIntoConstraints = false
+            btn.addTarget(self, action: #selector(suggestionTapped(_:)), for: .touchUpInside)
+            containerView.addSubview(btn)
+
+            NSLayoutConstraint.activate([
+                btn.topAnchor.constraint(equalTo: lastAnchor, constant: 4),
+                btn.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+                btn.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+                btn.heightAnchor.constraint(equalToConstant: 30),
+            ])
+            lastAnchor = btn.bottomAnchor
+        }
+
+        // Bottom bar: Write own + Regenerate + Tones
+        let bottomStack = UIStackView()
+        bottomStack.axis = .horizontal
+        bottomStack.spacing = 8
+        bottomStack.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(bottomStack)
+
+        let writeBtn = UIButton(type: .system)
+        writeBtn.setTitle("✏️ Escrever", for: .normal)
+        writeBtn.setTitleColor(.white, for: .normal)
+        writeBtn.titleLabel?.font = UIFont.systemFont(ofSize: 11)
+        writeBtn.addTarget(self, action: #selector(writeOwnTapped), for: .touchUpInside)
+        bottomStack.addArrangedSubview(writeBtn)
+
+        let regenBtn = UIButton(type: .system)
+        regenBtn.setTitle("🔄", for: .normal)
+        regenBtn.titleLabel?.font = UIFont.systemFont(ofSize: 16)
+        regenBtn.addTarget(self, action: #selector(regenerateTapped), for: .touchUpInside)
+        bottomStack.addArrangedSubview(regenBtn)
+
+        for (i, emoji) in toneEmojis.enumerated() {
+            let toneBtn = UIButton(type: .system)
+            toneBtn.setTitle(emoji, for: .normal)
+            toneBtn.titleLabel?.font = UIFont.systemFont(ofSize: 14)
+            toneBtn.tag = i
+            toneBtn.alpha = i == selectedToneIndex ? 1.0 : 0.5
+            toneBtn.addTarget(self, action: #selector(toneTapped(_:)), for: .touchUpInside)
+            bottomStack.addArrangedSubview(toneBtn)
+        }
+
+        NSLayoutConstraint.activate([
+            bottomStack.topAnchor.constraint(equalTo: lastAnchor, constant: 6),
+            bottomStack.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+            bottomStack.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+            bottomStack.heightAnchor.constraint(equalToConstant: 28),
+        ])
+    }
+
+    // MARK: - Estado 3B: Write Own (PRO)
+
+    private func renderWriteOwn() {
+        guard let conv = selectedConversation else { return }
+
+        let headerLabel = makeLabel("👤 \(conv.matchName)  |  Ela disse:", size: 12, bold: true)
+        containerView.addSubview(headerLabel)
+
+        let clipLabel = makeLabel("\"\(clipboardText ?? "")\"", size: 11)
+        clipLabel.textColor = UIColor(red: 0.6, green: 0.8, blue: 1.0, alpha: 1.0)
+        clipLabel.numberOfLines = 1
+        containerView.addSubview(clipLabel)
+
+        let textField = UITextField()
+        textField.placeholder = "Digite sua resposta..."
+        textField.textColor = .white
+        textField.backgroundColor = UIColor(white: 0.2, alpha: 1.0)
+        textField.layer.cornerRadius = 8
+        textField.font = UIFont.systemFont(ofSize: 14)
+        textField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 10, height: 0))
+        textField.leftViewMode = .always
+        textField.translatesAutoresizingMaskIntoConstraints = false
+        textField.tag = 999
+        containerView.addSubview(textField)
+
+        let backBtn = UIButton(type: .system)
+        backBtn.setTitle("← Voltar", for: .normal)
+        backBtn.setTitleColor(.lightGray, for: .normal)
+        backBtn.titleLabel?.font = UIFont.systemFont(ofSize: 13)
+        backBtn.translatesAutoresizingMaskIntoConstraints = false
+        backBtn.addTarget(self, action: #selector(backToSuggestionsTapped), for: .touchUpInside)
+        containerView.addSubview(backBtn)
+
+        let insertBtn = UIButton(type: .system)
+        insertBtn.setTitle("Inserir ↗", for: .normal)
+        insertBtn.setTitleColor(.white, for: .normal)
+        insertBtn.backgroundColor = UIColor.systemBlue
+        insertBtn.layer.cornerRadius = 8
+        insertBtn.titleLabel?.font = UIFont.boldSystemFont(ofSize: 14)
+        insertBtn.translatesAutoresizingMaskIntoConstraints = false
+        insertBtn.addTarget(self, action: #selector(insertOwnTapped), for: .touchUpInside)
+        containerView.addSubview(insertBtn)
+
+        NSLayoutConstraint.activate([
+            headerLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
+            headerLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+            headerLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+
+            clipLabel.topAnchor.constraint(equalTo: headerLabel.bottomAnchor, constant: 2),
+            clipLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+            clipLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+
+            textField.topAnchor.constraint(equalTo: clipLabel.bottomAnchor, constant: 10),
+            textField.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+            textField.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+            textField.heightAnchor.constraint(equalToConstant: 40),
+
+            backBtn.topAnchor.constraint(equalTo: textField.bottomAnchor, constant: 8),
+            backBtn.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+
+            insertBtn.topAnchor.constraint(equalTo: textField.bottomAnchor, constant: 8),
+            insertBtn.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+            insertBtn.widthAnchor.constraint(equalToConstant: 100),
+            insertBtn.heightAnchor.constraint(equalToConstant: 36),
+        ])
+    }
+
+    // MARK: - Estado 4: Basic Mode
+
+    private func renderBasicMode() {
+        let headerView = makeHeader("⚡ Modo Rápido", showBack: authToken != nil)
+        containerView.addSubview(headerView)
+
+        // Read clipboard
+        let clip = getClipboardText()
+
+        if let clip = clip {
+            let clipLabel = makeLabel("\"\(clip.count > 80 ? String(clip.prefix(77)) + "..." : clip)\"", size: 11)
+            clipLabel.textColor = UIColor(red: 0.6, green: 0.8, blue: 1.0, alpha: 1.0)
+            clipLabel.numberOfLines = 2
+            containerView.addSubview(clipLabel)
+
+            NSLayoutConstraint.activate([
+                headerView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
+                headerView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+                headerView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+
+                clipLabel.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 4),
+                clipLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+                clipLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+            ])
+
+            if !suggestions.isEmpty {
+                var lastAnchor = clipLabel.bottomAnchor
+                for (index, suggestion) in suggestions.prefix(3).enumerated() {
+                    let btn = UIButton(type: .system)
+                    let displayText = suggestion.count > 60 ? String(suggestion.prefix(57)) + "..." : suggestion
+                    btn.setTitle("\(index + 1). \(displayText)", for: .normal)
+                    btn.setTitleColor(.white, for: .normal)
+                    btn.backgroundColor = UIColor(white: 0.2, alpha: 1.0)
+                    btn.contentHorizontalAlignment = .left
+                    btn.contentEdgeInsets = UIEdgeInsets(top: 4, left: 8, bottom: 4, right: 8)
+                    btn.layer.cornerRadius = 6
+                    btn.titleLabel?.font = UIFont.systemFont(ofSize: 12)
+                    btn.titleLabel?.numberOfLines = 1
+                    btn.tag = 100 + index
+                    btn.translatesAutoresizingMaskIntoConstraints = false
+                    btn.addTarget(self, action: #selector(basicSuggestionTapped(_:)), for: .touchUpInside)
+                    containerView.addSubview(btn)
+
+                    NSLayoutConstraint.activate([
+                        btn.topAnchor.constraint(equalTo: lastAnchor, constant: 4),
+                        btn.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+                        btn.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+                        btn.heightAnchor.constraint(equalToConstant: 30),
+                    ])
+                    lastAnchor = btn.bottomAnchor
+                }
+
+                // Regen + tones
+                let bottomStack = UIStackView()
+                bottomStack.axis = .horizontal
+                bottomStack.spacing = 8
+                bottomStack.translatesAutoresizingMaskIntoConstraints = false
+                containerView.addSubview(bottomStack)
+
+                let regenBtn = UIButton(type: .system)
+                regenBtn.setTitle("🔄", for: .normal)
+                regenBtn.titleLabel?.font = UIFont.systemFont(ofSize: 16)
+                regenBtn.addTarget(self, action: #selector(basicRegenTapped), for: .touchUpInside)
+                bottomStack.addArrangedSubview(regenBtn)
+
+                let spacer = UIView()
+                bottomStack.addArrangedSubview(spacer)
+
+                for (i, emoji) in toneEmojis.enumerated() {
+                    let toneBtn = UIButton(type: .system)
+                    toneBtn.setTitle(emoji, for: .normal)
+                    toneBtn.titleLabel?.font = UIFont.systemFont(ofSize: 14)
+                    toneBtn.tag = 200 + i
+                    toneBtn.alpha = i == selectedToneIndex ? 1.0 : 0.5
+                    toneBtn.addTarget(self, action: #selector(basicToneTapped(_:)), for: .touchUpInside)
+                    bottomStack.addArrangedSubview(toneBtn)
+                }
+
+                NSLayoutConstraint.activate([
+                    bottomStack.topAnchor.constraint(equalTo: lastAnchor, constant: 6),
+                    bottomStack.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+                    bottomStack.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+                ])
+            } else {
+                // Show generate button
+                let genBtn = makeGenerateButton()
+                containerView.addSubview(genBtn)
+
+                let toneView = makeToneSelector()
+                containerView.addSubview(toneView)
+
+                let switchBtn = makeKeyboardSwitchButton()
+                containerView.addSubview(switchBtn)
+
+                NSLayoutConstraint.activate([
+                    toneView.topAnchor.constraint(equalTo: clipLabel.bottomAnchor, constant: 12),
+                    toneView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+                    toneView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+                    toneView.heightAnchor.constraint(equalToConstant: 32),
+
+                    genBtn.topAnchor.constraint(equalTo: toneView.bottomAnchor, constant: 10),
+                    genBtn.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+                    genBtn.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -56),
+                    genBtn.heightAnchor.constraint(equalToConstant: 40),
+
+                    switchBtn.centerYAnchor.constraint(equalTo: genBtn.centerYAnchor),
+                    switchBtn.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+                ])
+            }
+        } else {
+            let instructionLabel = makeLabel("📋 Copie uma mensagem primeiro", size: 13)
+            instructionLabel.textColor = .lightGray
+            containerView.addSubview(instructionLabel)
+
+            let toneView = makeToneSelector()
+            containerView.addSubview(toneView)
+
+            let switchBtn = makeKeyboardSwitchButton()
+            containerView.addSubview(switchBtn)
+
+            NSLayoutConstraint.activate([
+                headerView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
+                headerView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+                headerView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+
+                instructionLabel.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 20),
+                instructionLabel.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
+
+                toneView.topAnchor.constraint(equalTo: instructionLabel.bottomAnchor, constant: 16),
+                toneView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+                toneView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -56),
+                toneView.heightAnchor.constraint(equalToConstant: 32),
+
+                switchBtn.centerYAnchor.constraint(equalTo: toneView.centerYAnchor),
+                switchBtn.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+            ])
         }
     }
 
-    // MARK: - Clipboard
+    // MARK: - Actions
 
-    private func getClipboardText() -> String? {
-        guard UIPasteboard.general.hasStrings else {
-            updateStatus("Nenhum texto copiado encontrado")
-            return nil
+    @objc private func profileTapped(_ sender: UIButton) {
+        let index = sender.tag
+        guard index < conversations.count else { return }
+        selectedConversation = conversations[index]
+        clipboardText = nil
+        suggestions = []
+        previousClipboard = UIPasteboard.general.string // Reset clipboard tracking
+        currentState = .awaitingClipboard
+        renderCurrentState()
+    }
+
+    @objc private func quickModeTapped() {
+        selectedConversation = nil
+        suggestions = []
+        currentState = .basicMode
+        renderCurrentState()
+    }
+
+    @objc private func backTapped() {
+        stopClipboardPolling()
+        suggestions = []
+        if authToken != nil {
+            currentState = .profileSelector
+        } else {
+            currentState = .basicMode
+        }
+        renderCurrentState()
+    }
+
+    @objc private func suggestionTapped(_ sender: UIButton) {
+        let index = sender.tag
+        guard index < suggestions.count else { return }
+        let text = suggestions[index]
+        textDocumentProxy.insertText(text)
+
+        // PRO: save to history
+        if let conv = selectedConversation {
+            sendMessageToServer(
+                conversationId: conv.conversationId,
+                content: text,
+                wasAiSuggestion: true
+            )
         }
 
-        guard let text = UIPasteboard.general.string,
-              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            updateStatus("Texto vazio no clipboard")
-            return nil
+        // Go back to awaiting clipboard for next message
+        suggestions = []
+        previousClipboard = UIPasteboard.general.string
+        currentState = .awaitingClipboard
+        renderCurrentState()
+    }
+
+    @objc private func basicSuggestionTapped(_ sender: UIButton) {
+        let index = sender.tag - 100
+        guard index < suggestions.count else { return }
+        textDocumentProxy.insertText(suggestions[index])
+        // BASIC: don't save anything
+    }
+
+    @objc private func writeOwnTapped() {
+        currentState = .writeOwn
+        renderCurrentState()
+    }
+
+    @objc private func backToSuggestionsTapped() {
+        currentState = .suggestions
+        renderCurrentState()
+    }
+
+    @objc private func insertOwnTapped() {
+        guard let textField = containerView.viewWithTag(999) as? UITextField,
+              let text = textField.text, !text.isEmpty else { return }
+
+        textDocumentProxy.insertText(text)
+
+        // PRO: save to history
+        if let conv = selectedConversation {
+            sendMessageToServer(
+                conversationId: conv.conversationId,
+                content: text,
+                wasAiSuggestion: false
+            )
         }
 
-        return text
+        suggestions = []
+        previousClipboard = UIPasteboard.general.string
+        currentState = .awaitingClipboard
+        renderCurrentState()
+    }
+
+    @objc private func regenerateTapped() {
+        guard let clip = clipboardText else { return }
+        suggestions = []
+        renderCurrentState() // Show loading
+        analyzeText(clip, tone: availableTones[selectedToneIndex], conversationId: selectedConversation?.conversationId)
+    }
+
+    @objc private func toneTapped(_ sender: UIButton) {
+        selectedToneIndex = sender.tag
+        regenerateTapped()
+    }
+
+    @objc private func basicGenerateTapped() {
+        guard let clip = getClipboardText() else { return }
+        clipboardText = clip
+        suggestions = []
+        currentState = .basicMode
+        renderCurrentState()
+        analyzeText(clip, tone: availableTones[selectedToneIndex], conversationId: nil)
+    }
+
+    @objc private func basicRegenTapped() {
+        guard let clip = clipboardText else { return }
+        suggestions = []
+        renderCurrentState()
+        analyzeText(clip, tone: availableTones[selectedToneIndex], conversationId: nil)
+    }
+
+    @objc private func basicToneTapped(_ sender: UIButton) {
+        selectedToneIndex = sender.tag - 200
+        basicRegenTapped()
     }
 
     // MARK: - Network
 
-    private func analyzeText(_ text: String, tone: String, completion: @escaping (Result<String, Error>) -> Void) {
-        guard let url = URL(string: "\(backendUrl)/analyze") else {
-            completion(.failure(NSError(domain: "KeyboardError", code: 1, userInfo: [NSLocalizedDescriptionKey: "URL inválida"])))
+    private func fetchConversations() {
+        guard let token = authToken,
+              let url = URL(string: "\(backendUrl)/keyboard/context") else {
             return
         }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 10
+
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            guard let data = data, error == nil else {
+                DispatchQueue.main.async {
+                    // If auth fails, go to basic mode
+                    self?.currentState = .basicMode
+                    self?.renderCurrentState()
+                }
+                return
+            }
+
+            do {
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let convArray = json["conversations"] as? [[String: Any]] {
+                    let contexts = convArray.compactMap { dict -> ConversationContext? in
+                        guard let id = dict["conversationId"] as? String,
+                              let name = dict["matchName"] as? String else { return nil }
+                        return ConversationContext(
+                            conversationId: id,
+                            matchName: name,
+                            platform: dict["platform"] as? String ?? "tinder",
+                            lastMessage: dict["lastMessage"] as? String
+                        )
+                    }
+
+                    DispatchQueue.main.async {
+                        self?.conversations = contexts
+                        self?.renderCurrentState()
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self?.currentState = .basicMode
+                    self?.renderCurrentState()
+                }
+            }
+        }.resume()
+    }
+
+    private func analyzeText(_ text: String, tone: String, conversationId: String?) {
+        guard let url = URL(string: "\(backendUrl)/analyze") else { return }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 30
 
-        let requestBody: [String: Any] = [
-            "text": text,
-            "tone": tone
-        ]
-
-        do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
-        } catch {
-            completion(.failure(error))
-            return
+        // Add auth header if available (for PRO mode)
+        if let token = authToken {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
-        let task = URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                completion(.failure(error))
-                return
-            }
+        var body: [String: Any] = ["text": text, "tone": tone]
+        if let convId = conversationId {
+            body["conversationId"] = convId
+        }
 
-            guard let httpResponse = response as? HTTPURLResponse,
-                  (200...299).contains(httpResponse.statusCode) else {
-                let error = NSError(domain: "KeyboardError", code: 2, userInfo: [NSLocalizedDescriptionKey: "Erro no servidor"])
-                completion(.failure(error))
-                return
-            }
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        } catch { return }
 
-            guard let data = data else {
-                let error = NSError(domain: "KeyboardError", code: 3, userInfo: [NSLocalizedDescriptionKey: "Sem dados"])
-                completion(.failure(error))
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            guard let data = data, error == nil else {
+                DispatchQueue.main.async {
+                    self?.suggestions = ["Erro de conexão. Tente novamente."]
+                    self?.renderCurrentState()
+                }
                 return
             }
 
             do {
                 if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let analysis = json["analysis"] as? String {
-                    completion(.success(analysis))
-                } else {
-                    let error = NSError(domain: "KeyboardError", code: 4, userInfo: [NSLocalizedDescriptionKey: "Resposta inválida"])
-                    completion(.failure(error))
+                    // Parse numbered suggestions
+                    let parsed = self?.parseSuggestions(analysis) ?? [analysis]
+                    DispatchQueue.main.async {
+                        self?.suggestions = parsed
+                        self?.renderCurrentState()
+                    }
                 }
             } catch {
-                completion(.failure(error))
-            }
-        }
-
-        task.resume()
-    }
-
-    // MARK: - Text Insertion
-
-    private func insertText(_ text: String) {
-        textDocumentProxy.insertText(text)
-    }
-
-    // MARK: - Actions
-
-    @objc private func suggestionButtonTapped() {
-        guard hasFullAccess() else {
-            updateStatus("⚠️ Habilite Acesso Total nas Configurações")
-            return
-        }
-
-        guard let clipboardText = getClipboardText() else {
-            return
-        }
-
-        setButtonLoading(true)
-        updateStatus("Analisando...")
-
-        analyzeText(clipboardText, tone: selectedTone) { [weak self] result in
-            DispatchQueue.main.async {
-                self?.setButtonLoading(false)
-
-                switch result {
-                case .success(let suggestion):
-                    self?.insertText(suggestion)
-                    self?.updateStatus("Sugestão inserida! ✅")
-
-                case .failure(let error):
-                    self?.updateStatus("Erro: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    self?.suggestions = ["Erro ao processar resposta."]
+                    self?.renderCurrentState()
                 }
             }
+        }.resume()
+    }
+
+    private func sendMessageToServer(conversationId: String, content: String, wasAiSuggestion: Bool) {
+        guard let token = authToken,
+              let url = URL(string: "\(backendUrl)/keyboard/send-message") else { return }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 10
+
+        let body: [String: Any] = [
+            "conversationId": conversationId,
+            "content": content,
+            "wasAiSuggestion": wasAiSuggestion,
+            "tone": availableTones[selectedToneIndex]
+        ]
+
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        } catch { return }
+
+        // Fire and forget - don't block UI
+        URLSession.shared.dataTask(with: request) { _, _, _ in }.resume()
+    }
+
+    // MARK: - Clipboard Polling
+
+    private var clipboardTimer: Timer?
+
+    private func startClipboardPolling() {
+        stopClipboardPolling()
+        clipboardTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            self?.checkClipboard()
         }
+    }
+
+    private func stopClipboardPolling() {
+        clipboardTimer?.invalidate()
+        clipboardTimer = nil
+    }
+
+    private func checkClipboard() {
+        guard let current = UIPasteboard.general.string,
+              !current.isEmpty,
+              current != previousClipboard else { return }
+
+        stopClipboardPolling()
+        clipboardText = current
+        previousClipboard = current
+        suggestions = []
+        currentState = .suggestions
+        renderCurrentState()
+
+        // Generate suggestions with context
+        analyzeText(current, tone: availableTones[selectedToneIndex], conversationId: selectedConversation?.conversationId)
     }
 
     // MARK: - Helper Methods
 
-    private func hasFullAccess() -> Bool {
-        return UIPasteboard.general.hasStrings || UIPasteboard.general.string != nil
-    }
-
-    private func setButtonLoading(_ isLoading: Bool) {
-        suggestionButton.isEnabled = !isLoading
-        suggestionButton.setTitle(isLoading ? "🔄 Analisando..." : "✨ Sugerir Resposta", for: .normal)
-        suggestionButton.alpha = isLoading ? 0.6 : 1.0
-    }
-
-    private func updateStatus(_ message: String) {
-        DispatchQueue.main.async { [weak self] in
-            self?.statusLabel.text = message
+    private func getClipboardText() -> String? {
+        guard let text = UIPasteboard.general.string,
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
         }
+        return text
+    }
+
+    private func parseSuggestions(_ text: String) -> [String] {
+        let lines = text.components(separatedBy: "\n")
+        var results: [String] = []
+
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            // Match patterns like "1.", "1)", "1:", or just numbered text
+            if let range = trimmed.range(of: #"^\d+[\.\)\:]\s*"#, options: .regularExpression) {
+                let suggestion = String(trimmed[range.upperBound...]).trimmingCharacters(in: .whitespaces)
+                if !suggestion.isEmpty {
+                    // Remove surrounding quotes if present
+                    let cleaned = suggestion.trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
+                    results.append(cleaned)
+                }
+            }
+        }
+
+        return results.isEmpty ? [text] : results
+    }
+
+    // MARK: - UI Helpers
+
+    private func makeLabel(_ text: String, size: CGFloat, bold: Bool = false) -> UILabel {
+        let label = UILabel()
+        label.text = text
+        label.textColor = .white
+        label.font = bold ? UIFont.boldSystemFont(ofSize: size) : UIFont.systemFont(ofSize: size)
+        label.textAlignment = .left
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }
+
+    private func makeHeader(_ text: String, showBack: Bool) -> UIView {
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.spacing = 8
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        if showBack {
+            let backBtn = UIButton(type: .system)
+            backBtn.setTitle("← Voltar", for: .normal)
+            backBtn.setTitleColor(.lightGray, for: .normal)
+            backBtn.titleLabel?.font = UIFont.systemFont(ofSize: 12)
+            backBtn.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
+            stack.addArrangedSubview(backBtn)
+        }
+
+        let label = UILabel()
+        label.text = text
+        label.textColor = .white
+        label.font = UIFont.boldSystemFont(ofSize: 13)
+        stack.addArrangedSubview(label)
+
+        let spacer = UIView()
+        stack.addArrangedSubview(spacer)
+
+        return stack
+    }
+
+    private func makeToneSelector() -> UISegmentedControl {
+        let control = UISegmentedControl(items: toneEmojis)
+        control.selectedSegmentIndex = selectedToneIndex
+        control.translatesAutoresizingMaskIntoConstraints = false
+        control.addTarget(self, action: #selector(toneSegmentChanged(_:)), for: .valueChanged)
+        return control
+    }
+
+    @objc private func toneSegmentChanged(_ sender: UISegmentedControl) {
+        selectedToneIndex = sender.selectedSegmentIndex
+    }
+
+    private func makeProfileButton(_ conv: ConversationContext, tag: Int) -> UIButton {
+        let btn = UIButton(type: .system)
+        let title = "\(conv.matchName)\n\(conv.platform)"
+        btn.setTitle(title, for: .normal)
+        btn.setTitleColor(.white, for: .normal)
+        btn.backgroundColor = UIColor(white: 0.2, alpha: 1.0)
+        btn.layer.cornerRadius = 10
+        btn.titleLabel?.font = UIFont.systemFont(ofSize: 12)
+        btn.titleLabel?.textAlignment = .center
+        btn.titleLabel?.numberOfLines = 2
+        btn.translatesAutoresizingMaskIntoConstraints = false
+        btn.tag = tag
+        btn.addTarget(self, action: #selector(profileTapped(_:)), for: .touchUpInside)
+        btn.widthAnchor.constraint(equalToConstant: 80).isActive = true
+        return btn
+    }
+
+    private func makeKeyboardSwitchButton() -> UIButton {
+        let btn = UIButton(type: .system)
+        btn.setTitle("🌐", for: .normal)
+        btn.titleLabel?.font = UIFont.systemFont(ofSize: 22)
+        btn.translatesAutoresizingMaskIntoConstraints = false
+        btn.addTarget(self, action: #selector(handleInputModeList(from:with:)), for: .allTouchEvents)
+        btn.widthAnchor.constraint(equalToConstant: 32).isActive = true
+        return btn
+    }
+
+    private func makeGenerateButton() -> UIButton {
+        let btn = UIButton(type: .system)
+        btn.setTitle("✨ Sugerir Resposta", for: .normal)
+        btn.setTitleColor(.white, for: .normal)
+        btn.backgroundColor = UIColor.systemBlue
+        btn.layer.cornerRadius = 10
+        btn.titleLabel?.font = UIFont.boldSystemFont(ofSize: 15)
+        btn.translatesAutoresizingMaskIntoConstraints = false
+        btn.addTarget(self, action: #selector(basicGenerateTapped), for: .touchUpInside)
+        return btn
     }
 }

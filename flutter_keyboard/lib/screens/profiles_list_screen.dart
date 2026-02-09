@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../models/profile_model.dart';
 import '../providers/app_state.dart';
 import '../services/profile_service.dart';
+import '../widgets/shimmer_loading.dart';
 import 'create_profile_screen.dart';
 import 'profile_detail_screen.dart';
 
@@ -91,11 +92,7 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
                 stream: _profileService.getProfiles(userId),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFFE91E63),
-                      ),
-                    );
+                    return const ShimmerProfileList();
                   }
 
                   if (snapshot.hasError) {
@@ -191,7 +188,7 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
             ),
             const SizedBox(height: 32),
             const Text(
-              'Nenhum contato ainda',
+              'Adicione seu primeiro match',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 22,
@@ -200,7 +197,7 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Adicione alguém que você está\nconversando para começar',
+              'Crie um perfil para quem voce esta\nconversando e receba sugestoes\npersonalizadas via teclado',
               style: TextStyle(
                 color: Colors.grey.shade500,
                 fontSize: 15,
@@ -273,6 +270,8 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
     }
 
     final platforms = profile.platforms.values.toList();
+    final hasPreview = profile.lastMessagePreview != null;
+    final activityDate = profile.lastActivityAt ?? profile.updatedAt;
 
     return GestureDetector(
       onTap: () => _navigateToProfileDetail(profile),
@@ -326,45 +325,69 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Name
-                    Text(
-                      profile.name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                    // Platform logos
+                    // Name + timestamp row
                     Row(
                       children: [
-                        ...platforms.take(4).map((p) {
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: _buildPlatformLogo(p.type),
-                          );
-                        }),
-                        if (platforms.length > 4)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF2A2A3E),
-                              borderRadius: BorderRadius.circular(8),
+                        Expanded(
+                          child: Text(
+                            profile.name,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
                             ),
-                            child: Text(
-                              '+${platforms.length - 4}',
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
+                        ),
+                        Text(
+                          _formatRelativeTime(activityDate),
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 12,
+                          ),
+                        ),
                       ],
                     ),
+                    const SizedBox(height: 6),
+                    // Message preview or platform logos
+                    if (hasPreview)
+                      Text(
+                        profile.lastMessagePreview!,
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 13,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      )
+                    else
+                      Row(
+                        children: [
+                          ...platforms.take(4).map((p) {
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: _buildPlatformLogo(p.type),
+                            );
+                          }),
+                          if (platforms.length > 4)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF2A2A3E),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '+${platforms.length - 4}',
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                   ],
                 ),
               ),
@@ -382,6 +405,18 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
         ),
       ),
     );
+  }
+
+  String _formatRelativeTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final diff = now.difference(dateTime);
+
+    if (diff.inMinutes < 1) return 'agora';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}min';
+    if (diff.inHours < 24) return '${diff.inHours}h';
+    if (diff.inDays == 1) return 'ontem';
+    if (diff.inDays < 7) return '${diff.inDays}d';
+    return '${dateTime.day}/${dateTime.month}';
   }
 
   Widget _buildPlatformLogo(PlatformType type) {

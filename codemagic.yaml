@@ -27,6 +27,10 @@ workflows:
           if [ -f GoogleService-Info.plist ]; then
             cp GoogleService-Info.plist /tmp/GoogleService-Info.plist
           fi
+          # Preserve keyboard extension
+          if [ -d "ios/FlirtKeyboardExtension" ]; then
+            cp -r ios/FlirtKeyboardExtension /tmp/FlirtKeyboardExtension
+          fi
 
           rm -rf ios
           flutter create --org com.desenrolaai --project-name app --platforms ios .
@@ -35,6 +39,10 @@ workflows:
           cp /tmp/AppDelegate.swift ios/Runner/AppDelegate.swift
           if [ -f /tmp/GoogleService-Info.plist ]; then
             cp /tmp/GoogleService-Info.plist ios/Runner/GoogleService-Info.plist
+          fi
+          # Restore keyboard extension
+          if [ -d "/tmp/FlirtKeyboardExtension" ]; then
+            cp -r /tmp/FlirtKeyboardExtension ios/FlirtKeyboardExtension
           fi
 
           # Set iPhone only (remove iPad support)
@@ -48,10 +56,20 @@ workflows:
         script: |
           dart run flutter_launcher_icons
 
+      - name: Add keyboard extension to Xcode project
+        script: |
+          gem install xcodeproj
+          ruby scripts/add_keyboard_extension.rb
+
       - name: Set up keychain and fetch signing files
         script: |
           keychain initialize
+          # Fetch signing for main app
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          # Fetch signing for keyboard extension
+          app-store-connect fetch-signing-files "com.desenrolaai.app.keyboard" \
             --type IOS_APP_STORE \
             --create
           keychain add-certificates

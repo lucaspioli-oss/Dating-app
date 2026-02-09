@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../config/app_config.dart';
 import '../services/subscription_service.dart';
+import '../services/keyboard_service.dart';
 import 'training_feedback_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -14,20 +15,24 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final SubscriptionService _subscriptionService = SubscriptionService();
+  final KeyboardService _keyboardService = KeyboardService();
   bool _isDeveloper = false;
+  bool _isKeyboardEnabled = false;
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _checkDeveloperStatus();
+    _loadStatus();
   }
 
-  Future<void> _checkDeveloperStatus() async {
+  Future<void> _loadStatus() async {
     final isDev = await _subscriptionService.isDeveloper();
+    final isKeyboard = await _keyboardService.isKeyboardEnabled();
     if (mounted) {
       setState(() {
         _isDeveloper = isDev;
+        _isKeyboardEnabled = isKeyboard;
         _isLoading = false;
       });
     }
@@ -43,6 +48,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           _buildToneSection(context),
+          const SizedBox(height: 24),
+          _buildKeyboardSection(context),
           if (_isDeveloper) ...[
             const SizedBox(height: 24),
             _buildTrainingSection(context),
@@ -101,6 +108,65 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildKeyboardSection(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Teclado Inteligente',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: Icon(
+                _isKeyboardEnabled
+                    ? Icons.check_circle
+                    : Icons.warning_amber_rounded,
+                color: _isKeyboardEnabled ? Colors.green : Colors.orange,
+              ),
+              title: const Text('Status do Teclado'),
+              subtitle: Text(
+                _isKeyboardEnabled ? 'Ativado' : 'Desativado',
+              ),
+              trailing: _isKeyboardEnabled
+                  ? null
+                  : TextButton(
+                      onPressed: () async {
+                        await _keyboardService.openKeyboardSettings();
+                        Future.delayed(
+                          const Duration(seconds: 1),
+                          () async {
+                            final enabled =
+                                await _keyboardService.isKeyboardEnabled();
+                            if (mounted) {
+                              setState(() => _isKeyboardEnabled = enabled);
+                            }
+                          },
+                        );
+                      },
+                      child: const Text('Ativar'),
+                    ),
+            ),
+            if (!_isKeyboardEnabled) ...[
+              const Divider(),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(
+                  'Para usar sugestoes da IA direto no WhatsApp e outros apps, '
+                  'ative o teclado em: Ajustes → Geral → Teclado → Teclados → Adicionar → Desenrola AI',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -215,6 +281,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           TextButton(
             onPressed: () async {
               Navigator.of(ctx).pop();
+              await KeyboardService().clearKeyboardAuth();
               await FirebaseAuth.instance.signOut();
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),

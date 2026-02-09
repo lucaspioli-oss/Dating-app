@@ -10,6 +10,7 @@ import '../services/agent_service.dart';
 import '../services/profile_service.dart';
 import '../services/conversation_service.dart';
 import '../models/conversation.dart';
+import '../widgets/shimmer_loading.dart';
 import 'request_suggestion_screen.dart';
 import 'conversation_detail_screen.dart';
 
@@ -700,9 +701,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
           stream: _conversationService.getConversationsForProfile(widget.profileId),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: CircularProgressIndicator(color: Color(0xFFE91E63)),
-              );
+              return const ShimmerConversationList();
             }
 
             final conversations = snapshot.data ?? [];
@@ -729,7 +728,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                     ),
                     SizedBox(height: 12),
                     Text(
-                      'Nenhuma conversa ainda',
+                      'Comece a conversa',
                       style: TextStyle(
                         color: Color(0xFF888888),
                         fontSize: 14,
@@ -737,7 +736,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      'Peça uma sugestão para começar',
+                      'Peca uma sugestao ou use o teclado',
                       style: TextStyle(
                         color: Color(0xFF666666),
                         fontSize: 12,

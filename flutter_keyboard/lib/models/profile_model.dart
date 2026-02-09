@@ -241,6 +241,8 @@ class Profile {
   final Map<PlatformType, PlatformData> platforms;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final DateTime? lastActivityAt;
+  final String? lastMessagePreview;
 
   Profile({
     required this.id,
@@ -251,6 +253,8 @@ class Profile {
     required this.platforms,
     required this.createdAt,
     required this.updatedAt,
+    this.lastActivityAt,
+    this.lastMessagePreview,
   });
 
   /// Retorna o Instagram se existir
@@ -284,6 +288,8 @@ class Profile {
       'platforms': platformsMap,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
+      if (lastActivityAt != null) 'lastActivityAt': Timestamp.fromDate(lastActivityAt!),
+      if (lastMessagePreview != null) 'lastMessagePreview': lastMessagePreview,
     };
   }
 
@@ -313,6 +319,10 @@ class Profile {
       updatedAt: map['updatedAt'] != null
           ? (map['updatedAt'] as Timestamp).toDate()
           : DateTime.now(),
+      lastActivityAt: map['lastActivityAt'] != null
+          ? (map['lastActivityAt'] as Timestamp).toDate()
+          : null,
+      lastMessagePreview: map['lastMessagePreview'],
     );
   }
 
@@ -330,6 +340,8 @@ class Profile {
     Map<PlatformType, PlatformData>? platforms,
     DateTime? createdAt,
     DateTime? updatedAt,
+    DateTime? lastActivityAt,
+    String? lastMessagePreview,
   }) {
     return Profile(
       id: id ?? this.id,
@@ -340,6 +352,8 @@ class Profile {
       platforms: platforms ?? this.platforms,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      lastActivityAt: lastActivityAt ?? this.lastActivityAt,
+      lastMessagePreview: lastMessagePreview ?? this.lastMessagePreview,
     );
   }
 }

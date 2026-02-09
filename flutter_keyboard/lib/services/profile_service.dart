@@ -14,8 +14,18 @@ class ProfileService {
         .where('userId', isEqualTo: userId)
         .orderBy('updatedAt', descending: true)
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => Profile.fromFirestore(doc)).toList());
+        .map((snapshot) {
+          final profiles = snapshot.docs
+              .map((doc) => Profile.fromFirestore(doc))
+              .toList();
+          // Re-sort: profiles with lastActivityAt first, then by updatedAt
+          profiles.sort((a, b) {
+            final aDate = a.lastActivityAt ?? a.updatedAt;
+            final bDate = b.lastActivityAt ?? b.updatedAt;
+            return bDate.compareTo(aDate);
+          });
+          return profiles;
+        });
   }
 
   /// Buscar perfil por ID

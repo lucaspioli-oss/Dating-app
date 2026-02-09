@@ -56,6 +56,27 @@ import Flutter
                                    details: nil))
             }
 
+        case "shareAuthWithKeyboard":
+            if let args = call.arguments as? [String: Any],
+               let authToken = args["authToken"] as? String,
+               let userId = args["userId"] as? String {
+                saveToSharedDefaults(key: "authToken", value: authToken)
+                saveToSharedDefaults(key: "userId", value: userId)
+                result(nil)
+            } else {
+                result(FlutterError(code: "INVALID_ARGUMENT",
+                                   message: "authToken e userId são obrigatórios",
+                                   details: nil))
+            }
+
+        case "clearKeyboardAuth":
+            if let sharedDefaults = UserDefaults(suiteName: "group.com.desenrolaai.app.shared") {
+                sharedDefaults.removeObject(forKey: "authToken")
+                sharedDefaults.removeObject(forKey: "userId")
+                sharedDefaults.synchronize()
+            }
+            result(nil)
+
         default:
             result(FlutterMethodNotImplemented)
         }

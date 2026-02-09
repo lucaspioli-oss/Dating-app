@@ -41,15 +41,115 @@ const analyzeSchema = {
                 type: 'string',
                 enum: ['engraçado', 'ousado', 'romântico', 'casual', 'confiante', 'expert'],
             },
+            conversationId: { type: 'string' },
         },
     },
 };
 fastify.post('/analyze', { schema: analyzeSchema }, async (request, reply) => {
     try {
-        const { text, tone } = request.body;
+        const { text, tone, conversationId } = request.body;
+        // PRO MODE: If conversationId is provided, use rich context pipeline
+        if (conversationId) {
+            try {
+                const admin = require('firebase-admin');
+                const db = admin.firestore();
+                // Get auth token from header if present
+                let userId = null;
+                const authHeader = request.headers.authorization;
+                if (authHeader && authHeader.startsWith('Bearer ')) {
+                    try {
+                        const token = authHeader.split(' ')[1];
+                        const decoded = await admin.auth().verifyIdToken(token);
+                        userId = decoded.uid;
+                    }
+                    catch (e) {
+                        // Token invalid, continue without auth
+                    }
+                }
+                if (userId) {
+                    const convRef = db.collection('conversations').doc(conversationId);
+                    const convDoc = await convRef.get();
+                    if (convDoc.exists && convDoc.data().userId === userId) {
+                        const convData = convDoc.data();
+                        // Save clipboard text as match's message
+                        const matchMessage = {
+                            id: `kb_match_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                            role: 'match',
+                            content: text,
+                            timestamp: new Date().toISOString(),
+                            source: 'keyboard_clipboard',
+                        };
+                        await convRef.update({
+                            messages: admin.firestore.FieldValue.arrayUnion(matchMessage),
+                            lastMessageAt: admin.firestore.Timestamp.now(),
+                        });
+                        // Get updated conversation with full context
+                        const updatedDoc = await convRef.get();
+                        const data = updatedDoc.data();
+                        const messages = data.messages || [];
+                        const avatar = data.avatar || {};
+                        // Build rich context prompt
+                        let historyStr = '';
+                        const recentMessages = messages.slice(-20);
+                        for (const msg of recentMessages) {
+                            const role = msg.role === 'user' ? 'Você' : (avatar.matchName || 'Match');
+                            historyStr += `${role}: ${msg.content}\n`;
+                        }
+                        // Get collective insights if available
+                        let collectiveStr = '';
+                        if (data.collectiveAvatarId) {
+                            const avatarDoc = await db.collection('collectiveAvatars').doc(data.collectiveAvatarId).get();
+                            if (avatarDoc.exists) {
+                                const ci = avatarDoc.data().collectiveInsights || {};
+                                if (ci.whatWorks && ci.whatWorks.length > 0) {
+                                    collectiveStr = `\nO que funciona com essa pessoa: ${ci.whatWorks.join(', ')}`;
+                                }
+                                if (ci.whatDoesntWork && ci.whatDoesntWork.length > 0) {
+                                    collectiveStr += `\nO que NÃO funciona: ${ci.whatDoesntWork.join(', ')}`;
+                                }
+                            }
+                        }
+                        // Build calibration info
+                        let calibrationStr = '';
+                        const patterns = avatar.detectedPatterns || {};
+                        if (patterns.responseLength) {
+                            calibrationStr += `\nTamanho de resposta dela: ${patterns.responseLength}`;
+                        }
+                        if (patterns.emotionalTone) {
+                            calibrationStr += `\nTom emocional: ${patterns.emotionalTone}`;
+                        }
+                        if (patterns.flirtLevel) {
+                            calibrationStr += `\nNível de flerte: ${patterns.flirtLevel}`;
+                        }
+                        const richPrompt = `Você está ajudando a responder mensagens de dating.
+Perfil da match: ${avatar.matchName || 'Desconhecida'} (${avatar.platform || 'dating app'})
+${avatar.bio ? `Bio: ${avatar.bio}` : ''}
+${calibrationStr}
+${collectiveStr}
+
+Histórico recente:
+${historyStr}
+
+A última mensagem dela foi:
+"${text}"
+
+Gere APENAS 3 sugestões de resposta numeradas (1. 2. 3.), cada uma curta (1-2 frases).
+Calibre com base no histórico e no tom detectado.`;
+                        const analysis = await (0, anthropic_1.analyzeMessage)({ text: richPrompt, tone });
+                        return reply.code(200).send({ analysis, mode: 'pro' });
+                    }
+                }
+            }
+            catch (proError) {
+                fastify.log.error('PRO mode error, falling back to BASIC:', proError);
+                // Fall through to BASIC mode
+            }
+        }
+        // BASIC MODE: Simple analysis without context
         const analysis = await (0, anthropic_1.analyzeMessage)({ text, tone });
         const response = {
             analysis,
+            mode: 'basic',
         };
         return reply.code(200).send(response);
     }
@@ -578,6 +678,116 @@ fastify.post('/webhook/stripe', async (request, reply) => {
         return reply.code(500).send({
             error: 'Internal server error',
             message: error.message,
+        });
+    }
+});
+// ═══════════════════════════════════════════════════════════════════
+// ⌨️ KEYBOARD EXTENSION ENDPOINTS
+// ═══════════════════════════════════════════════════════════════════
+// Get keyboard context - returns recent conversations for profile selector
+fastify.get('/keyboard/context', {
+    preHandler: auth_1.verifyAuth,
+}, async (request, reply) => {
+    try {
+        const userId = request.user.uid;
+        const admin = require('firebase-admin');
+        const db = admin.firestore();
+        // Get 10 most recent conversations
+        const snapshot = await db.collection('conversations')
+            .where('userId', '==', userId)
+            .where('status', '==', 'active')
+            .orderBy('lastMessageAt', 'desc')
+            .limit(10)
+            .get();
+        const conversations = snapshot.docs.map(doc => {
+            const data = doc.data();
+            const messages = data.messages || [];
+            const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
+            return {
+                conversationId: doc.id,
+                matchName: data.avatar?.matchName || data.avatar?.name || 'Desconhecida',
+                platform: data.avatar?.platform || 'tinder',
+                lastMessage: lastMsg ? lastMsg.content?.substring(0, 80) : null,
+                lastMessageRole: lastMsg ? lastMsg.role : null,
+                lastMessageAt: data.lastMessageAt?.toDate?.()?.toISOString() || null,
+            };
+        });
+        return reply.code(200).send({ conversations });
+    }
+    catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send({
+            error: 'Erro ao buscar contexto do teclado',
+            message: error instanceof Error ? error.message : 'Erro desconhecido',
+        });
+    }
+});
+// Save message sent via keyboard extension
+fastify.post('/keyboard/send-message', {
+    preHandler: auth_1.verifyAuth,
+}, async (request, reply) => {
+    try {
+        const userId = request.user.uid;
+        const { conversationId, content, wasAiSuggestion, tone } = request.body;
+        if (!conversationId || !content) {
+            return reply.code(400).send({
+                error: 'Missing required fields',
+                message: 'conversationId and content are required',
+            });
+        }
+        const admin = require('firebase-admin');
+        const db = admin.firestore();
+        // Verify conversation belongs to user
+        const convRef = db.collection('conversations').doc(conversationId);
+        const convDoc = await convRef.get();
+        if (!convDoc.exists || convDoc.data().userId !== userId) {
+            return reply.code(404).send({ error: 'Conversa não encontrada' });
+        }
+        // Add message to conversation
+        const message = {
+            id: `kb_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            role: 'user',
+            content,
+            timestamp: new Date().toISOString(),
+            wasAiSuggestion: wasAiSuggestion || false,
+            tone: tone || null,
+            source: 'keyboard',
+        };
+        await convRef.update({
+            messages: admin.firestore.FieldValue.arrayUnion(message),
+            lastMessageAt: admin.firestore.Timestamp.now(),
+        });
+        // Update analytics
+        const analyticsField = wasAiSuggestion
+            ? 'avatar.analytics.aiSuggestionsUsed'
+            : 'avatar.analytics.customMessagesUsed';
+        await convRef.update({
+            [analyticsField]: admin.firestore.FieldValue.increment(1),
+            'avatar.analytics.totalMessages': admin.firestore.FieldValue.increment(1),
+        });
+        // Update profile's lastActivityAt for sorting in profiles list
+        const convData = convDoc.data();
+        const profileId = convData.profileId;
+        if (profileId) {
+            try {
+                await db.collection('profiles').doc(profileId).update({
+                    lastActivityAt: admin.firestore.Timestamp.now(),
+                    lastMessagePreview: content.substring(0, 80),
+                    updatedAt: admin.firestore.Timestamp.now(),
+                });
+            }
+            catch (profileErr) {
+                // Non-critical - profile ordering won't update but message is saved
+                fastify.log.warn('Failed to update profile lastActivityAt:', profileErr);
+            }
+        }
+        return reply.code(200).send({ success: true, messageId: message.id });
+    }
+    catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send({
+            error: 'Erro ao salvar mensagem',
+            message: error instanceof Error ? error.message : 'Erro desconhecido',
         });
     }
 });

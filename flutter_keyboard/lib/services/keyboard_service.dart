@@ -43,4 +43,26 @@ class KeyboardService {
       print("Erro ao configurar tom: ${e.message}");
     }
   }
+
+  /// Compartilha o token de autenticação com o teclado via App Groups
+  /// Deve ser chamado após login e quando o token for renovado
+  Future<void> shareAuthWithKeyboard(String authToken, String userId) async {
+    try {
+      await platform.invokeMethod('shareAuthWithKeyboard', {
+        'authToken': authToken,
+        'userId': userId,
+      });
+    } on PlatformException catch (e) {
+      print("Erro ao compartilhar auth com teclado: ${e.message}");
+    }
+  }
+
+  /// Remove a autenticação do teclado (chamado no logout)
+  Future<void> clearKeyboardAuth() async {
+    try {
+      await platform.invokeMethod('clearKeyboardAuth');
+    } on PlatformException catch (e) {
+      print("Erro ao limpar auth do teclado: ${e.message}");
+    }
+  }
 }
