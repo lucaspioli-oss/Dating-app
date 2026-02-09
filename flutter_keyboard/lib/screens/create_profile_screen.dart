@@ -1224,17 +1224,33 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
     });
   }
 
-  /// Crops a square avatar from the center-top area of the image.
-  /// Profile photos typically have the face in the upper-center region.
-  Uint8List _cropAvatarFromImage(Uint8List bytes) {
+  /// Crops a square avatar from the image.
+  /// Uses AI-provided face coordinates when available, falls back to center-top crop.
+  Uint8List _cropAvatarFromImage(Uint8List bytes, {Map<String, dynamic>? facePosition}) {
     try {
       final image = img.decodeImage(bytes);
       if (image == null) return bytes;
 
-      // Crop a square from center-top (where faces usually are)
-      final cropSize = (image.width * 0.5).round().clamp(1, image.height);
-      final cropX = ((image.width - cropSize) / 2).round().clamp(0, image.width - 1);
-      final cropY = (image.height * 0.08).round().clamp(0, image.height - cropSize);
+      int cropX, cropY, cropSize;
+
+      if (facePosition != null &&
+          facePosition['centerX'] != null &&
+          facePosition['centerY'] != null &&
+          facePosition['size'] != null) {
+        // Use AI-provided face coordinates (values are 0-100 percentages)
+        final cx = (image.width * (facePosition['centerX'] as num) / 100).round();
+        final cy = (image.height * (facePosition['centerY'] as num) / 100).round();
+        final faceSize = (image.width * (facePosition['size'] as num) / 100).round();
+        // Add 50% padding around face for natural avatar
+        cropSize = (faceSize * 1.5).round().clamp(1, [image.width, image.height].reduce((a, b) => a < b ? a : b));
+        cropX = (cx - cropSize ~/ 2).clamp(0, image.width - cropSize);
+        cropY = (cy - cropSize ~/ 2).clamp(0, image.height - cropSize);
+      } else {
+        // Fallback: center-top crop
+        cropSize = (image.width * 0.5).round().clamp(1, image.height);
+        cropX = ((image.width - cropSize) / 2).round().clamp(0, image.width - 1);
+        cropY = (image.height * 0.08).round().clamp(0, image.height - cropSize);
+      }
 
       final cropped = img.copyCrop(image, x: cropX, y: cropY, width: cropSize, height: cropSize);
       final resized = img.copyResize(cropped, width: 200, height: 200);
@@ -1382,13 +1398,27 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           if (profileName == null && result.name != null) {
             profileName = result.name;
             faceDescription = result.faceDescription;
-            // Use pre-cropped pic (Instagram screenshot mode) or detect face
-            if (entry.croppedProfilePicBase64 != null) {
+            // Crop avatar using AI face coordinates, fallback to pre-crop or center-top
+            if (result.facePosition != null) {
+              // AI detected a face — re-crop from original image with precise coordinates
+              try {
+                final croppedBytes = _cropAvatarFromImage(
+                  entry.profileImages[imgIndex],
+                  facePosition: result.facePosition,
+                );
+                faceImageBase64 = base64Encode(croppedBytes);
+              } catch (_) {
+                faceImageBase64 = entry.croppedProfilePicBase64 ?? imageBase64;
+              }
+            } else if (entry.croppedProfilePicBase64 != null) {
               faceImageBase64 = entry.croppedProfilePicBase64;
             } else if (faceImageBase64 == null) {
-              // Crop avatar from the first image
+              // Crop avatar using AI-provided face position
               try {
-                final croppedBytes = _cropAvatarFromImage(entry.profileImages[imgIndex]);
+                final croppedBytes = _cropAvatarFromImage(
+                  entry.profileImages[imgIndex],
+                  facePosition: result.facePosition,
+                );
                 faceImageBase64 = base64Encode(croppedBytes);
               } catch (_) {
                 faceImageBase64 = imageBase64;

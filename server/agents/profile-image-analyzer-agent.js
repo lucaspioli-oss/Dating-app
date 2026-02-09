@@ -38,7 +38,8 @@ Use null para campos não visíveis.
   "location": "Localização ou null",
   "occupation": "Trabalho/faculdade ou null",
   "interests": ["interesse 1", "interesse 2", ...] ou null,
-  "additionalInfo": "Outras informações relevantes ou null"
+  "additionalInfo": "Outras informações relevantes ou null",
+  "facePosition": {"centerX": 50, "centerY": 30, "size": 25} ou null
 }
 
 IMPORTANTE:
@@ -46,7 +47,8 @@ IMPORTANTE:
 - Seja PRECISO e extraia exatamente o que está escrito
 - Se algo não estiver visível, use null
 - Nas descrições de fotos, seja específico e útil
-- Capture TUDO que possa ser útil para criar uma primeira mensagem`;
+- Capture TUDO que possa ser útil para criar uma primeira mensagem
+- Para facePosition: se houver um rosto visível na imagem, retorne a posição aproximada em porcentagem (centerX e centerY = centro do rosto, size = tamanho do rosto, todos de 0 a 100 em relação à largura/altura da imagem). Se houver mais de um rosto, use o rosto principal/maior. Se não houver rosto visível, use null.`;
     }
     async analyzeImage(input, systemPrompt) {
         const message = await this.client.messages.create({
@@ -111,6 +113,7 @@ IMPORTANTE:
                 occupation: parsed.occupation && parsed.occupation !== 'null' ? parsed.occupation : undefined,
                 interests: parsed.interests && parsed.interests !== 'null' ? parsed.interests : undefined,
                 additionalInfo: parsed.additionalInfo && parsed.additionalInfo !== 'null' ? parsed.additionalInfo : undefined,
+                facePosition: parsed.facePosition && parsed.facePosition !== 'null' && typeof parsed.facePosition === 'object' ? parsed.facePosition : undefined,
             };
             console.log('Dados extraídos:', result);
             return result;

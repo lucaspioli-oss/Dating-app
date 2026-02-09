@@ -284,6 +284,9 @@ class AgentService {
               : null,
           additionalInfo: extractedData['additionalInfo'],
           faceDescription: extractedData['faceDescription'],
+          facePosition: extractedData['facePosition'] is Map
+              ? Map<String, dynamic>.from(extractedData['facePosition'])
+              : null,
         );
       } else {
         return ProfileImageResponse.error(
@@ -477,6 +480,7 @@ class ProfileImageResponse {
   final List<String>? interests;
   final String? additionalInfo;
   final String? faceDescription;    // Descrição facial para identificação
+  final Map<String, dynamic>? facePosition; // {centerX, centerY, size} em % (0-100)
   final String? errorMessage;
 
   ProfileImageResponse._({
@@ -491,6 +495,7 @@ class ProfileImageResponse {
     this.interests,
     this.additionalInfo,
     this.faceDescription,
+    this.facePosition,
     this.errorMessage,
   });
 
@@ -505,6 +510,7 @@ class ProfileImageResponse {
     List<String>? interests,
     String? additionalInfo,
     String? faceDescription,
+    Map<String, dynamic>? facePosition,
   }) {
     return ProfileImageResponse._(
       success: true,
@@ -518,6 +524,7 @@ class ProfileImageResponse {
       interests: interests,
       additionalInfo: additionalInfo,
       faceDescription: faceDescription,
+      facePosition: facePosition,
     );
   }
 
