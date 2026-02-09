@@ -705,47 +705,70 @@ fastify.get('/keyboard/context', {
         const userId = request.user.uid;
         const admin = require('firebase-admin');
         const db = admin.firestore();
-        // Get profiles (unique per person, have photos)
-        const profilesSnapshot = await db.collection('profiles')
-            .where('userId', '==', userId)
-            .orderBy('updatedAt', 'desc')
-            .limit(15)
-            .get();
-        // Get active conversations to link with profiles
-        const convsSnapshot = await db.collection('conversations')
-            .where('userId', '==', userId)
-            .where('status', '==', 'active')
-            .get();
-        // Build a map: matchName+platform -> conversationId
-        const convMap = {};
-        convsSnapshot.docs.forEach(doc => {
+        // Get profiles (for photos) and conversations (for context)
+        const [profilesSnapshot, convsSnapshot] = await Promise.all([
+            db.collection('profiles')
+                .where('userId', '==', userId)
+                .orderBy('updatedAt', 'desc')
+                .limit(20)
+                .get(),
+            db.collection('conversations')
+                .where('userId', '==', userId)
+                .where('status', '==', 'active')
+                .get(),
+        ]);
+        // Build profile photo map: lowercase name -> faceImageBase64
+        const photoMap = {};
+        const profileIdMap = {};
+        profilesSnapshot.docs.forEach(doc => {
             const data = doc.data();
-            const key = `${(data.avatar?.matchName || '').toLowerCase()}_${data.avatar?.platform || ''}`;
-            // Keep the most recent conversation for each match
-            if (!convMap[key] || (data.lastMessageAt?.toDate?.() > convMap[key].lastMessageAt)) {
-                convMap[key] = {
-                    conversationId: doc.id,
-                    lastMessageAt: data.lastMessageAt?.toDate?.() || new Date(0),
-                };
-            }
+            const key = (data.name || '').toLowerCase();
+            photoMap[key] = data.faceImageBase64 || null;
+            profileIdMap[key] = doc.id;
         });
-        const conversations = profilesSnapshot.docs.map(doc => {
+        // Build entries from conversations (each has its own platform)
+        const seenKeys = new Set();
+        const entries = [];
+        // Sort conversations by lastMessageAt desc
+        const sortedConvs = convsSnapshot.docs
+            .map(doc => ({ doc, lastMessageAt: doc.data().lastMessageAt?.toDate?.() || new Date(0) }))
+            .sort((a, b) => b.lastMessageAt - a.lastMessageAt);
+        for (const { doc } of sortedConvs) {
             const data = doc.data();
+            const matchName = data.avatar?.matchName || data.avatar?.name || 'Desconhecida';
+            const platform = data.avatar?.platform || 'tinder';
+            const key = `${matchName.toLowerCase()}_${platform}`;
+            if (seenKeys.has(key)) continue; // dedupe same name+platform
+            seenKeys.add(key);
+            const nameKey = matchName.toLowerCase();
+            entries.push({
+                conversationId: doc.id,
+                profileId: profileIdMap[nameKey] || null,
+                matchName,
+                platform,
+                faceImageBase64: photoMap[nameKey] || null,
+            });
+        }
+        // Add profiles that have NO conversation yet
+        profilesSnapshot.docs.forEach(doc => {
+            const data = doc.data();
+            const name = data.name || 'Sem nome';
             const platforms = data.platforms || {};
             const firstPlatformKey = Object.keys(platforms)[0];
-            const firstPlatform = firstPlatformKey ? platforms[firstPlatformKey] : {};
-            // Find linked conversation
-            const key = `${(data.name || '').toLowerCase()}_${firstPlatform.type || firstPlatformKey || ''}`;
-            const linked = convMap[key] || null;
-            return {
-                conversationId: linked?.conversationId || null,
-                profileId: doc.id,
-                matchName: data.name || 'Sem nome',
-                platform: firstPlatform.type || firstPlatformKey || 'instagram',
-                faceImageBase64: data.faceImageBase64 || null,
-            };
+            const platform = firstPlatformKey ? (platforms[firstPlatformKey].type || firstPlatformKey) : 'instagram';
+            const key = `${name.toLowerCase()}_${platform}`;
+            if (!seenKeys.has(key)) {
+                seenKeys.add(key);
+                entries.push({
+                    conversationId: null,
+                    profileId: doc.id,
+                    matchName: name,
+                    platform,
+                    faceImageBase64: data.faceImageBase64 || null,
+                });
+            }
         });
-        return reply.code(200).send({ conversations });
+        return reply.code(200).send({ conversations: entries });
     }
     catch (error) {
         fastify.log.error(error);
