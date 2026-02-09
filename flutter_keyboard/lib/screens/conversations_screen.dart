@@ -4,6 +4,7 @@ import '../providers/app_state.dart';
 import '../providers/user_profile_provider.dart';
 import '../services/conversation_service.dart';
 import '../models/conversation.dart';
+import '../widgets/profile_avatar.dart';
 import 'conversation_detail_screen.dart';
 
 class ConversationsScreen extends StatefulWidget {
@@ -179,62 +180,27 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
   }
 
   Widget _buildAvatar(ConversationListItem conv) {
-    // Se tem imagem do rosto, exibir
-    if (conv.faceImageUrl != null && conv.faceImageUrl!.isNotEmpty) {
-      return Stack(
-        children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundImage: NetworkImage(conv.faceImageUrl!),
-            onBackgroundImageError: (_, __) {},
-            child: null,
-          ),
-          Positioned(
-            right: -2,
-            bottom: -2,
-            child: Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 2,
-                  ),
-                ],
-              ),
-              child: Text(conv.platformEmoji, style: const TextStyle(fontSize: 12)),
+    return ProfileAvatar(
+      imageUrl: conv.faceImageUrl,
+      name: conv.matchName,
+      size: 48,
+      borderWidth: 2,
+      showShadow: false,
+      badge: Container(
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0D0D1A),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 2,
             ),
-          ),
-        ],
-      );
-    }
-
-    // Fallback: emoji da plataforma ou primeira letra do nome
-    return CircleAvatar(
-      radius: 24,
-      backgroundColor: _getPlatformColor(conv.platform),
-      child: Text(
-        conv.matchName.isNotEmpty ? conv.matchName[0].toUpperCase() : '?',
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+          ],
+        ),
+        child: Text(conv.platformEmoji, style: const TextStyle(fontSize: 12)),
       ),
     );
-  }
-
-  Color _getPlatformColor(String platform) {
-    switch (platform) {
-      case 'tinder':
-        return Colors.red.shade400;
-      case 'bumble':
-        return Colors.amber.shade400;
-      case 'hinge':
-        return Colors.pink.shade400;
-      case 'instagram':
-        return Colors.purple.shade400;
-      default:
-        return Colors.grey.shade400;
-    }
   }
 
   Future<bool> _confirmDelete(ConversationListItem conv) async {

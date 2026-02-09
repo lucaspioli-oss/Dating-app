@@ -9,6 +9,7 @@ import '../providers/app_state.dart';
 import '../services/agent_service.dart';
 import '../services/conversation_service.dart';
 import '../services/profile_service.dart';
+import '../widgets/profile_avatar.dart';
 import 'conversation_detail_screen.dart';
 
 /// Tipos de ação disponíveis
@@ -264,13 +265,6 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
   }
 
   Widget _buildProfileInfo() {
-    Uint8List? faceImageBytes;
-    if (widget.profile.faceImageBase64 != null) {
-      try {
-        faceImageBytes = base64Decode(widget.profile.faceImageBase64!);
-      } catch (_) {}
-    }
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -279,19 +273,11 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
       ),
       child: Row(
         children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(25),
-              color: const Color(0xFF2A2A3E),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(25),
-              child: faceImageBytes != null
-                  ? Image.memory(faceImageBytes, fit: BoxFit.cover)
-                  : const Icon(Icons.person, color: Color(0xFF666666)),
-            ),
+          ProfileAvatar.fromBase64(
+            base64Image: widget.profile.faceImageBase64,
+            name: widget.profile.name,
+            size: 52,
+            showShadow: false,
           ),
           const SizedBox(width: 12),
           Expanded(

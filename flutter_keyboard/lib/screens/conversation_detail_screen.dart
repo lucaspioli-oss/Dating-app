@@ -10,6 +10,7 @@ import '../services/conversation_service.dart';
 import '../services/agent_service.dart';
 import '../services/subscription_service.dart';
 import '../models/conversation.dart';
+import '../widgets/profile_avatar.dart';
 
 class ConversationDetailScreen extends StatefulWidget {
   final String conversationId;
@@ -678,26 +679,12 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
   }
 
   Widget _buildAvatarImage(ConversationAvatar avatar, double radius) {
-    if (avatar.faceImageUrl != null && avatar.faceImageUrl!.isNotEmpty) {
-      return CircleAvatar(
-        radius: radius,
-        backgroundImage: NetworkImage(avatar.faceImageUrl!),
-        onBackgroundImageError: (_, __) {},
-        backgroundColor: const Color(0xFF2A2A3E),
-      );
-    }
-
-    return CircleAvatar(
-      radius: radius,
-      backgroundColor: const Color(0xFF2A2A3E),
-      child: Text(
-        avatar.matchName.isNotEmpty ? avatar.matchName[0].toUpperCase() : '?',
-        style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: radius * 0.8,
-        ),
-      ),
+    return ProfileAvatar(
+      imageUrl: avatar.faceImageUrl,
+      name: avatar.matchName,
+      size: radius * 2,
+      borderWidth: radius > 20 ? 2.5 : 2,
+      showShadow: radius > 20,
     );
   }
 

@@ -11,6 +11,7 @@ import '../services/profile_service.dart';
 import '../services/conversation_service.dart';
 import '../models/conversation.dart';
 import '../widgets/shimmer_loading.dart';
+import '../widgets/profile_avatar.dart';
 import 'request_suggestion_screen.dart';
 import 'conversation_detail_screen.dart';
 
@@ -187,59 +188,15 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
   }
 
   Widget _buildProfileHeader() {
-    Uint8List? faceImageBytes;
-    if (_profile!.faceImageBase64 != null) {
-      try {
-        faceImageBytes = base64Decode(_profile!.faceImageBase64!);
-      } catch (_) {}
-    }
-
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: [Color(0xFFE91E63), Color(0xFFFF5722)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFE91E63).withOpacity(0.3),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.all(3),
-            child: Container(
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0xFF1A1A2E),
-              ),
-              child: ClipOval(
-                child: faceImageBytes != null
-                    ? Image.memory(
-                        faceImageBytes,
-                        fit: BoxFit.cover,
-                        width: 74,
-                        height: 74,
-                      )
-                    : Container(
-                        color: const Color(0xFF2A2A3E),
-                        child: Icon(
-                          Icons.person,
-                          size: 40,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-              ),
-            ),
+          ProfileAvatar.fromBase64(
+            base64Image: _profile!.faceImageBase64,
+            name: _profile!.name,
+            size: 80,
+            borderWidth: 3,
           ),
           const SizedBox(width: 20),
           Expanded(
@@ -759,13 +716,6 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
   }
 
   Widget _buildConversationTile(ConversationListItem conv) {
-    Uint8List? faceImageBytes;
-    if (_profile!.faceImageBase64 != null) {
-      try {
-        faceImageBytes = base64Decode(_profile!.faceImageBase64!);
-      } catch (_) {}
-    }
-
     final platformIcon = _getPlatformIcon(conv.platform);
     final platformColor = _getPlatformColor(conv.platform);
 
@@ -790,59 +740,24 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
         ),
         child: Row(
           children: [
-            Stack(
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [Color(0xFFE91E63), Color(0xFFFF5722)],
-                    ),
-                  ),
-                  padding: const EdgeInsets.all(2),
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Color(0xFF1A1A2E),
-                    ),
-                    child: ClipOval(
-                      child: faceImageBytes != null
-                          ? Image.memory(
-                              faceImageBytes,
-                              fit: BoxFit.cover,
-                              width: 48,
-                              height: 48,
-                            )
-                          : Container(
-                              color: const Color(0xFF2A2A3E),
-                              child: Icon(
-                                Icons.person,
-                                size: 28,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                    ),
-                  ),
+            ProfileAvatar.fromBase64(
+              base64Image: _profile!.faceImageBase64,
+              name: _profile!.name,
+              size: 52,
+              borderWidth: 2,
+              showShadow: false,
+              badge: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: platformColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFF1A1A2E), width: 2),
                 ),
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: platformColor,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFF1A1A2E), width: 2),
-                    ),
-                    child: Text(
-                      platformIcon,
-                      style: const TextStyle(fontSize: 10),
-                    ),
-                  ),
+                child: Text(
+                  platformIcon,
+                  style: const TextStyle(fontSize: 10),
                 ),
-              ],
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(

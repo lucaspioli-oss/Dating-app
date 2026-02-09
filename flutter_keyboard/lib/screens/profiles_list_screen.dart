@@ -1,11 +1,10 @@
-import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/profile_model.dart';
 import '../providers/app_state.dart';
 import '../services/profile_service.dart';
 import '../widgets/shimmer_loading.dart';
+import '../widgets/profile_avatar.dart';
 import 'create_profile_screen.dart';
 import 'profile_detail_screen.dart';
 
@@ -262,13 +261,6 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
   }
 
   Widget _buildProfileCard(Profile profile) {
-    Uint8List? faceImageBytes;
-    if (profile.faceImageBase64 != null) {
-      try {
-        faceImageBytes = base64Decode(profile.faceImageBase64!);
-      } catch (_) {}
-    }
-
     final platforms = profile.platforms.values.toList();
     final hasPreview = profile.lastMessagePreview != null;
     final activityDate = profile.lastActivityAt ?? profile.updatedAt;
@@ -276,7 +268,7 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
     return GestureDetector(
       onTap: () => _navigateToProfileDetail(profile),
       child: Container(
-        height: 80,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: const Color(0xFF1A1A2E),
           borderRadius: BorderRadius.circular(16),
@@ -292,109 +284,87 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
         child: Row(
           children: [
             // Avatar
-            Container(
-              width: 80,
-              height: 80,
-              decoration: const BoxDecoration(
-                color: Color(0xFF2A2A3E),
-                borderRadius: BorderRadius.horizontal(left: Radius.circular(16)),
-              ),
-              child: ClipRRect(
-                borderRadius: const BorderRadius.horizontal(left: Radius.circular(16)),
-                child: faceImageBytes != null
-                    ? Image.memory(
-                        faceImageBytes,
-                        fit: BoxFit.cover,
-                        width: 80,
-                        height: 80,
-                      )
-                    : Center(
-                        child: Icon(
-                          Icons.person,
-                          size: 36,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-              ),
+            ProfileAvatar.fromBase64(
+              base64Image: profile.faceImageBase64,
+              name: profile.name,
+              size: 56,
             ),
+            const SizedBox(width: 14),
             // Info
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Name + timestamp row
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Name + timestamp row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          profile.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Text(
+                        _formatRelativeTime(activityDate),
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  // Message preview or platform logos
+                  if (hasPreview)
+                    Text(
+                      profile.lastMessagePreview!,
+                      style: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontSize: 13,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    )
+                  else
                     Row(
                       children: [
-                        Expanded(
-                          child: Text(
-                            profile.name,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                        ...platforms.take(4).map((p) {
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: _buildPlatformLogo(p.type),
+                          );
+                        }),
+                        if (platforms.length > 4)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2A2A3E),
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                            child: Text(
+                              '+${platforms.length - 4}',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
-                        ),
-                        Text(
-                          _formatRelativeTime(activityDate),
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 12,
-                          ),
-                        ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    // Message preview or platform logos
-                    if (hasPreview)
-                      Text(
-                        profile.lastMessagePreview!,
-                        style: TextStyle(
-                          color: Colors.grey.shade500,
-                          fontSize: 13,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      )
-                    else
-                      Row(
-                        children: [
-                          ...platforms.take(4).map((p) {
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: _buildPlatformLogo(p.type),
-                            );
-                          }),
-                          if (platforms.length > 4)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF2A2A3E),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                '+${platforms.length - 4}',
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                  ],
-                ),
+                ],
               ),
             ),
             // Arrow
             Padding(
-              padding: const EdgeInsets.only(right: 16),
+              padding: const EdgeInsets.only(left: 8),
               child: Icon(
                 Icons.chevron_right,
                 color: Colors.grey.shade600,

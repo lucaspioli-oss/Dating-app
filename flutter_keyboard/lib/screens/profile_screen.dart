@@ -84,21 +84,38 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _loadProfile();
+    _initProfile();
   }
 
-  void _loadProfile() {
+  void _initProfile() {
     final profileProvider = context.read<UserProfileProvider>();
-    final profile = profileProvider.profile;
 
-    _nameController.text = profile.name;
-    _bioController.text = profile.bio;
-    _age = profile.age;
-    _gender = profile.gender;
-    _selectedInterests = List.from(profile.interests);
-    _selectedDislikes = List.from(profile.dislikes);
-    _humorStyle = profile.humorStyle;
-    _relationshipGoal = profile.relationshipGoal;
+    if (profileProvider.isLoading) {
+      // Provider still loading from SharedPreferences — listen for completion
+      void listener() {
+        if (!profileProvider.isLoading) {
+          profileProvider.removeListener(listener);
+          _populateFields(profileProvider.profile);
+        }
+      }
+      profileProvider.addListener(listener);
+    } else {
+      _populateFields(profileProvider.profile);
+    }
+  }
+
+  void _populateFields(UserProfile profile) {
+    if (!mounted) return;
+    setState(() {
+      _nameController.text = profile.name;
+      _bioController.text = profile.bio;
+      _age = profile.age;
+      _gender = profile.gender;
+      _selectedInterests = List.from(profile.interests);
+      _selectedDislikes = List.from(profile.dislikes);
+      _humorStyle = profile.humorStyle;
+      _relationshipGoal = profile.relationshipGoal;
+    });
   }
 
   @override
@@ -637,43 +654,23 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   }
 
   Widget _buildHeader() {
-    return Card(
-      elevation: 0,
-      color: Theme.of(context).colorScheme.primaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            Icon(
-              Icons.person,
-              size: 48,
-              color: Theme.of(context).colorScheme.onPrimaryContainer,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Configure seu perfil',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.onPrimaryContainer,
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'A IA usará essas informações para personalizar as respostas',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onPrimaryContainer,
-                        ),
-                  ),
-                ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Seu Perfil',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
               ),
-            ),
-          ],
         ),
-      ),
+        const SizedBox(height: 4),
+        Text(
+          'A IA usa essas informacoes para personalizar as respostas',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.grey.shade500,
+              ),
+        ),
+      ],
     );
   }
 
