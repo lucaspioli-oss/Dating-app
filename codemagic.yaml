@@ -60,6 +60,10 @@ workflows:
         script: |
           gem install xcodeproj
           ruby scripts/add_keyboard_extension.rb
+          echo "--- Xcode project targets ---"
+          xcodebuild -project ios/Runner.xcodeproj -list 2>/dev/null || true
+          echo "--- Extension files ---"
+          ls -la ios/FlirtKeyboardExtension/ || true
 
       - name: Set up keychain and fetch signing files
         script: |

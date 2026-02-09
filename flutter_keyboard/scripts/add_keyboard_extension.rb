@@ -23,6 +23,12 @@ unless app_target
   exit 1
 end
 
+# Verify extension source files exist
+unless File.exist?('ios/FlirtKeyboardExtension/KeyboardViewController.swift')
+  puts "ERROR: FlirtKeyboardExtension source files not found at ios/FlirtKeyboardExtension/"
+  exit 1
+end
+
 # Create the keyboard extension target
 extension_target = project.new_target(
   :app_extension,
@@ -35,35 +41,27 @@ extension_target = project.new_target(
 extension_target.product_reference.name = 'FlirtKeyboardExtension.appex'
 extension_target.product_reference.path = 'FlirtKeyboardExtension.appex'
 
-# Get DEVELOPMENT_TEAM from main target
-dev_team = ''
-app_target.build_configurations.each do |config|
-  team = config.build_settings['DEVELOPMENT_TEAM']
-  if team && !team.empty?
-    dev_team = team
-    break
-  end
-end
-
-# Set build settings for extension
+# Set build settings for extension (all configurations: Debug, Release, Profile)
 extension_target.build_configurations.each do |config|
   config.build_settings['PRODUCT_NAME'] = 'FlirtKeyboardExtension'
+  config.build_settings['PRODUCT_MODULE_NAME'] = 'FlirtKeyboardExtension'
   config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'com.desenrolaai.app.keyboard'
   config.build_settings['INFOPLIST_FILE'] = 'FlirtKeyboardExtension/Info.plist'
   config.build_settings['SWIFT_VERSION'] = '5.0'
   config.build_settings['CODE_SIGN_STYLE'] = 'Manual'
-  config.build_settings['DEVELOPMENT_TEAM'] = dev_team
   config.build_settings['TARGETED_DEVICE_FAMILY'] = '1'
   config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
   config.build_settings['GENERATE_INFOPLIST_FILE'] = 'NO'
-  config.build_settings['CURRENT_PROJECT_VERSION'] = '1'
-  config.build_settings['MARKETING_VERSION'] = '1.0'
+  config.build_settings['CURRENT_PROJECT_VERSION'] = '7'
+  config.build_settings['MARKETING_VERSION'] = '1.0.0'
   config.build_settings['SKIP_INSTALL'] = 'YES'
   config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'FlirtKeyboardExtension/FlirtKeyboardExtension.entitlements'
   config.build_settings['LD_RUNPATH_SEARCH_PATHS'] = '$(inherited) @executable_path/../../Frameworks'
+  config.build_settings['CLANG_ENABLE_MODULES'] = 'YES'
+  config.build_settings['SWIFT_OPTIMIZATION_LEVEL'] = config.name == 'Debug' ? '-Onone' : '-O'
 end
 
-# Create file group for extension (path relative to ios/)
+# Create file group for extension (path relative to ios/ project root)
 extension_group = project.main_group.new_group('FlirtKeyboardExtension', 'FlirtKeyboardExtension')
 
 # Add files to group (filenames only, group provides the directory context)
@@ -87,7 +85,6 @@ entitlements_content = <<~ENTITLEMENTS
 </plist>
 ENTITLEMENTS
 
-# Write entitlements (paths relative to working dir flutter_keyboard/)
 File.write('ios/FlirtKeyboardExtension/FlirtKeyboardExtension.entitlements', entitlements_content)
 
 # Create Runner entitlements with App Groups
@@ -130,4 +127,5 @@ project.save
 puts "FlirtKeyboardExtension target added successfully!"
 puts "  Bundle ID: com.desenrolaai.app.keyboard"
 puts "  App Group: group.com.desenrolaai.app.shared"
-puts "  Entitlements: FlirtKeyboardExtension.entitlements + Runner.entitlements"
+puts "  Module Name: FlirtKeyboardExtension"
+puts "  Build version: 7 (1.0.0)"
