@@ -10,6 +10,8 @@ import '../services/agent_service.dart';
 import '../services/profile_service.dart';
 import 'profile_detail_screen.dart';
 
+enum InstagramUploadMode { none, generalScreenshot, individualPhotos }
+
 class CreateProfileScreen extends StatefulWidget {
   const CreateProfileScreen({super.key});
 
@@ -315,28 +317,262 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           ),
           const SizedBox(height: 20),
 
-          // Upload do Perfil (múltiplas fotos)
-          const Text(
-            'Fotos do Perfil',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+          // Instagram: mode selector + content
+          if (entry.type == PlatformType.instagram) ...[
+            if (entry.instagramUploadMode == InstagramUploadMode.none) ...[
+              const Text(
+                'Como você quer adicionar?',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _setInstagramMode(index, InstagramUploadMode.generalScreenshot),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2A2A3E),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFF3A3A4E)),
+                        ),
+                        child: Column(
+                          children: [
+                            const Text('📸', style: TextStyle(fontSize: 28)),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Print do Perfil',
+                              style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Um print geral\ndo perfil dela',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _setInstagramMode(index, InstagramUploadMode.individualPhotos),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2A2A3E),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFF3A3A4E)),
+                        ),
+                        child: Column(
+                          children: [
+                            const Text('🖼', style: TextStyle(fontSize: 28)),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Fotos Individuais',
+                              style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Adicione as fotos\numa por uma',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ] else ...[
+              // Show mode label + change button
+              Row(
+                children: [
+                  Text(
+                    entry.instagramUploadMode == InstagramUploadMode.generalScreenshot
+                        ? '📸 Print do Perfil'
+                        : '🖼 Fotos Individuais',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () => _setInstagramMode(index, InstagramUploadMode.none),
+                    child: Text(
+                      'Trocar modo',
+                      style: TextStyle(
+                        color: const Color(0xFFE91E63),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              if (entry.instagramUploadMode == InstagramUploadMode.generalScreenshot) ...[
+                // General screenshot mode
+                if (entry.profileImages.isEmpty) ...[
+                  GestureDetector(
+                    onTap: () => _pickGeneralScreenshot(index),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 32),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2A2A3E),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF3A3A4E)),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(Icons.screenshot_outlined, color: Colors.grey.shade500, size: 36),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Adicionar print do perfil',
+                            style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Tire um print da página do perfil dela no Instagram',
+                            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  // Show screenshot + cropped profile pic
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Full screenshot
+                      Expanded(
+                        flex: 3,
+                        child: Stack(
+                          children: [
+                            Container(
+                              height: 180,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: const Color(0xFF3A3A4E)),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(11),
+                                child: Image.memory(
+                                  entry.profileImages.first,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              top: 6,
+                              right: 6,
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    entry.profileImages.clear();
+                                    entry.profileBase64s.clear();
+                                    entry.profileMediaTypes.clear();
+                                    entry.croppedProfilePicBytes = null;
+                                    entry.croppedProfilePicBase64 = null;
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.7),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.close, size: 14, color: Colors.white),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Cropped profile pic
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          children: [
+                            Text(
+                              'Foto de perfil\n(recorte automático)',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.grey.shade400, fontSize: 11),
+                            ),
+                            const SizedBox(height: 8),
+                            if (entry.croppedProfilePicBytes != null)
+                              Container(
+                                width: 90,
+                                height: 90,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: const Color(0xFFE91E63).withOpacity(0.5),
+                                    width: 2,
+                                  ),
+                                ),
+                                child: ClipOval(
+                                  child: Image.memory(
+                                    entry.croppedProfilePicBytes!,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ] else ...[
+                // Individual photos mode (existing behavior)
+                Text(
+                  'Adicione as fotos do perfil dela (pode adicionar várias)',
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                ),
+                const SizedBox(height: 12),
+                _buildProfileImagesGrid(index, entry),
+              ],
+            ],
+          ] else ...[
+            // Non-Instagram platforms: original behavior
+            const Text(
+              'Fotos do Perfil',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Adicione as fotos do perfil dela (pode adicionar várias)',
-            style: TextStyle(
-              color: Colors.grey.shade500,
-              fontSize: 12,
+            const SizedBox(height: 8),
+            Text(
+              'Adicione as fotos do perfil dela (pode adicionar várias)',
+              style: TextStyle(
+                color: Colors.grey.shade500,
+                fontSize: 12,
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          _buildProfileImagesGrid(index, entry),
+            const SizedBox(height: 12),
+            _buildProfileImagesGrid(index, entry),
+          ],
 
           // Stories (apenas Instagram)
-          if (entry.type == PlatformType.instagram) ...[
+          if (entry.type == PlatformType.instagram && entry.instagramUploadMode != InstagramUploadMode.none) ...[
             const SizedBox(height: 16),
             const Text(
               'Stories (opcional)',
@@ -988,6 +1224,67 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
     });
   }
 
+  Uint8List _cropInstagramProfilePic(Uint8List bytes) {
+    try {
+      final image = img.decodeImage(bytes);
+      if (image == null) return bytes;
+      final x = (image.width * 0.04).round();
+      final y = (image.height * 0.13).round();
+      final size = (image.width * 0.24).round();
+      // Clamp to image bounds
+      final safeX = x.clamp(0, image.width - 1);
+      final safeY = y.clamp(0, image.height - 1);
+      final safeSize = size.clamp(1, (image.width - safeX).clamp(1, image.height - safeY));
+      final cropped = img.copyCrop(image, x: safeX, y: safeY, width: safeSize, height: safeSize);
+      return Uint8List.fromList(img.encodeJpg(cropped, quality: 80));
+    } catch (e) {
+      return bytes;
+    }
+  }
+
+  Future<void> _pickGeneralScreenshot(int platformIndex) async {
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      if (image == null) return;
+
+      final originalBytes = await image.readAsBytes();
+      final bytes = await _compressImage(originalBytes, maxSize: 1200, quality: 60);
+      final base64str = base64Encode(bytes);
+      const mediaType = 'image/jpeg';
+
+      // Crop the profile pic area
+      final croppedBytes = _cropInstagramProfilePic(bytes);
+      final croppedBase64 = base64Encode(croppedBytes);
+
+      setState(() {
+        final entry = _platformEntries[platformIndex];
+        entry.profileImages = [bytes];
+        entry.profileBase64s = [base64str];
+        entry.profileMediaTypes = [mediaType];
+        entry.croppedProfilePicBytes = croppedBytes;
+        entry.croppedProfilePicBase64 = croppedBase64;
+        _errorMessage = null;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Erro ao carregar imagem: $e';
+      });
+    }
+  }
+
+  void _setInstagramMode(int platformIndex, InstagramUploadMode mode) {
+    setState(() {
+      final entry = _platformEntries[platformIndex];
+      entry.instagramUploadMode = mode;
+      // Clear images when switching mode
+      entry.profileImages.clear();
+      entry.profileBase64s.clear();
+      entry.profileMediaTypes.clear();
+      entry.croppedProfilePicBytes = null;
+      entry.croppedProfilePicBase64 = null;
+    });
+  }
+
   _PlatformInfo _getPlatformInfo(PlatformType type) {
     switch (type) {
       case PlatformType.instagram:
@@ -1078,7 +1375,12 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           if (profileName == null && result.name != null) {
             profileName = result.name;
             faceDescription = result.faceDescription;
-            faceImageBase64 = imageBase64;
+            // Use cropped profile pic if available (Instagram general screenshot mode)
+            if (entry.croppedProfilePicBase64 != null) {
+              faceImageBase64 = entry.croppedProfilePicBase64;
+            } else {
+              faceImageBase64 = imageBase64;
+            }
           }
 
           // Combinar informações de todas as imagens
@@ -1210,6 +1512,10 @@ class _PlatformEntry {
   List<Uint8List> storyImages = [];
   List<String> storyBase64s = [];
   List<String> storyMediaTypes = [];
+  // Instagram upload mode
+  InstagramUploadMode instagramUploadMode = InstagramUploadMode.none;
+  Uint8List? croppedProfilePicBytes;
+  String? croppedProfilePicBase64;
 
   _PlatformEntry({required this.type});
 
