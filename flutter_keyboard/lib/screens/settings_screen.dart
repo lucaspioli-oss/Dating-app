@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 import '../services/subscription_service.dart';
 import '../services/keyboard_service.dart';
 import 'training_feedback_screen.dart';
+import 'keyboard_setup_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -156,17 +158,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: const Text('Ativar'),
                     ),
             ),
-            if (!_isKeyboardEnabled) ...[
-              const Divider(),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Text(
-                  'Para usar sugestoes da IA direto no WhatsApp e outros apps, '
-                  'ative o teclado em: Ajustes → Geral → Teclado → Teclados → Adicionar → Desenrola AI',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.school_outlined),
+              title: const Text('Ver guia de ativacao'),
+              subtitle: Text(
+                _isKeyboardEnabled
+                    ? 'Reveja os passos para configurar o teclado'
+                    : 'Siga o passo a passo para ativar o teclado',
+                style: Theme.of(context).textTheme.bodySmall,
               ),
-            ],
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () async {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('hasSeenKeyboardSetup', false);
+                if (mounted) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => KeyboardSetupScreen(
+                        onComplete: () {
+                          Navigator.of(context).pop();
+                          _loadStatus();
+                        },
+                      ),
+                    ),
+                  );
+                }
+              },
+            ),
           ],
         ),
       ),

@@ -26,10 +26,14 @@ class KeyboardViewController: UIInputViewController {
     }
 
     private var conversations: [ConversationContext] = []
+    private var filteredConversations: [ConversationContext] = []
     private var selectedConversation: ConversationContext?
     private var clipboardText: String?
     private var suggestions: [String] = []
     private var previousClipboard: String?
+    private var isLoadingProfiles = true
+    private var profilesError: String?
+    private var searchText: String = ""
 
     // Tone
     private let availableTones = ["engraçado", "ousado", "romântico", "casual", "confiante"]
@@ -116,9 +120,32 @@ class KeyboardViewController: UIInputViewController {
         containerView.addSubview(titleLabel)
 
         NSLayoutConstraint.activate([
-            titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 10),
+            titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
             titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
             titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+        ])
+
+        // Search field
+        let searchField = UITextField()
+        searchField.placeholder = "🔍 Buscar perfil..."
+        searchField.textColor = .white
+        searchField.backgroundColor = UIColor(white: 0.2, alpha: 1.0)
+        searchField.layer.cornerRadius = 8
+        searchField.font = UIFont.systemFont(ofSize: 13)
+        searchField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 10, height: 0))
+        searchField.leftViewMode = .always
+        searchField.autocorrectionType = .no
+        searchField.translatesAutoresizingMaskIntoConstraints = false
+        searchField.tag = 888
+        searchField.addTarget(self, action: #selector(searchTextChanged(_:)), for: .editingChanged)
+        searchField.text = searchText
+        containerView.addSubview(searchField)
+
+        NSLayoutConstraint.activate([
+            searchField.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 6),
+            searchField.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+            searchField.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+            searchField.heightAnchor.constraint(equalToConstant: 32),
         ])
 
         // Horizontal scroll for profiles
@@ -128,10 +155,10 @@ class KeyboardViewController: UIInputViewController {
         containerView.addSubview(scrollView)
 
         NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
+            scrollView.topAnchor.constraint(equalTo: searchField.bottomAnchor, constant: 6),
             scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
             scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
-            scrollView.heightAnchor.constraint(equalToConstant: 70),
+            scrollView.heightAnchor.constraint(equalToConstant: 60),
         ])
 
         let stackView = UIStackView()
@@ -148,12 +175,26 @@ class KeyboardViewController: UIInputViewController {
             stackView.heightAnchor.constraint(equalTo: scrollView.heightAnchor),
         ])
 
-        if conversations.isEmpty {
+        if isLoadingProfiles {
             let loadingLabel = makeLabel("Carregando perfis...", size: 12)
             loadingLabel.textColor = .lightGray
             stackView.addArrangedSubview(loadingLabel)
+        } else if let error = profilesError {
+            let errorLabel = makeLabel(error, size: 11)
+            errorLabel.textColor = UIColor(red: 1.0, green: 0.6, blue: 0.4, alpha: 1.0)
+            errorLabel.numberOfLines = 2
+            stackView.addArrangedSubview(errorLabel)
+        } else if filteredConversations.isEmpty && !searchText.isEmpty {
+            let emptyLabel = makeLabel("Nenhum perfil encontrado", size: 12)
+            emptyLabel.textColor = .lightGray
+            stackView.addArrangedSubview(emptyLabel)
+        } else if conversations.isEmpty {
+            let emptyLabel = makeLabel("Nenhum perfil criado.\nCrie um perfil no app primeiro.", size: 12)
+            emptyLabel.textColor = .lightGray
+            emptyLabel.numberOfLines = 2
+            stackView.addArrangedSubview(emptyLabel)
         } else {
-            for (index, conv) in conversations.enumerated() {
+            for (index, conv) in filteredConversations.enumerated() {
                 let button = makeProfileButton(conv, tag: index)
                 stackView.addArrangedSubview(button)
             }
@@ -175,10 +216,10 @@ class KeyboardViewController: UIInputViewController {
         containerView.addSubview(switchBtn)
 
         NSLayoutConstraint.activate([
-            quickButton.topAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: 8),
+            quickButton.topAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: 6),
             quickButton.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
             quickButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -56),
-            quickButton.heightAnchor.constraint(equalToConstant: 36),
+            quickButton.heightAnchor.constraint(equalToConstant: 34),
 
             switchBtn.centerYAnchor.constraint(equalTo: quickButton.centerYAnchor),
             switchBtn.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
@@ -537,13 +578,32 @@ class KeyboardViewController: UIInputViewController {
 
     @objc private func profileTapped(_ sender: UIButton) {
         let index = sender.tag
-        guard index < conversations.count else { return }
-        selectedConversation = conversations[index]
+        guard index < filteredConversations.count else { return }
+        selectedConversation = filteredConversations[index]
         clipboardText = nil
         suggestions = []
+        searchText = ""
         previousClipboard = UIPasteboard.general.string // Reset clipboard tracking
         currentState = .awaitingClipboard
         renderCurrentState()
+    }
+
+    @objc private func searchTextChanged(_ sender: UITextField) {
+        searchText = sender.text ?? ""
+        if searchText.isEmpty {
+            filteredConversations = conversations
+        } else {
+            filteredConversations = conversations.filter {
+                $0.matchName.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+        // Re-render only the profile list without losing search field focus
+        // We rebuild the full UI but restore focus after
+        let wasFirstResponder = sender.isFirstResponder
+        renderCurrentState()
+        if wasFirstResponder, let field = containerView.viewWithTag(888) as? UITextField {
+            field.becomeFirstResponder()
+        }
     }
 
     @objc private func quickModeTapped() {
@@ -556,6 +616,8 @@ class KeyboardViewController: UIInputViewController {
     @objc private func backTapped() {
         stopClipboardPolling()
         suggestions = []
+        searchText = ""
+        filteredConversations = conversations
         if authToken != nil {
             currentState = .profileSelector
         } else {
@@ -662,8 +724,15 @@ class KeyboardViewController: UIInputViewController {
     private func fetchConversations() {
         guard let token = authToken,
               let url = URL(string: "\(backendUrl)/keyboard/context") else {
+            isLoadingProfiles = false
+            profilesError = "Token não encontrado. Abra o app para fazer login."
+            renderCurrentState()
             return
         }
+
+        isLoadingProfiles = true
+        profilesError = nil
+        renderCurrentState()
 
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
@@ -671,10 +740,29 @@ class KeyboardViewController: UIInputViewController {
         request.timeoutInterval = 10
 
         URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
-            guard let data = data, error == nil else {
+            if let error = error {
                 DispatchQueue.main.async {
-                    // If auth fails, go to basic mode
-                    self?.currentState = .basicMode
+                    self?.isLoadingProfiles = false
+                    self?.profilesError = "Erro de conexão: \(error.localizedDescription)"
+                    self?.renderCurrentState()
+                }
+                return
+            }
+
+            // Check HTTP status
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+                DispatchQueue.main.async {
+                    self?.isLoadingProfiles = false
+                    self?.profilesError = "Sessão expirada. Abra o app para renovar."
+                    self?.renderCurrentState()
+                }
+                return
+            }
+
+            guard let data = data else {
+                DispatchQueue.main.async {
+                    self?.isLoadingProfiles = false
+                    self?.profilesError = "Sem resposta do servidor."
                     self?.renderCurrentState()
                 }
                 return
@@ -696,12 +784,22 @@ class KeyboardViewController: UIInputViewController {
 
                     DispatchQueue.main.async {
                         self?.conversations = contexts
+                        self?.filteredConversations = contexts
+                        self?.isLoadingProfiles = false
+                        self?.profilesError = nil
+                        self?.renderCurrentState()
+                    }
+                } else {
+                    DispatchQueue.main.async {
+                        self?.isLoadingProfiles = false
+                        self?.profilesError = "Resposta inesperada do servidor."
                         self?.renderCurrentState()
                     }
                 }
             } catch {
                 DispatchQueue.main.async {
-                    self?.currentState = .basicMode
+                    self?.isLoadingProfiles = false
+                    self?.profilesError = "Erro ao processar dados."
                     self?.renderCurrentState()
                 }
             }

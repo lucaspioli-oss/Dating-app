@@ -31,10 +31,16 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
       icon: Icons.security_outlined,
       title: 'Ative o Acesso Completo',
       description:
-          'O acesso completo permite que o teclado se conecte com a IA '
-          'para gerar sugestoes personalizadas.',
+          'Ao ativar, a Apple exibe um aviso de seguranca padrao que pode parecer '
+          'assustador — mas fique tranquilo! Esse aviso aparece para TODOS os '
+          'teclados com IA. No nosso caso, o acesso '
+          'completo e necessario apenas para conectar o teclado a inteligencia '
+          'artificial e gerar sugestoes personalizadas.',
       instruction:
           'Selecione "Desenrola AI" e ative "Permitir Acesso Completo"',
+      tip: 'Para proteger dados sensiveis como senhas e cartoes de credito, '
+          'basta trocar para o teclado padrao do iPhone (toque no globo 🌐) '
+          'antes de digitar essas informacoes.',
     ),
     _SetupStep(
       icon: Icons.swap_horiz,
@@ -203,6 +209,40 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
             ),
           ),
 
+          // Security tip (only when present)
+          if (step.tip != null) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.warning.withOpacity(0.3),
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.lightbulb_outline,
+                    color: AppColors.warning,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      step.tip!,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           // Keyboard status indicator (only on first page)
           if (index == 0) ...[
             const SizedBox(height: 24),
@@ -272,6 +312,14 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
             },
             child: const Text('Proximo'),
           ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: _completeSetup,
+            child: Text(
+              'Continuar sem o teclado',
+              style: TextStyle(color: AppColors.textTertiary),
+            ),
+          ),
         ],
       );
     }
@@ -324,11 +372,13 @@ class _SetupStep {
   final String title;
   final String description;
   final String instruction;
+  final String? tip;
 
   const _SetupStep({
     required this.icon,
     required this.title,
     required this.description,
     required this.instruction,
+    this.tip,
   });
 }
