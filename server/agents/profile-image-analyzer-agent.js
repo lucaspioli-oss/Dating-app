@@ -50,14 +50,15 @@ IMPORTANTE:
 - Se algo não estiver visível, use null
 - Nas descrições de fotos, seja específico e útil
 - Capture TUDO que possa ser útil para criar uma primeira mensagem
-- Para facePosition: Localize o rosto principal na imagem e retorne as coordenadas em porcentagem (0-100) RELATIVAS À IMAGEM COMPLETA (não relativas a nenhum elemento interno).
-  - centerX: posição horizontal do centro do rosto na imagem completa (0=esquerda, 100=direita)
-  - centerY: posição vertical do centro do rosto na imagem completa (0=topo, 100=base)
-  - size: largura do rosto como porcentagem da largura total da imagem
-  - EXEMPLO para screenshot de Instagram: a foto de perfil circular fica no canto superior esquerdo (aprox. centerX=15, centerY=8, size=12). Retorne essas coordenadas relativas ao screenshot inteiro.
-  - EXEMPLO para foto de Tinder/dating app: o rosto geralmente ocupa boa parte da foto (aprox. centerX=50, centerY=35, size=40).
-  - Se houver múltiplos rostos, use o da foto de perfil principal/maior.
-  - Se realmente não houver nenhum rosto visível, use null.`;
+- Para facePosition: Localize o ROSTO HUMANO principal visível na imagem. Retorne coordenadas como porcentagem (0-100) da IMAGEM INTEIRA.
+  - centerX: centro horizontal do ROSTO (0=borda esquerda, 50=meio, 100=borda direita)
+  - centerY: centro vertical do ROSTO (0=topo, 50=meio, 100=base)
+  - size: LARGURA DO ROSTO como % da largura total da imagem
+  - Screenshots de INSTAGRAM: A foto de perfil circular fica no canto superior esquerdo. O rosto está DENTRO desse círculo. Coordenadas típicas: centerX≈15, centerY≈13, size≈18
+  - Screenshots de TINDER/BUMBLE/HINGE: O rosto ocupa boa parte da foto. Coordenadas típicas: centerX≈50, centerY≈30, size≈35
+  - Fotos individuais: O rosto geralmente está centralizado. Coordenadas típicas: centerX≈50, centerY≈35, size≈40
+  - SEMPRE retorne facePosition se houver qualquer rosto visível, mesmo que pequeno
+  - Se realmente não houver nenhum rosto visível na imagem, use null`;
     }
     async analyzeImage(input, systemPrompt) {
         const message = await this.client.messages.create({

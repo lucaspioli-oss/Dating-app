@@ -1336,32 +1336,51 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   }
 
   /// Crops a square avatar from the image.
-  /// Uses AI-provided face coordinates when available, falls back to center-top crop.
-  Uint8List _cropAvatarFromImage(Uint8List bytes, {Map<String, dynamic>? facePosition}) {
+  /// Priority: 1) AI facePosition, 2) platform heuristic, 3) center-top fallback
+  Uint8List _cropAvatarFromImage(Uint8List bytes, {
+    Map<String, dynamic>? facePosition,
+    String? platform,
+    bool isScreenshot = false,
+  }) {
     try {
       final image = img.decodeImage(bytes);
       if (image == null) return bytes;
 
       int cropX, cropY, cropSize;
+      final maxDim = image.width < image.height ? image.width : image.height;
+      final isPortrait = image.height > image.width * 1.3;
 
       if (facePosition != null &&
           facePosition['centerX'] != null &&
           facePosition['centerY'] != null &&
           facePosition['size'] != null) {
-        // Use AI-provided face coordinates (values are 0-100 percentages)
+        // AI-provided face coordinates (values are 0-100 percentages)
         final cx = (image.width * (facePosition['centerX'] as num) / 100).round();
         final cy = (image.height * (facePosition['centerY'] as num) / 100).round();
         final faceSize = (image.width * (facePosition['size'] as num) / 100).round();
-        // For small faces (Instagram profile pics), use more padding for better avatar
         final padding = faceSize < (image.width * 0.2) ? 2.5 : 1.5;
-        final maxDim = image.width < image.height ? image.width : image.height;
         cropSize = (faceSize * padding).round().clamp(1, maxDim);
         cropX = (cx - cropSize ~/ 2).clamp(0, image.width - cropSize);
         cropY = (cy - cropSize ~/ 2).clamp(0, image.height - cropSize);
+      } else if (platform == 'instagram' && isScreenshot && isPortrait) {
+        // Instagram profile screenshot heuristic:
+        // Profile picture is a circle in the upper-left area.
+        // Consistent across iOS/Android:
+        //   center ≈ (15%, 13%) of screenshot, diameter ≈ 20% of width
+        cropSize = (image.width * 0.25).round().clamp(1, maxDim);
+        final cx = (image.width * 0.15).round();
+        final cy = (image.height * 0.13).round();
+        cropX = (cx - cropSize ~/ 2).clamp(0, image.width - cropSize);
+        cropY = (cy - cropSize ~/ 2).clamp(0, image.height - cropSize);
+      } else if (_isLikelyDatingAppScreenshot(image) && isPortrait) {
+        // Tinder/Bumble/Hinge: face usually occupies upper-center area
+        cropSize = (image.width * 0.6).round().clamp(1, maxDim);
+        cropX = ((image.width - cropSize) / 2).round().clamp(0, image.width - cropSize);
+        cropY = (image.height * 0.05).round().clamp(0, image.height - cropSize);
       } else {
-        // Fallback: center-top crop
-        cropSize = (image.width * 0.5).round().clamp(1, image.height);
-        cropX = ((image.width - cropSize) / 2).round().clamp(0, image.width - 1);
+        // Generic fallback: center-top crop
+        cropSize = (image.width * 0.5).round().clamp(1, maxDim);
+        cropX = ((image.width - cropSize) / 2).round().clamp(0, image.width - cropSize);
         cropY = (image.height * 0.08).round().clamp(0, image.height - cropSize);
       }
 
@@ -1371,6 +1390,12 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
     } catch (e) {
       return bytes;
     }
+  }
+
+  /// Simple heuristic to detect if an image is a dating app screenshot
+  /// (portrait orientation with large photo area)
+  bool _isLikelyDatingAppScreenshot(img.Image image) {
+    return image.height > image.width * 1.5;
   }
 
   Future<void> _pickGeneralScreenshot(int platformIndex) async {
@@ -1391,8 +1416,13 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         _errorMessage = null;
       });
 
-      // Crop avatar from center-top region
-      final croppedBytes = _cropAvatarFromImage(bytes);
+      // Crop avatar using platform-specific heuristic
+      final entry = _platformEntries[platformIndex];
+      final croppedBytes = _cropAvatarFromImage(
+        bytes,
+        platform: entry.type.name,
+        isScreenshot: true,
+      );
       final croppedBase64 = base64Encode(croppedBytes);
 
       if (mounted) {
@@ -1517,27 +1547,19 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
               profileName = result.name;
               faceDescription = result.faceDescription;
             }
-            // Crop avatar using AI face coordinates, fallback to pre-crop or center-top
-            if (result.facePosition != null) {
-              try {
-                final croppedBytes = _cropAvatarFromImage(
-                  entry.profileImages[imgIndex],
-                  facePosition: result.facePosition,
-                );
-                faceImageBase64 = base64Encode(croppedBytes);
-              } catch (_) {
-                faceImageBase64 = entry.croppedProfilePicBase64 ?? imageBase64;
-              }
-            } else if (entry.croppedProfilePicBase64 != null) {
-              faceImageBase64 = entry.croppedProfilePicBase64;
-            } else {
-              // Fallback: center-top crop
-              try {
-                final croppedBytes = _cropAvatarFromImage(entry.profileImages[imgIndex]);
-                faceImageBase64 = base64Encode(croppedBytes);
-              } catch (_) {
-                faceImageBase64 = imageBase64;
-              }
+            // Crop avatar: AI facePosition > platform heuristic > pre-crop
+            final isScreenshot = entry.instagramUploadMode == InstagramUploadMode.generalScreenshot
+                || entry.type != PlatformType.instagram;
+            try {
+              final croppedBytes = _cropAvatarFromImage(
+                entry.profileImages[imgIndex],
+                facePosition: result.facePosition,
+                platform: entry.type.name,
+                isScreenshot: isScreenshot,
+              );
+              faceImageBase64 = base64Encode(croppedBytes);
+            } catch (_) {
+              faceImageBase64 = entry.croppedProfilePicBase64 ?? imageBase64;
             }
           }
 
