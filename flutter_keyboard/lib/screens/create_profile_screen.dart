@@ -1336,7 +1336,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   }
 
   /// Crops a square avatar from the image.
-  /// Priority: 1) AI facePosition, 2) platform heuristic, 3) center-top fallback
+  /// Priority: 1) AI facePosition, 2) pixel-analysis detection, 3) center-top fallback
   Uint8List _cropAvatarFromImage(Uint8List bytes, {
     Map<String, dynamic>? facePosition,
     String? platform,
@@ -1363,17 +1363,20 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         cropX = (cx - cropSize ~/ 2).clamp(0, image.width - cropSize);
         cropY = (cy - cropSize ~/ 2).clamp(0, image.height - cropSize);
       } else if (platform == 'instagram' && isScreenshot && isPortrait) {
-        // Instagram profile screenshot heuristic:
-        // Profile picture is a circle in the upper-left area.
-        // Consistent across iOS/Android:
-        //   center ≈ (15%, 13%) of screenshot, diameter ≈ 20% of width
-        cropSize = (image.width * 0.25).round().clamp(1, maxDim);
-        final cx = (image.width * 0.15).round();
-        final cy = (image.height * 0.13).round();
-        cropX = (cx - cropSize ~/ 2).clamp(0, image.width - cropSize);
-        cropY = (cy - cropSize ~/ 2).clamp(0, image.height - cropSize);
-      } else if (_isLikelyDatingAppScreenshot(image) && isPortrait) {
-        // Tinder/Bumble/Hinge: face usually occupies upper-center area
+        // Detect profile picture by scanning for high-variance region
+        final detected = _detectProfilePicRegion(image);
+        if (detected != null) {
+          cropX = detected['x']!;
+          cropY = detected['y']!;
+          cropSize = detected['size']!;
+        } else {
+          // Generous fallback: upper-left quadrant
+          cropSize = (image.width * 0.35).round().clamp(1, maxDim);
+          cropX = 0;
+          cropY = (image.height * 0.05).round().clamp(0, image.height - cropSize);
+        }
+      } else if (isPortrait && isScreenshot) {
+        // Dating apps: face in upper-center area
         cropSize = (image.width * 0.6).round().clamp(1, maxDim);
         cropX = ((image.width - cropSize) / 2).round().clamp(0, image.width - cropSize);
         cropY = (image.height * 0.05).round().clamp(0, image.height - cropSize);
@@ -1392,10 +1395,117 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
     }
   }
 
-  /// Simple heuristic to detect if an image is a dating app screenshot
-  /// (portrait orientation with large photo area)
-  bool _isLikelyDatingAppScreenshot(img.Image image) {
-    return image.height > image.width * 1.5;
+  /// Scans the upper-left region of a screenshot to find the profile picture
+  /// by detecting the area with highest color variance (photo vs uniform UI).
+  /// Works across different screen sizes because it analyzes actual pixels.
+  Map<String, int>? _detectProfilePicRegion(img.Image image) {
+    // Scan region: left 45% of width, top 30% of height
+    // This covers where Instagram puts the profile pic on any screen size
+    final scanW = (image.width * 0.45).round();
+    final scanH = (image.height * 0.30).round();
+
+    if (scanW < 20 || scanH < 20) return null;
+
+    // Divide scan region into a grid of blocks
+    final gridCols = 12;
+    final gridRows = 10;
+    final blockW = scanW ~/ gridCols;
+    final blockH = scanH ~/ gridRows;
+
+    if (blockW < 4 || blockH < 4) return null;
+
+    // Calculate color variance for each block
+    final variances = List.generate(gridRows, (_) => List.filled(gridCols, 0.0));
+
+    for (int row = 0; row < gridRows; row++) {
+      for (int col = 0; col < gridCols; col++) {
+        final bx = col * blockW;
+        final by = row * blockH;
+        variances[row][col] = _blockColorVariance(image, bx, by, blockW, blockH);
+      }
+    }
+
+    // Find the threshold: blocks with variance above the 70th percentile
+    // are likely part of the profile picture (photo content vs flat UI)
+    final allVariances = variances.expand((row) => row).toList()..sort();
+    final threshold = allVariances[(allVariances.length * 0.70).round().clamp(0, allVariances.length - 1)];
+
+    if (threshold < 5.0) return null; // Image is too uniform, no photo detected
+
+    // Find the largest cluster of high-variance blocks
+    // (the profile picture is a contiguous region of colorful pixels)
+    int bestCenterCol = 0, bestCenterRow = 0;
+    int bestClusterSize = 0;
+
+    for (int row = 1; row < gridRows - 1; row++) {
+      for (int col = 1; col < gridCols - 1; col++) {
+        // Count high-variance neighbors in a 3x3 area
+        int clusterSize = 0;
+        for (int dr = -1; dr <= 1; dr++) {
+          for (int dc = -1; dc <= 1; dc++) {
+            if (variances[row + dr][col + dc] > threshold) {
+              clusterSize++;
+            }
+          }
+        }
+        if (clusterSize > bestClusterSize) {
+          bestClusterSize = clusterSize;
+          bestCenterCol = col;
+          bestCenterRow = row;
+        }
+      }
+    }
+
+    if (bestClusterSize < 4) return null; // No significant cluster found
+
+    // Convert grid position back to pixel coordinates
+    final centerX = (bestCenterCol * blockW + blockW ~/ 2);
+    final centerY = (bestCenterRow * blockH + blockH ~/ 2);
+
+    // Estimate profile pic size: expand from cluster center until variance drops
+    int radius = blockW;
+    for (int r = blockW; r < scanW ~/ 2; r += blockW ~/ 2) {
+      final testCol = ((centerX + r) / blockW).round().clamp(0, gridCols - 1);
+      final testRow = bestCenterRow;
+      if (testCol >= gridCols || variances[testRow][testCol] <= threshold) break;
+      radius = r;
+    }
+
+    final cropSize = (radius * 2.5).round().clamp(blockW * 2, image.width < image.height ? image.width : image.height);
+    final cropX = (centerX - cropSize ~/ 2).clamp(0, image.width - cropSize);
+    final cropY = (centerY - cropSize ~/ 2).clamp(0, image.height - cropSize);
+
+    return {'x': cropX, 'y': cropY, 'size': cropSize};
+  }
+
+  /// Calculates color variance (standard deviation) within a block of pixels.
+  /// Higher variance = more colorful content (photo). Lower = flat UI element.
+  double _blockColorVariance(img.Image image, int bx, int by, int bw, int bh) {
+    double sumR = 0, sumG = 0, sumB = 0;
+    double sumR2 = 0, sumG2 = 0, sumB2 = 0;
+    int count = 0;
+
+    // Sample every other pixel for speed
+    for (int y = by; y < by + bh && y < image.height; y += 2) {
+      for (int x = bx; x < bx + bw && x < image.width; x += 2) {
+        final pixel = image.getPixel(x, y);
+        final r = pixel.r.toDouble();
+        final g = pixel.g.toDouble();
+        final b = pixel.b.toDouble();
+        sumR += r; sumG += g; sumB += b;
+        sumR2 += r * r; sumG2 += g * g; sumB2 += b * b;
+        count++;
+      }
+    }
+
+    if (count < 2) return 0;
+
+    // Combined variance across R, G, B channels
+    final varR = (sumR2 / count) - (sumR / count) * (sumR / count);
+    final varG = (sumG2 / count) - (sumG / count) * (sumG / count);
+    final varB = (sumB2 / count) - (sumB / count) * (sumB / count);
+
+    return (varR + varG + varB) / 3.0;
   }
 
   Future<void> _pickGeneralScreenshot(int platformIndex) async {
