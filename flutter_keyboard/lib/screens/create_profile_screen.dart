@@ -1,9 +1,12 @@
 import 'dart:convert';
+import 'dart:math';
 import 'dart:typed_data';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:image/image.dart' as img;
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import '../models/profile_model.dart';
 import '../providers/app_state.dart';
 import '../services/agent_service.dart';
@@ -1336,25 +1339,24 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   }
 
   /// Crops a square avatar from the image.
-  /// Priority: 1) AI facePosition, 2) pixel-analysis detection, 3) center-top fallback
-  Uint8List _cropAvatarFromImage(Uint8List bytes, {
+  /// Priority: 1) AI facePosition, 2) ML Kit face detection, 3) center-top fallback
+  Future<Uint8List> _cropAvatarFromImage(Uint8List bytes, {
     Map<String, dynamic>? facePosition,
     String? platform,
     bool isScreenshot = false,
-  }) {
+  }) async {
     try {
       final image = img.decodeImage(bytes);
       if (image == null) return bytes;
 
       int cropX, cropY, cropSize;
-      final maxDim = image.width < image.height ? image.width : image.height;
-      final isPortrait = image.height > image.width * 1.3;
+      final maxDim = min(image.width, image.height);
 
       if (facePosition != null &&
           facePosition['centerX'] != null &&
           facePosition['centerY'] != null &&
           facePosition['size'] != null) {
-        // AI-provided face coordinates (values are 0-100 percentages)
+        // Priority 1: AI-provided face coordinates (0-100 percentages)
         final cx = (image.width * (facePosition['centerX'] as num) / 100).round();
         final cy = (image.height * (facePosition['centerY'] as num) / 100).round();
         final faceSize = (image.width * (facePosition['size'] as num) / 100).round();
@@ -1362,29 +1364,32 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         cropSize = (faceSize * padding).round().clamp(1, maxDim);
         cropX = (cx - cropSize ~/ 2).clamp(0, image.width - cropSize);
         cropY = (cy - cropSize ~/ 2).clamp(0, image.height - cropSize);
-      } else if (platform == 'instagram' && isScreenshot && isPortrait) {
-        // Detect profile picture by scanning for high-variance region
-        final detected = _detectProfilePicRegion(image);
-        if (detected != null) {
-          cropX = detected['x']!;
-          cropY = detected['y']!;
-          cropSize = detected['size']!;
-        } else {
-          // Generous fallback: upper-left quadrant
-          cropSize = (image.width * 0.35).round().clamp(1, maxDim);
-          cropX = 0;
-          cropY = (image.height * 0.05).round().clamp(0, image.height - cropSize);
-        }
-      } else if (isPortrait && isScreenshot) {
-        // Dating apps: face in upper-center area
-        cropSize = (image.width * 0.6).round().clamp(1, maxDim);
-        cropX = ((image.width - cropSize) / 2).round().clamp(0, image.width - cropSize);
-        cropY = (image.height * 0.05).round().clamp(0, image.height - cropSize);
       } else {
-        // Generic fallback: center-top crop
-        cropSize = (image.width * 0.5).round().clamp(1, maxDim);
-        cropX = ((image.width - cropSize) / 2).round().clamp(0, image.width - cropSize);
-        cropY = (image.height * 0.08).round().clamp(0, image.height - cropSize);
+        // Priority 2: On-device ML Kit face detection
+        final faceRect = await _detectFaceWithMLKit(bytes);
+
+        if (faceRect != null) {
+          final paddingFactor = 0.45;
+          final padW = (faceRect.width * paddingFactor).round();
+          final padH = (faceRect.height * paddingFactor).round();
+          final faceW = faceRect.width.round() + padW * 2;
+          final faceH = faceRect.height.round() + padH * 2;
+          cropSize = max(faceW, faceH).clamp(1, maxDim);
+          cropX = (faceRect.center.dx - cropSize / 2).round().clamp(0, image.width - cropSize);
+          cropY = (faceRect.center.dy - cropSize / 2).round().clamp(0, image.height - cropSize);
+        } else {
+          // Priority 3: Heuristic fallback
+          final isPortrait = image.height > image.width * 1.3;
+          if (isPortrait && isScreenshot) {
+            cropSize = (image.width * 0.5).round().clamp(1, maxDim);
+            cropX = ((image.width - cropSize) / 2).round().clamp(0, image.width - cropSize);
+            cropY = (image.height * 0.05).round().clamp(0, image.height - cropSize);
+          } else {
+            cropSize = (image.width * 0.5).round().clamp(1, maxDim);
+            cropX = ((image.width - cropSize) / 2).round().clamp(0, image.width - cropSize);
+            cropY = (image.height * 0.08).round().clamp(0, image.height - cropSize);
+          }
+        }
       }
 
       final cropped = img.copyCrop(image, x: cropX, y: cropY, width: cropSize, height: cropSize);
@@ -1395,117 +1400,50 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
     }
   }
 
-  /// Scans the upper-left region of a screenshot to find the profile picture
-  /// by detecting the area with highest color variance (photo vs uniform UI).
-  /// Works across different screen sizes because it analyzes actual pixels.
-  Map<String, int>? _detectProfilePicRegion(img.Image image) {
-    // Scan region: left 45% of width, top 30% of height
-    // This covers where Instagram puts the profile pic on any screen size
-    final scanW = (image.width * 0.45).round();
-    final scanH = (image.height * 0.30).round();
+  /// Uses Google ML Kit to detect the largest face in an image.
+  /// Returns the bounding box of the face, or null if no face found.
+  Future<Rect?> _detectFaceWithMLKit(Uint8List bytes) async {
+    File? tempFile;
+    try {
+      // ML Kit needs a file path — write bytes to temp file
+      final tempDir = Directory.systemTemp;
+      tempFile = File('${tempDir.path}/face_detect_${DateTime.now().millisecondsSinceEpoch}.jpg');
+      await tempFile.writeAsBytes(bytes);
 
-    if (scanW < 20 || scanH < 20) return null;
+      final inputImage = InputImage.fromFilePath(tempFile.path);
+      final faceDetector = FaceDetector(
+        options: FaceDetectorOptions(
+          enableClassification: false,
+          enableLandmarks: false,
+          enableContours: false,
+          enableTracking: false,
+          performanceMode: FaceDetectorMode.accurate,
+        ),
+      );
 
-    // Divide scan region into a grid of blocks
-    final gridCols = 12;
-    final gridRows = 10;
-    final blockW = scanW ~/ gridCols;
-    final blockH = scanH ~/ gridRows;
+      final faces = await faceDetector.processImage(inputImage);
+      await faceDetector.close();
 
-    if (blockW < 4 || blockH < 4) return null;
+      if (faces.isEmpty) return null;
 
-    // Calculate color variance for each block
-    final variances = List.generate(gridRows, (_) => List.filled(gridCols, 0.0));
-
-    for (int row = 0; row < gridRows; row++) {
-      for (int col = 0; col < gridCols; col++) {
-        final bx = col * blockW;
-        final by = row * blockH;
-        variances[row][col] = _blockColorVariance(image, bx, by, blockW, blockH);
-      }
-    }
-
-    // Find the threshold: blocks with variance above the 70th percentile
-    // are likely part of the profile picture (photo content vs flat UI)
-    final allVariances = variances.expand((row) => row).toList()..sort();
-    final threshold = allVariances[(allVariances.length * 0.70).round().clamp(0, allVariances.length - 1)];
-
-    if (threshold < 5.0) return null; // Image is too uniform, no photo detected
-
-    // Find the largest cluster of high-variance blocks
-    // (the profile picture is a contiguous region of colorful pixels)
-    int bestCenterCol = 0, bestCenterRow = 0;
-    int bestClusterSize = 0;
-
-    for (int row = 1; row < gridRows - 1; row++) {
-      for (int col = 1; col < gridCols - 1; col++) {
-        // Count high-variance neighbors in a 3x3 area
-        int clusterSize = 0;
-        for (int dr = -1; dr <= 1; dr++) {
-          for (int dc = -1; dc <= 1; dc++) {
-            if (variances[row + dr][col + dc] > threshold) {
-              clusterSize++;
-            }
-          }
-        }
-        if (clusterSize > bestClusterSize) {
-          bestClusterSize = clusterSize;
-          bestCenterCol = col;
-          bestCenterRow = row;
+      // Return the largest face (by area)
+      Face largest = faces.first;
+      double largestArea = largest.boundingBox.width * largest.boundingBox.height;
+      for (final face in faces.skip(1)) {
+        final area = face.boundingBox.width * face.boundingBox.height;
+        if (area > largestArea) {
+          largest = face;
+          largestArea = area;
         }
       }
+
+      return largest.boundingBox;
+    } catch (e) {
+      debugPrint('ML Kit face detection error: $e');
+      return null;
+    } finally {
+      try { tempFile?.deleteSync(); } catch (_) {}
     }
-
-    if (bestClusterSize < 4) return null; // No significant cluster found
-
-    // Convert grid position back to pixel coordinates
-    final centerX = (bestCenterCol * blockW + blockW ~/ 2);
-    final centerY = (bestCenterRow * blockH + blockH ~/ 2);
-
-    // Estimate profile pic size: expand from cluster center until variance drops
-    int radius = blockW;
-    for (int r = blockW; r < scanW ~/ 2; r += blockW ~/ 2) {
-      final testCol = ((centerX + r) / blockW).round().clamp(0, gridCols - 1);
-      final testRow = bestCenterRow;
-      if (testCol >= gridCols || variances[testRow][testCol] <= threshold) break;
-      radius = r;
-    }
-
-    final cropSize = (radius * 2.5).round().clamp(blockW * 2, image.width < image.height ? image.width : image.height);
-    final cropX = (centerX - cropSize ~/ 2).clamp(0, image.width - cropSize);
-    final cropY = (centerY - cropSize ~/ 2).clamp(0, image.height - cropSize);
-
-    return {'x': cropX, 'y': cropY, 'size': cropSize};
-  }
-
-  /// Calculates color variance (standard deviation) within a block of pixels.
-  /// Higher variance = more colorful content (photo). Lower = flat UI element.
-  double _blockColorVariance(img.Image image, int bx, int by, int bw, int bh) {
-    double sumR = 0, sumG = 0, sumB = 0;
-    double sumR2 = 0, sumG2 = 0, sumB2 = 0;
-    int count = 0;
-
-    // Sample every other pixel for speed
-    for (int y = by; y < by + bh && y < image.height; y += 2) {
-      for (int x = bx; x < bx + bw && x < image.width; x += 2) {
-        final pixel = image.getPixel(x, y);
-        final r = pixel.r.toDouble();
-        final g = pixel.g.toDouble();
-        final b = pixel.b.toDouble();
-        sumR += r; sumG += g; sumB += b;
-        sumR2 += r * r; sumG2 += g * g; sumB2 += b * b;
-        count++;
-      }
-    }
-
-    if (count < 2) return 0;
-
-    // Combined variance across R, G, B channels
-    final varR = (sumR2 / count) - (sumR / count) * (sumR / count);
-    final varG = (sumG2 / count) - (sumG / count) * (sumG / count);
-    final varB = (sumB2 / count) - (sumB / count) * (sumB / count);
-
-    return (varR + varG + varB) / 3.0;
   }
 
   Future<void> _pickGeneralScreenshot(int platformIndex) async {
@@ -1526,9 +1464,9 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         _errorMessage = null;
       });
 
-      // Crop avatar using platform-specific heuristic
+      // Crop avatar using ML Kit face detection
       final entry = _platformEntries[platformIndex];
-      final croppedBytes = _cropAvatarFromImage(
+      final croppedBytes = await _cropAvatarFromImage(
         bytes,
         platform: entry.type.name,
         isScreenshot: true,
@@ -1661,7 +1599,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             final isScreenshot = entry.instagramUploadMode == InstagramUploadMode.generalScreenshot
                 || entry.type != PlatformType.instagram;
             try {
-              final croppedBytes = _cropAvatarFromImage(
+              final croppedBytes = await _cropAvatarFromImage(
                 entry.profileImages[imgIndex],
                 facePosition: result.facePosition,
                 platform: entry.type.name,

@@ -51,6 +51,11 @@ workflows:
           # Skip export compliance prompt (app only uses standard HTTPS/TLS)
           /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" ios/Runner/Info.plist
 
+          # Set app display name (flutter create --project-name app sets it to "App")
+          /usr/libexec/PlistBuddy -c "Set :CFBundleName Desenrola AI" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string Desenrola AI" ios/Runner/Info.plist || \
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Desenrola AI" ios/Runner/Info.plist
+
       - name: Get Flutter packages
         script: |
           flutter pub get

@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 import '../services/subscription_service.dart';
 import '../services/keyboard_service.dart';
+import '../services/firebase_auth_service.dart';
 import 'training_feedback_screen.dart';
 import 'keyboard_setup_screen.dart';
 
@@ -225,8 +226,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: const Text('Sair da conta', style: TextStyle(color: Colors.red)),
               onTap: () => _showLogoutDialog(context),
             ),
+            ListTile(
+              leading: const Icon(Icons.delete_forever, color: Colors.red),
+              title: const Text('Deletar conta', style: TextStyle(color: Colors.red)),
+              subtitle: const Text('Remove sua conta e todos os dados permanentemente'),
+              onTap: () => _showDeleteAccountDialog(context),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Deletar Conta'),
+        content: const Text(
+          'Tem certeza que deseja deletar sua conta? Esta ação é permanente e todos os seus dados serão removidos. Esta ação não pode ser desfeita.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              try {
+                await KeyboardService().clearKeyboardAuth();
+                await FirebaseAuthService().deleteAccount();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Conta deletada com sucesso.'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Erro ao deletar conta: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Deletar Permanentemente'),
+          ),
+        ],
       ),
     );
   }

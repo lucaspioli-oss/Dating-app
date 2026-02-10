@@ -1,12 +1,15 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/user_profile_provider.dart';
 import '../models/user_profile.dart';
 import '../services/firebase_auth_service.dart';
 import '../services/subscription_service.dart';
 import '../config/app_theme.dart';
 import 'settings_screen.dart';
+import 'auth/subscription_required_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -419,69 +422,45 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         const SizedBox(height: 16),
 
         if (isActive) ...[
-          // Change Subscription Button
-          OutlinedButton.icon(
-            onPressed: () => _openPortal(subscriptionService),
-            icon: const Icon(Icons.swap_horiz),
-            label: const Text('Alterar Plano'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.all(16),
+          // Detect if subscription is via Stripe or Apple IAP
+          if (details?.stripeSubscriptionId != null) ...[
+            // Stripe subscription - contact support to manage
+            OutlinedButton.icon(
+              onPressed: () => _contactSupportForSubscription(),
+              icon: const Icon(Icons.mail_outline),
+              label: const Text('Contatar Suporte'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.all(16),
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-
-          // Cancel Subscription Button
-          OutlinedButton.icon(
-            onPressed: () async {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Cancelar Assinatura'),
-                  content: const Text(
-                    'Tem certeza que deseja cancelar sua assinatura? Você ainda terá acesso até o fim do período pago.',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Voltar'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      style: TextButton.styleFrom(foregroundColor: Colors.red),
-                      child: const Text('Cancelar Assinatura'),
-                    ),
-                  ],
-                ),
-              );
-
-              if (confirm == true) {
-                _openPortal(subscriptionService);
-              }
-            },
-            icon: const Icon(Icons.cancel_outlined),
-            label: const Text('Cancelar Assinatura'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.all(16),
-              foregroundColor: Colors.red,
+            const SizedBox(height: 4),
+            Text(
+              'Entre em contato com o suporte para alterações na sua assinatura.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.grey,
+              ),
+              textAlign: TextAlign.center,
             ),
-          ),
-          const SizedBox(height: 24),
-
-          // Billing History Link
-          TextButton.icon(
-            onPressed: () => _openPortal(subscriptionService),
-            icon: const Icon(Icons.receipt_long),
-            label: const Text('Ver Histórico de Cobranças'),
-          ),
+          ] else ...[
+            // Apple IAP subscription - manage via App Store
+            OutlinedButton.icon(
+              onPressed: () => _openSubscriptionManagement(),
+              icon: const Icon(Icons.settings),
+              label: const Text('Gerenciar Assinatura'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.all(16),
+              ),
+            ),
+          ],
         ] else ...[
-          // No subscription - show subscribe button
+          // No subscription - navigate to Apple IAP subscription screen
           FilledButton.icon(
             onPressed: () {
-              // Navigate to pricing/subscription page
-              // For now, show a message
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Visite desenrola-ia.web.app para assinar'),
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const SubscriptionRequiredScreen(
+                    status: SubscriptionStatus.inactive,
+                  ),
                 ),
               );
             },
@@ -496,45 +475,39 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     );
   }
 
-  Future<void> _openPortal(SubscriptionService subscriptionService) async {
-    // Show loading indicator
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-
-    final result = await subscriptionService.openCustomerPortal();
-
-    // Hide loading indicator
-    if (mounted) {
-      Navigator.pop(context);
+  Future<void> _contactSupportForSubscription() async {
+    final user = FirebaseAuth.instance.currentUser;
+    final email = Uri.encodeComponent(user?.email ?? '');
+    final subject = Uri.encodeComponent('Gerenciar assinatura - Desenrola AI');
+    final body = Uri.encodeComponent('Olá, gostaria de gerenciar minha assinatura.\n\nEmail da conta: ${user?.email ?? ""}');
+    final url = Uri.parse('mailto:suporte@desenrolaai.com?subject=$subject&body=$body');
+    try {
+      await launchUrl(url);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Envie um email para suporte@desenrolaai.com'),
+          ),
+        );
+      }
     }
+  }
 
-    if (!result['success'] && mounted) {
-      final error = result['error'] ?? 'Erro desconhecido';
-      final url = result['url'];
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(url != null
-              ? 'Erro ao abrir. Acesse: $url'
-              : 'Erro: $error'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 5),
-          action: url != null
-              ? SnackBarAction(
-                  label: 'Copiar Link',
-                  textColor: Colors.white,
-                  onPressed: () {
-                    // Copy URL to clipboard
-                  },
-                )
-              : null,
-        ),
-      );
+  Future<void> _openSubscriptionManagement() async {
+    // On iOS, open the App Store subscription management page
+    final url = Uri.parse('https://apps.apple.com/account/subscriptions');
+    try {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Abra Ajustes > Apple ID > Assinaturas para gerenciar.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
     }
   }
 

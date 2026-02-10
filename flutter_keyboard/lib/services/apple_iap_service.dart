@@ -27,7 +27,14 @@ class AppleIAPService {
     if (_isInitialized) return;
     _isInitialized = true;
 
-    _isAvailable = await _iap.isAvailable();
+    try {
+      _isAvailable = await _iap.isAvailable();
+    } catch (e) {
+      debugPrint('IAP: Error checking availability: $e');
+      _isAvailable = false;
+      return;
+    }
+
     if (!_isAvailable) {
       debugPrint('IAP: Store not available');
       return;
@@ -37,6 +44,7 @@ class AppleIAPService {
       _onPurchaseUpdated,
       onError: (error) {
         debugPrint('IAP: Purchase stream error: $error');
+        _purchaseStatusController.add(PurchaseStatus.error);
       },
     );
 
@@ -60,13 +68,22 @@ class AppleIAPService {
   }
 
   Future<bool> buySubscription(String productId) async {
-    if (!_isAvailable) return false;
+    if (!_isAvailable) {
+      debugPrint('IAP: Store not available, cannot purchase');
+      return false;
+    }
+
+    if (_products.isEmpty) {
+      debugPrint('IAP: No products loaded, retrying...');
+      await _loadProducts();
+    }
 
     final product = _products.firstWhere(
       (p) => p.id == productId,
-      orElse: () => throw Exception('Product $productId not found'),
+      orElse: () => throw Exception('Produto não encontrado. Verifique sua conexão e tente novamente.'),
     );
 
+    debugPrint('IAP: Purchasing ${product.id} - ${product.title} - ${product.price}');
     final purchaseParam = PurchaseParam(productDetails: product);
     return _iap.buyNonConsumable(purchaseParam: purchaseParam);
   }

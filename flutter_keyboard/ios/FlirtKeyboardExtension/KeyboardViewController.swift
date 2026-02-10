@@ -89,6 +89,8 @@ class KeyboardViewController: UIInputViewController {
     private var selectedToneIndex: Int = 0
     private var selectedObjectiveIndex: Int = 0
     private var isLoadingSuggestions = false
+    private var writeOwnText: String = ""
+    private var isShiftActive: Bool = true
 
     // Shared config
     private var sharedDefaults: UserDefaults? {
@@ -193,72 +195,15 @@ class KeyboardViewController: UIInputViewController {
             searchLabel.centerYAnchor.constraint(equalTo: searchContainer.centerYAnchor),
         ])
 
-        // Mini keyboard: scrollable A-Z row + backspace
-        let keyboardScroll = UIScrollView()
-        keyboardScroll.translatesAutoresizingMaskIntoConstraints = false
-        keyboardScroll.showsHorizontalScrollIndicator = false
-        containerView.addSubview(keyboardScroll)
-
-        let keyStack = UIStackView()
-        keyStack.axis = .horizontal
-        keyStack.spacing = 3
-        keyStack.translatesAutoresizingMaskIntoConstraints = false
-        keyboardScroll.addSubview(keyStack)
-
-        let letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        for (i, char) in letters.enumerated() {
-            let keyBtn = UIButton(type: .system)
-            keyBtn.setTitle(String(char), for: .normal)
-            keyBtn.setTitleColor(.white, for: .normal)
-            keyBtn.backgroundColor = Theme.suggestionBg
-            keyBtn.layer.cornerRadius = 4
-            keyBtn.titleLabel?.font = UIFont.systemFont(ofSize: 11, weight: .medium)
-            keyBtn.translatesAutoresizingMaskIntoConstraints = false
-            keyBtn.tag = 600 + i
-            keyBtn.addTarget(self, action: #selector(miniKeyTapped(_:)), for: .touchUpInside)
-            keyBtn.widthAnchor.constraint(equalToConstant: 24).isActive = true
-            keyBtn.heightAnchor.constraint(equalToConstant: 24).isActive = true
-            keyStack.addArrangedSubview(keyBtn)
-        }
-
-        // Backspace button
-        let bksp = UIButton(type: .system)
-        bksp.setTitle("⌫", for: .normal)
-        bksp.setTitleColor(Theme.orange, for: .normal)
-        bksp.backgroundColor = Theme.suggestionBg
-        bksp.layer.cornerRadius = 4
-        bksp.titleLabel?.font = UIFont.systemFont(ofSize: 12)
-        bksp.translatesAutoresizingMaskIntoConstraints = false
-        bksp.tag = 650
-        bksp.addTarget(self, action: #selector(miniKeyBackspace), for: .touchUpInside)
-        bksp.widthAnchor.constraint(equalToConstant: 32).isActive = true
-        bksp.heightAnchor.constraint(equalToConstant: 24).isActive = true
-        keyStack.addArrangedSubview(bksp)
-
-        // Clear button
-        let clearBtn = UIButton(type: .system)
-        clearBtn.setTitle("✕", for: .normal)
-        clearBtn.setTitleColor(Theme.errorText, for: .normal)
-        clearBtn.backgroundColor = Theme.suggestionBg
-        clearBtn.layer.cornerRadius = 4
-        clearBtn.titleLabel?.font = UIFont.systemFont(ofSize: 12)
-        clearBtn.translatesAutoresizingMaskIntoConstraints = false
-        clearBtn.tag = 651
-        clearBtn.addTarget(self, action: #selector(miniKeyClear), for: .touchUpInside)
-        clearBtn.widthAnchor.constraint(equalToConstant: 28).isActive = true
-        clearBtn.heightAnchor.constraint(equalToConstant: 24).isActive = true
-        keyStack.addArrangedSubview(clearBtn)
+        // QWERTY mini keyboard for search
+        let qwertyView = makeQWERTYKeyboard(forSearch: true)
+        containerView.addSubview(qwertyView)
 
         NSLayoutConstraint.activate([
-            keyboardScroll.topAnchor.constraint(equalTo: searchContainer.bottomAnchor, constant: 3),
-            keyboardScroll.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
-            keyboardScroll.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
-            keyboardScroll.heightAnchor.constraint(equalToConstant: 26),
-            keyStack.topAnchor.constraint(equalTo: keyboardScroll.topAnchor),
-            keyStack.leadingAnchor.constraint(equalTo: keyboardScroll.leadingAnchor),
-            keyStack.trailingAnchor.constraint(equalTo: keyboardScroll.trailingAnchor),
-            keyStack.bottomAnchor.constraint(equalTo: keyboardScroll.bottomAnchor),
-            keyStack.heightAnchor.constraint(equalTo: keyboardScroll.heightAnchor),
+            qwertyView.topAnchor.constraint(equalTo: searchContainer.bottomAnchor, constant: 3),
+            qwertyView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 4),
+            qwertyView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -4),
+            qwertyView.heightAnchor.constraint(equalToConstant: 82),
         ])
 
         // Profile list
@@ -268,7 +213,7 @@ class KeyboardViewController: UIInputViewController {
         containerView.addSubview(scrollView)
 
         NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: keyboardScroll.bottomAnchor, constant: 4),
+            scrollView.topAnchor.constraint(equalTo: qwertyView.bottomAnchor, constant: 4),
             scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
             scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
             scrollView.heightAnchor.constraint(equalToConstant: 56),
@@ -491,47 +436,91 @@ class KeyboardViewController: UIInputViewController {
             contentStack.addArrangedSubview(card)
         }
 
-        // Bottom bar
-        let bottomStack = UIStackView()
-        bottomStack.axis = .horizontal
-        bottomStack.spacing = 6
-        bottomStack.translatesAutoresizingMaskIntoConstraints = false
-        containerView.addSubview(bottomStack)
+        // Bottom bar with styled input bar + regen button + pills
+        let bottomBar = UIView()
+        bottomBar.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(bottomBar)
 
-        let writeBtn = UIButton(type: .system)
-        writeBtn.setTitle("✏️", for: .normal)
-        writeBtn.titleLabel?.font = UIFont.systemFont(ofSize: 16)
-        writeBtn.addTarget(self, action: #selector(writeOwnTapped), for: .touchUpInside)
-        bottomStack.addArrangedSubview(writeBtn)
+        // Text input bar (tap to enter writeOwn state)
+        let writeBar = UIView()
+        writeBar.backgroundColor = Theme.cardBg
+        writeBar.layer.cornerRadius = 8
+        writeBar.layer.borderWidth = 0.5
+        writeBar.layer.borderColor = Theme.rose.withAlphaComponent(0.3).cgColor
+        writeBar.translatesAutoresizingMaskIntoConstraints = false
+        writeBar.isUserInteractionEnabled = true
+        let writeTap = UITapGestureRecognizer(target: self, action: #selector(writeOwnTapped))
+        writeBar.addGestureRecognizer(writeTap)
+        bottomBar.addSubview(writeBar)
 
+        let writeIcon = UILabel()
+        writeIcon.text = "✎"
+        writeIcon.textColor = Theme.textSecondary
+        writeIcon.font = UIFont.systemFont(ofSize: 11)
+        writeIcon.translatesAutoresizingMaskIntoConstraints = false
+        writeBar.addSubview(writeIcon)
+
+        let writeLabel = UILabel()
+        writeLabel.text = "Escrever resposta..."
+        writeLabel.textColor = Theme.textSecondary
+        writeLabel.font = UIFont.systemFont(ofSize: 11)
+        writeLabel.translatesAutoresizingMaskIntoConstraints = false
+        writeBar.addSubview(writeLabel)
+
+        // Styled regen button
         let regenBtn = UIButton(type: .system)
-        regenBtn.setTitle("🔄", for: .normal)
-        regenBtn.titleLabel?.font = UIFont.systemFont(ofSize: 16)
+        if #available(iOSApplicationExtension 13.0, *) {
+            let config = UIImage.SymbolConfiguration(pointSize: 12, weight: .semibold)
+            regenBtn.setImage(UIImage(systemName: "arrow.counterclockwise", withConfiguration: config), for: .normal)
+        } else {
+            regenBtn.setTitle("↻", for: .normal)
+        }
+        regenBtn.tintColor = .white
+        regenBtn.backgroundColor = Theme.rose.withAlphaComponent(0.25)
+        regenBtn.layer.cornerRadius = 8
+        regenBtn.translatesAutoresizingMaskIntoConstraints = false
         regenBtn.addTarget(self, action: #selector(regenerateTapped), for: .touchUpInside)
-        bottomStack.addArrangedSubview(regenBtn)
-
-        let spacer = UIView()
-        bottomStack.addArrangedSubview(spacer)
+        bottomBar.addSubview(regenBtn)
 
         let objPill = makeObjectivePill(compact: true)
         let tonePill = makeTonePill(compact: true)
-        bottomStack.addArrangedSubview(objPill)
-        bottomStack.addArrangedSubview(tonePill)
+        bottomBar.addSubview(objPill)
+        bottomBar.addSubview(tonePill)
 
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: headerLabel.bottomAnchor, constant: 6),
             scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 10),
             scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -10),
-            scrollView.bottomAnchor.constraint(equalTo: bottomStack.topAnchor, constant: -4),
+            scrollView.bottomAnchor.constraint(equalTo: bottomBar.topAnchor, constant: -4),
             contentStack.topAnchor.constraint(equalTo: scrollView.topAnchor),
             contentStack.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
             contentStack.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
             contentStack.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
             contentStack.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
-            bottomStack.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
-            bottomStack.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
-            bottomStack.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -6),
-            bottomStack.heightAnchor.constraint(equalToConstant: 28),
+            bottomBar.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 10),
+            bottomBar.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -10),
+            bottomBar.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -6),
+            bottomBar.heightAnchor.constraint(equalToConstant: 30),
+
+            writeBar.leadingAnchor.constraint(equalTo: bottomBar.leadingAnchor),
+            writeBar.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor),
+            writeBar.heightAnchor.constraint(equalToConstant: 28),
+            writeIcon.leadingAnchor.constraint(equalTo: writeBar.leadingAnchor, constant: 8),
+            writeIcon.centerYAnchor.constraint(equalTo: writeBar.centerYAnchor),
+            writeLabel.leadingAnchor.constraint(equalTo: writeIcon.trailingAnchor, constant: 4),
+            writeLabel.centerYAnchor.constraint(equalTo: writeBar.centerYAnchor),
+            writeLabel.trailingAnchor.constraint(equalTo: writeBar.trailingAnchor, constant: -8),
+
+            regenBtn.leadingAnchor.constraint(equalTo: writeBar.trailingAnchor, constant: 6),
+            regenBtn.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor),
+            regenBtn.widthAnchor.constraint(equalToConstant: 32),
+            regenBtn.heightAnchor.constraint(equalToConstant: 28),
+
+            objPill.leadingAnchor.constraint(equalTo: regenBtn.trailingAnchor, constant: 6),
+            objPill.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor),
+            tonePill.leadingAnchor.constraint(equalTo: objPill.trailingAnchor, constant: 4),
+            tonePill.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor),
+            tonePill.trailingAnchor.constraint(lessThanOrEqualTo: bottomBar.trailingAnchor),
         ])
     }
 
@@ -591,61 +580,60 @@ class KeyboardViewController: UIInputViewController {
     private func renderWriteOwn() {
         guard let conv = selectedConversation else { return }
 
-        let headerLabel = makeLabel("👤 \(conv.matchName)  |  Ela disse:", size: 12, bold: true)
-        containerView.addSubview(headerLabel)
+        // Text display bar showing what user is typing
+        let textDisplay = UIView()
+        textDisplay.backgroundColor = Theme.cardBg
+        textDisplay.layer.cornerRadius = 8
+        textDisplay.layer.borderWidth = 1
+        textDisplay.layer.borderColor = Theme.rose.withAlphaComponent(0.4).cgColor
+        textDisplay.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(textDisplay)
 
-        let clipLabel = makeLabel("\"\(clipboardText ?? "")\"", size: 11)
-        clipLabel.textColor = Theme.clipText
-        clipLabel.numberOfLines = 1
-        containerView.addSubview(clipLabel)
+        let displayLabel = UILabel()
+        displayLabel.tag = 998
+        displayLabel.text = writeOwnText.isEmpty ? "Digite sua resposta..." : writeOwnText
+        displayLabel.textColor = writeOwnText.isEmpty ? Theme.textSecondary : .white
+        displayLabel.font = UIFont.systemFont(ofSize: 14)
+        displayLabel.translatesAutoresizingMaskIntoConstraints = false
+        textDisplay.addSubview(displayLabel)
 
-        let textField = UITextField()
-        textField.attributedPlaceholder = NSAttributedString(
-            string: "Digite sua resposta...",
-            attributes: [.foregroundColor: Theme.textSecondary]
-        )
-        textField.textColor = .white
-        textField.backgroundColor = Theme.cardBg
-        textField.layer.cornerRadius = 8
-        textField.layer.borderWidth = 1
-        textField.layer.borderColor = Theme.rose.withAlphaComponent(0.3).cgColor
-        textField.font = UIFont.systemFont(ofSize: 14)
-        textField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 10, height: 0))
-        textField.leftViewMode = .always
-        textField.translatesAutoresizingMaskIntoConstraints = false
-        textField.tag = 999
-        containerView.addSubview(textField)
+        // Cursor blink indicator
+        let cursor = UIView()
+        cursor.backgroundColor = Theme.rose
+        cursor.translatesAutoresizingMaskIntoConstraints = false
+        if !writeOwnText.isEmpty {
+            textDisplay.addSubview(cursor)
+        }
 
-        let backBtn = UIButton(type: .system)
-        backBtn.setTitle("← Voltar", for: .normal)
-        backBtn.setTitleColor(Theme.textSecondary, for: .normal)
-        backBtn.titleLabel?.font = UIFont.systemFont(ofSize: 13)
-        backBtn.translatesAutoresizingMaskIntoConstraints = false
-        backBtn.addTarget(self, action: #selector(backToSuggestionsTapped), for: .touchUpInside)
-        containerView.addSubview(backBtn)
+        // QWERTY keyboard for typing
+        let qwertyView = makeQWERTYKeyboard(forSearch: false)
+        containerView.addSubview(qwertyView)
 
-        let insertBtn = makeGradientButton("Inserir ↗", fontSize: 14)
-        insertBtn.addTarget(self, action: #selector(insertOwnTapped), for: .touchUpInside)
-        containerView.addSubview(insertBtn)
-
+        // Bottom buttons row (inside QWERTY bottom row)
         NSLayoutConstraint.activate([
-            headerLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
-            headerLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
-            headerLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
-            clipLabel.topAnchor.constraint(equalTo: headerLabel.bottomAnchor, constant: 2),
-            clipLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
-            clipLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
-            textField.topAnchor.constraint(equalTo: clipLabel.bottomAnchor, constant: 10),
-            textField.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
-            textField.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
-            textField.heightAnchor.constraint(equalToConstant: 40),
-            backBtn.topAnchor.constraint(equalTo: textField.bottomAnchor, constant: 8),
-            backBtn.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
-            insertBtn.topAnchor.constraint(equalTo: textField.bottomAnchor, constant: 8),
-            insertBtn.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
-            insertBtn.widthAnchor.constraint(equalToConstant: 110),
-            insertBtn.heightAnchor.constraint(equalToConstant: 36),
+            textDisplay.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 6),
+            textDisplay.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 10),
+            textDisplay.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -10),
+            textDisplay.heightAnchor.constraint(equalToConstant: 34),
+
+            displayLabel.leadingAnchor.constraint(equalTo: textDisplay.leadingAnchor, constant: 10),
+            displayLabel.trailingAnchor.constraint(equalTo: textDisplay.trailingAnchor, constant: -10),
+            displayLabel.centerYAnchor.constraint(equalTo: textDisplay.centerYAnchor),
+
+            qwertyView.topAnchor.constraint(equalTo: textDisplay.bottomAnchor, constant: 4),
+            qwertyView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 4),
+            qwertyView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -4),
+            qwertyView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -4),
         ])
+
+        if !writeOwnText.isEmpty {
+            NSLayoutConstraint.activate([
+                cursor.leadingAnchor.constraint(equalTo: displayLabel.trailingAnchor, constant: 1),
+                cursor.centerYAnchor.constraint(equalTo: textDisplay.centerYAnchor),
+                cursor.widthAnchor.constraint(equalToConstant: 2),
+                cursor.heightAnchor.constraint(equalToConstant: 18),
+            ])
+        }
     }
 
     // MARK: - Estado 4: Basic Mode
@@ -706,8 +694,18 @@ class KeyboardViewController: UIInputViewController {
                 containerView.addSubview(bottomStack)
 
                 let regenBtn = UIButton(type: .system)
-                regenBtn.setTitle("🔄", for: .normal)
-                regenBtn.titleLabel?.font = UIFont.systemFont(ofSize: 16)
+                if #available(iOSApplicationExtension 13.0, *) {
+                    let config = UIImage.SymbolConfiguration(pointSize: 12, weight: .semibold)
+                    regenBtn.setImage(UIImage(systemName: "arrow.counterclockwise", withConfiguration: config), for: .normal)
+                } else {
+                    regenBtn.setTitle("↻", for: .normal)
+                }
+                regenBtn.tintColor = .white
+                regenBtn.backgroundColor = Theme.rose.withAlphaComponent(0.25)
+                regenBtn.layer.cornerRadius = 8
+                regenBtn.translatesAutoresizingMaskIntoConstraints = false
+                regenBtn.widthAnchor.constraint(equalToConstant: 32).isActive = true
+                regenBtn.heightAnchor.constraint(equalToConstant: 28).isActive = true
                 regenBtn.addTarget(self, action: #selector(basicRegenTapped), for: .touchUpInside)
                 bottomStack.addArrangedSubview(regenBtn)
 
@@ -1048,31 +1046,72 @@ class KeyboardViewController: UIInputViewController {
         renderCurrentState()
     }
 
-    @objc private func miniKeyTapped(_ sender: UIButton) {
-        let letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        let index = sender.tag - 600
-        guard index >= 0, index < letters.count else { return }
-        let char = String(letters[letters.index(letters.startIndex, offsetBy: index)])
-        searchText += char.lowercased()
-        filteredConversations = conversations.filter {
-            $0.matchName.localizedCaseInsensitiveContains(searchText)
+    // MARK: - QWERTY Keyboard Actions
+
+    @objc private func qwertyKeyTapped(_ sender: UIButton) {
+        let tag = sender.tag
+        // Tags 700-725 = letters mapped from qwerty layout
+        let allKeys = "qwertyuiopasdfghjklzxcvbnm"
+        let index = tag - 700
+        guard index >= 0, index < allKeys.count else { return }
+        let char = String(allKeys[allKeys.index(allKeys.startIndex, offsetBy: index)])
+        let finalChar = isShiftActive ? char.uppercased() : char
+
+        if currentState == .profileSelector {
+            searchText += finalChar.lowercased()
+            filteredConversations = conversations.filter {
+                $0.matchName.localizedCaseInsensitiveContains(searchText)
+            }
+            renderCurrentState()
+        } else if currentState == .writeOwn {
+            writeOwnText += finalChar
+            if isShiftActive { isShiftActive = false }
+            updateWriteOwnDisplay()
         }
+    }
+
+    @objc private func qwertyBackspaceTapped() {
+        if currentState == .profileSelector {
+            guard !searchText.isEmpty else { return }
+            searchText = String(searchText.dropLast())
+            filteredConversations = searchText.isEmpty ? conversations : conversations.filter {
+                $0.matchName.localizedCaseInsensitiveContains(searchText)
+            }
+            renderCurrentState()
+        } else if currentState == .writeOwn {
+            guard !writeOwnText.isEmpty else { return }
+            writeOwnText = String(writeOwnText.dropLast())
+            updateWriteOwnDisplay()
+        }
+    }
+
+    @objc private func qwertySpaceTapped() {
+        if currentState == .writeOwn {
+            writeOwnText += " "
+            updateWriteOwnDisplay()
+        }
+    }
+
+    @objc private func qwertyShiftTapped() {
+        isShiftActive = !isShiftActive
         renderCurrentState()
     }
 
-    @objc private func miniKeyBackspace() {
-        guard !searchText.isEmpty else { return }
-        searchText = String(searchText.dropLast())
-        filteredConversations = searchText.isEmpty ? conversations : conversations.filter {
-            $0.matchName.localizedCaseInsensitiveContains(searchText)
+    @objc private func qwertyClearTapped() {
+        if currentState == .profileSelector {
+            searchText = ""
+            filteredConversations = conversations
+            renderCurrentState()
+        } else if currentState == .writeOwn {
+            writeOwnText = ""
+            updateWriteOwnDisplay()
         }
-        renderCurrentState()
     }
 
-    @objc private func miniKeyClear() {
-        searchText = ""
-        filteredConversations = conversations
-        renderCurrentState()
+    private func updateWriteOwnDisplay() {
+        guard let displayLabel = containerView.viewWithTag(998) as? UILabel else { return }
+        displayLabel.text = writeOwnText.isEmpty ? "Digite sua resposta..." : writeOwnText
+        displayLabel.textColor = writeOwnText.isEmpty ? Theme.textSecondary : .white
     }
 
     @objc private func quickModeTapped() {
@@ -1117,6 +1156,8 @@ class KeyboardViewController: UIInputViewController {
     }
 
     @objc private func writeOwnTapped() {
+        writeOwnText = ""
+        isShiftActive = true
         currentState = .writeOwn
         renderCurrentState()
     }
@@ -1127,14 +1168,14 @@ class KeyboardViewController: UIInputViewController {
     }
 
     @objc private func insertOwnTapped() {
-        guard let textField = containerView.viewWithTag(999) as? UITextField,
-              let text = textField.text, !text.isEmpty else { return }
-        textDocumentProxy.insertText(text)
+        guard !writeOwnText.isEmpty else { return }
+        textDocumentProxy.insertText(writeOwnText)
 
         if let conv = selectedConversation, let convId = conv.conversationId {
-            sendMessageToServer(conversationId: convId, content: text, wasAiSuggestion: false)
+            sendMessageToServer(conversationId: convId, content: writeOwnText, wasAiSuggestion: false)
         }
 
+        writeOwnText = ""
         suggestions = []
         previousClipboard = UIPasteboard.general.string
         currentState = .awaitingClipboard
@@ -1634,6 +1675,212 @@ class KeyboardViewController: UIInputViewController {
             tapBtn.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             tapBtn.bottomAnchor.constraint(equalTo: container.bottomAnchor),
         ])
+
+        return container
+    }
+
+    private func makeQWERTYKeyboard(forSearch: Bool) -> UIView {
+        let container = UIView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+
+        let rows: [[String]] = [
+            ["q","w","e","r","t","y","u","i","o","p"],
+            ["a","s","d","f","g","h","j","k","l"],
+            ["z","x","c","v","b","n","m"]
+        ]
+        let keyHeight: CGFloat = forSearch ? 26 : 32
+        let rowSpacing: CGFloat = 2
+        let keySpacing: CGFloat = 3
+
+        var previousRow: UIView?
+        var tagIndex = 0
+
+        for (rowIdx, row) in rows.enumerated() {
+            let rowView = UIView()
+            rowView.translatesAutoresizingMaskIntoConstraints = false
+            container.addSubview(rowView)
+
+            NSLayoutConstraint.activate([
+                rowView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+                rowView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+                rowView.heightAnchor.constraint(equalToConstant: keyHeight),
+            ])
+
+            if let prev = previousRow {
+                rowView.topAnchor.constraint(equalTo: prev.bottomAnchor, constant: rowSpacing).isActive = true
+            } else {
+                rowView.topAnchor.constraint(equalTo: container.topAnchor).isActive = true
+            }
+
+            let rowStack = UIStackView()
+            rowStack.axis = .horizontal
+            rowStack.spacing = keySpacing
+            rowStack.distribution = .fillEqually
+            rowStack.translatesAutoresizingMaskIntoConstraints = false
+            rowView.addSubview(rowStack)
+
+            // Indent rows 2 and 3
+            let indent: CGFloat = rowIdx == 1 ? 14 : (rowIdx == 2 ? 6 : 0)
+
+            // Row 3: add shift button before letters
+            if rowIdx == 2 {
+                let shiftBtn = UIButton(type: .system)
+                shiftBtn.setTitle(isShiftActive ? "⇧" : "⇪", for: .normal)
+                shiftBtn.setTitleColor(isShiftActive ? Theme.orange : .white, for: .normal)
+                shiftBtn.backgroundColor = isShiftActive ? Theme.rose.withAlphaComponent(0.2) : Theme.suggestionBg
+                shiftBtn.layer.cornerRadius = 5
+                shiftBtn.titleLabel?.font = UIFont.systemFont(ofSize: forSearch ? 11 : 13, weight: .medium)
+                shiftBtn.translatesAutoresizingMaskIntoConstraints = false
+                shiftBtn.addTarget(self, action: #selector(qwertyShiftTapped), for: .touchUpInside)
+                rowView.addSubview(shiftBtn)
+                NSLayoutConstraint.activate([
+                    shiftBtn.leadingAnchor.constraint(equalTo: rowView.leadingAnchor),
+                    shiftBtn.topAnchor.constraint(equalTo: rowView.topAnchor),
+                    shiftBtn.bottomAnchor.constraint(equalTo: rowView.bottomAnchor),
+                    shiftBtn.widthAnchor.constraint(equalToConstant: forSearch ? 28 : 36),
+                ])
+            }
+
+            for char in row {
+                let btn = UIButton(type: .system)
+                let displayChar = isShiftActive ? char.uppercased() : char
+                btn.setTitle(displayChar, for: .normal)
+                btn.setTitleColor(.white, for: .normal)
+                btn.backgroundColor = Theme.suggestionBg
+                btn.layer.cornerRadius = 5
+                btn.titleLabel?.font = UIFont.systemFont(ofSize: forSearch ? 12 : 14, weight: .medium)
+                btn.tag = 700 + tagIndex
+                btn.addTarget(self, action: #selector(qwertyKeyTapped(_:)), for: .touchUpInside)
+                rowStack.addArrangedSubview(btn)
+                tagIndex += 1
+            }
+
+            // Row 3: add backspace after letters
+            if rowIdx == 2 {
+                let bkspBtn = UIButton(type: .system)
+                if #available(iOSApplicationExtension 13.0, *) {
+                    let config = UIImage.SymbolConfiguration(pointSize: forSearch ? 11 : 13, weight: .medium)
+                    bkspBtn.setImage(UIImage(systemName: "delete.left", withConfiguration: config), for: .normal)
+                } else {
+                    bkspBtn.setTitle("⌫", for: .normal)
+                }
+                bkspBtn.tintColor = Theme.orange
+                bkspBtn.backgroundColor = Theme.suggestionBg
+                bkspBtn.layer.cornerRadius = 5
+                bkspBtn.translatesAutoresizingMaskIntoConstraints = false
+                bkspBtn.addTarget(self, action: #selector(qwertyBackspaceTapped), for: .touchUpInside)
+                rowView.addSubview(bkspBtn)
+
+                // Clear button
+                let clearBtn = UIButton(type: .system)
+                clearBtn.setTitle("✕", for: .normal)
+                clearBtn.setTitleColor(Theme.errorText, for: .normal)
+                clearBtn.backgroundColor = Theme.suggestionBg
+                clearBtn.layer.cornerRadius = 5
+                clearBtn.titleLabel?.font = UIFont.systemFont(ofSize: forSearch ? 11 : 13)
+                clearBtn.translatesAutoresizingMaskIntoConstraints = false
+                clearBtn.addTarget(self, action: #selector(qwertyClearTapped), for: .touchUpInside)
+                rowView.addSubview(clearBtn)
+
+                let shiftWidth: CGFloat = forSearch ? 28 : 36
+                NSLayoutConstraint.activate([
+                    rowStack.leadingAnchor.constraint(equalTo: rowView.leadingAnchor, constant: shiftWidth + keySpacing),
+                    rowStack.topAnchor.constraint(equalTo: rowView.topAnchor),
+                    rowStack.bottomAnchor.constraint(equalTo: rowView.bottomAnchor),
+                    bkspBtn.leadingAnchor.constraint(equalTo: rowStack.trailingAnchor, constant: keySpacing),
+                    bkspBtn.topAnchor.constraint(equalTo: rowView.topAnchor),
+                    bkspBtn.bottomAnchor.constraint(equalTo: rowView.bottomAnchor),
+                    bkspBtn.widthAnchor.constraint(equalToConstant: forSearch ? 28 : 36),
+                    clearBtn.leadingAnchor.constraint(equalTo: bkspBtn.trailingAnchor, constant: keySpacing),
+                    clearBtn.trailingAnchor.constraint(equalTo: rowView.trailingAnchor),
+                    clearBtn.topAnchor.constraint(equalTo: rowView.topAnchor),
+                    clearBtn.bottomAnchor.constraint(equalTo: rowView.bottomAnchor),
+                    clearBtn.widthAnchor.constraint(equalToConstant: forSearch ? 24 : 30),
+                ])
+            } else {
+                NSLayoutConstraint.activate([
+                    rowStack.leadingAnchor.constraint(equalTo: rowView.leadingAnchor, constant: indent),
+                    rowStack.trailingAnchor.constraint(equalTo: rowView.trailingAnchor, constant: -indent),
+                    rowStack.topAnchor.constraint(equalTo: rowView.topAnchor),
+                    rowStack.bottomAnchor.constraint(equalTo: rowView.bottomAnchor),
+                ])
+            }
+
+            previousRow = rowView
+        }
+
+        // Row 4: space bar (only for writeOwn) or bottom actions
+        if !forSearch {
+            let bottomRow = UIView()
+            bottomRow.translatesAutoresizingMaskIntoConstraints = false
+            container.addSubview(bottomRow)
+
+            NSLayoutConstraint.activate([
+                bottomRow.topAnchor.constraint(equalTo: previousRow!.bottomAnchor, constant: rowSpacing),
+                bottomRow.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+                bottomRow.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+                bottomRow.heightAnchor.constraint(equalToConstant: keyHeight),
+                bottomRow.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            ])
+
+            let backBtn = UIButton(type: .system)
+            backBtn.setTitle("← Voltar", for: .normal)
+            backBtn.setTitleColor(Theme.textSecondary, for: .normal)
+            backBtn.titleLabel?.font = UIFont.systemFont(ofSize: 12, weight: .medium)
+            backBtn.backgroundColor = Theme.cardBg
+            backBtn.layer.cornerRadius = 5
+            backBtn.translatesAutoresizingMaskIntoConstraints = false
+            backBtn.addTarget(self, action: #selector(backToSuggestionsTapped), for: .touchUpInside)
+            bottomRow.addSubview(backBtn)
+
+            let spaceBtn = UIButton(type: .system)
+            spaceBtn.setTitle("espaço", for: .normal)
+            spaceBtn.setTitleColor(Theme.textSecondary, for: .normal)
+            spaceBtn.titleLabel?.font = UIFont.systemFont(ofSize: 12)
+            spaceBtn.backgroundColor = Theme.suggestionBg
+            spaceBtn.layer.cornerRadius = 5
+            spaceBtn.translatesAutoresizingMaskIntoConstraints = false
+            spaceBtn.addTarget(self, action: #selector(qwertySpaceTapped), for: .touchUpInside)
+            bottomRow.addSubview(spaceBtn)
+
+            let insertBtn = UIButton(type: .system)
+            insertBtn.setTitle("Inserir ↗", for: .normal)
+            insertBtn.setTitleColor(.white, for: .normal)
+            insertBtn.titleLabel?.font = UIFont.boldSystemFont(ofSize: 12)
+            insertBtn.layer.cornerRadius = 5
+            insertBtn.clipsToBounds = true
+            insertBtn.translatesAutoresizingMaskIntoConstraints = false
+            insertBtn.addTarget(self, action: #selector(insertOwnTapped), for: .touchUpInside)
+
+            let gradient = CAGradientLayer()
+            gradient.colors = [
+                UIColor(red: 1.0, green: 0.23, blue: 0.19, alpha: 1.0).cgColor,
+                UIColor(red: 0.91, green: 0.12, blue: 0.39, alpha: 1.0).cgColor,
+                UIColor(red: 0.48, green: 0.18, blue: 0.74, alpha: 1.0).cgColor,
+            ]
+            gradient.startPoint = CGPoint(x: 0, y: 0.5)
+            gradient.endPoint = CGPoint(x: 1, y: 0.5)
+            gradient.frame = CGRect(x: 0, y: 0, width: 120, height: 36)
+            insertBtn.layer.insertSublayer(gradient, at: 0)
+            bottomRow.addSubview(insertBtn)
+
+            NSLayoutConstraint.activate([
+                backBtn.leadingAnchor.constraint(equalTo: bottomRow.leadingAnchor),
+                backBtn.topAnchor.constraint(equalTo: bottomRow.topAnchor),
+                backBtn.bottomAnchor.constraint(equalTo: bottomRow.bottomAnchor),
+                backBtn.widthAnchor.constraint(equalToConstant: 70),
+
+                spaceBtn.leadingAnchor.constraint(equalTo: backBtn.trailingAnchor, constant: keySpacing),
+                spaceBtn.topAnchor.constraint(equalTo: bottomRow.topAnchor),
+                spaceBtn.bottomAnchor.constraint(equalTo: bottomRow.bottomAnchor),
+
+                insertBtn.leadingAnchor.constraint(equalTo: spaceBtn.trailingAnchor, constant: keySpacing),
+                insertBtn.trailingAnchor.constraint(equalTo: bottomRow.trailingAnchor),
+                insertBtn.topAnchor.constraint(equalTo: bottomRow.topAnchor),
+                insertBtn.bottomAnchor.constraint(equalTo: bottomRow.bottomAnchor),
+                insertBtn.widthAnchor.constraint(equalToConstant: 90),
+            ])
+        }
 
         return container
     }

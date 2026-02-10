@@ -217,7 +217,7 @@ class _SubscriptionRequiredScreenState
   }) {
     final isSelected = _selectedPlan == index;
     final iapProduct = _iapService.getProduct(productId);
-    final displayPrice = iapProduct?.price ?? 'R\$ ${totalPrice.toStringAsFixed(2).replaceAll('.', ',')}';
+    final displayPrice = iapProduct?.price ?? '';
 
     return GestureDetector(
       onTap: () => setState(() => _selectedPlan = index),
@@ -335,53 +335,35 @@ class _SubscriptionRequiredScreenState
                   ),
                   const SizedBox(height: 24),
 
-                  // Price per day
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(top: 8),
-                        child: Text(
-                          'R\$ ',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                  // Price from App Store
+                  if (displayPrice.isNotEmpty) ...[
+                    Text(
+                      displayPrice,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        height: 1,
                       ),
-                      Text(
-                        pricePerDay.toStringAsFixed(2).replaceAll('.', ','),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 42,
-                          fontWeight: FontWeight.bold,
-                          height: 1,
-                        ),
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.only(top: 8),
-                        child: Text(
-                          ' por dia',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Total price (from App Store if available)
-                  Text(
-                    '$displayPrice$period',
-                    style: TextStyle(
-                      color: Colors.grey[500],
-                      fontSize: 14,
                     ),
-                  ),
+                    const SizedBox(height: 4),
+                    Text(
+                      period,
+                      style: TextStyle(
+                        color: Colors.grey[400],
+                        fontSize: 14,
+                      ),
+                    ),
+                  ] else ...[
+                    Text(
+                      planName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 24),
 
                   // Subscribe button
