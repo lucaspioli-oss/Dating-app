@@ -1,5 +1,6 @@
 import UIKit
 import Flutter
+import CoreImage
 
 @UIApplicationMain
 @objc class AppDelegate: FlutterAppDelegate {
@@ -77,6 +78,17 @@ import Flutter
             }
             result(nil)
 
+        case "detectFace":
+            if let args = call.arguments as? [String: Any],
+               let imageBytes = args["imageBytes"] as? FlutterStandardTypedData {
+                let width = args["width"] as? Int ?? 0
+                let height = args["height"] as? Int ?? 0
+                let faceRect = detectFaceInImage(imageData: imageBytes.data, width: width, height: height)
+                result(faceRect)
+            } else {
+                result(nil)
+            }
+
         default:
             result(FlutterMethodNotImplemented)
         }
@@ -111,5 +123,44 @@ import Flutter
             sharedDefaults.set(value, forKey: key)
             sharedDefaults.synchronize()
         }
+    }
+
+    /// Detects the largest face in an image using CIDetector.
+    /// Returns a dictionary with {x, y, width, height} or nil if no face found.
+    private func detectFaceInImage(imageData: Data, width: Int, height: Int) -> [String: Any]? {
+        guard let ciImage = CIImage(data: imageData) else { return nil }
+
+        let detector = CIDetector(
+            ofType: CIDetectorTypeFace,
+            context: nil,
+            options: [CIDetectorAccuracy: CIDetectorAccuracyHigh]
+        )
+
+        guard let features = detector?.features(in: ciImage) as? [CIFaceFeature],
+              !features.isEmpty else {
+            return nil
+        }
+
+        // Find the largest face by area
+        var largest = features[0]
+        var largestArea = largest.bounds.width * largest.bounds.height
+        for face in features.dropFirst() {
+            let area = face.bounds.width * face.bounds.height
+            if area > largestArea {
+                largest = face
+                largestArea = area
+            }
+        }
+
+        // CIDetector uses bottom-left origin, convert to top-left for Flutter
+        let imageHeight = CGFloat(ciImage.extent.height)
+        let flippedY = imageHeight - largest.bounds.origin.y - largest.bounds.height
+
+        return [
+            "x": Double(largest.bounds.origin.x),
+            "y": Double(flippedY),
+            "width": Double(largest.bounds.width),
+            "height": Double(largest.bounds.height),
+        ]
     }
 }

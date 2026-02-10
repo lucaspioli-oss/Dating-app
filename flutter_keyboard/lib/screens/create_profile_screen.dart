@@ -1,12 +1,11 @@
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:image/image.dart' as img;
-import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import '../models/profile_model.dart';
 import '../providers/app_state.dart';
 import '../services/agent_service.dart';
@@ -1365,8 +1364,8 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         cropX = (cx - cropSize ~/ 2).clamp(0, image.width - cropSize);
         cropY = (cy - cropSize ~/ 2).clamp(0, image.height - cropSize);
       } else {
-        // Priority 2: On-device ML Kit face detection
-        final faceRect = await _detectFaceWithMLKit(bytes);
+        // Priority 2: Native CIDetector face detection (iOS)
+        final faceRect = await _detectFaceNative(bytes, image.width, image.height);
 
         if (faceRect != null) {
           final paddingFactor = 0.45;
@@ -1400,49 +1399,30 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
     }
   }
 
-  /// Uses Google ML Kit to detect the largest face in an image.
+  /// Uses native CIDetector (iOS) via MethodChannel to detect the largest face.
   /// Returns the bounding box of the face, or null if no face found.
-  Future<Rect?> _detectFaceWithMLKit(Uint8List bytes) async {
-    File? tempFile;
+  static const _nativeChannel = MethodChannel('com.desenrolaai/native');
+
+  Future<Rect?> _detectFaceNative(Uint8List bytes, int imageWidth, int imageHeight) async {
     try {
-      // ML Kit needs a file path — write bytes to temp file
-      final tempDir = Directory.systemTemp;
-      tempFile = File('${tempDir.path}/face_detect_${DateTime.now().millisecondsSinceEpoch}.jpg');
-      await tempFile.writeAsBytes(bytes);
+      final result = await _nativeChannel.invokeMethod('detectFace', {
+        'imageBytes': bytes,
+        'width': imageWidth,
+        'height': imageHeight,
+      });
 
-      final inputImage = InputImage.fromFilePath(tempFile.path);
-      final faceDetector = FaceDetector(
-        options: FaceDetectorOptions(
-          enableClassification: false,
-          enableLandmarks: false,
-          enableContours: false,
-          enableTracking: false,
-          performanceMode: FaceDetectorMode.accurate,
-        ),
+      if (result == null) return null;
+
+      final map = Map<String, dynamic>.from(result);
+      return Rect.fromLTWH(
+        (map['x'] as num).toDouble(),
+        (map['y'] as num).toDouble(),
+        (map['width'] as num).toDouble(),
+        (map['height'] as num).toDouble(),
       );
-
-      final faces = await faceDetector.processImage(inputImage);
-      await faceDetector.close();
-
-      if (faces.isEmpty) return null;
-
-      // Return the largest face (by area)
-      Face largest = faces.first;
-      double largestArea = largest.boundingBox.width * largest.boundingBox.height;
-      for (final face in faces.skip(1)) {
-        final area = face.boundingBox.width * face.boundingBox.height;
-        if (area > largestArea) {
-          largest = face;
-          largestArea = area;
-        }
-      }
-
-      return largest.boundingBox;
     } catch (e) {
-      debugPrint('ML Kit face detection error: $e');
+      debugPrint('Native face detection error: $e');
       return null;
-    } finally {
-      try { tempFile?.deleteSync(); } catch (_) {}
     }
   }
 
