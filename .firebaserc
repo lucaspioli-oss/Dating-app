@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "funis-desenrola"
+  },
+  "targets": {
+    "funis-desenrola": {
+      "hosting": {
+        "funil-neo": [
+          "funil-neo"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
