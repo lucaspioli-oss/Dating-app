@@ -1895,26 +1895,39 @@ class KeyboardViewController: UIInputViewController {
             spaceBtn.addTarget(self, action: #selector(qwertySpaceTapped), for: .touchUpInside)
             bottomRow.addSubview(spaceBtn)
 
-            let insertBtn = UIButton(type: .system)
-            insertBtn.setTitle("Inserir ↗", for: .normal)
-            insertBtn.setTitleColor(.white, for: .normal)
-            insertBtn.titleLabel?.font = UIFont.boldSystemFont(ofSize: 12)
-            insertBtn.layer.cornerRadius = 5
-            insertBtn.clipsToBounds = true
-            insertBtn.translatesAutoresizingMaskIntoConstraints = false
-            insertBtn.addTarget(self, action: #selector(insertOwnTapped), for: .touchUpInside)
+            // Insert button with gradient background
+            let insertContainer = UIView()
+            insertContainer.translatesAutoresizingMaskIntoConstraints = false
+            insertContainer.layer.cornerRadius = 5
+            insertContainer.clipsToBounds = true
 
-            let gradient = CAGradientLayer()
-            gradient.colors = [
-                UIColor(red: 1.0, green: 0.23, blue: 0.19, alpha: 1.0).cgColor,
-                UIColor(red: 0.91, green: 0.12, blue: 0.39, alpha: 1.0).cgColor,
-                UIColor(red: 0.48, green: 0.18, blue: 0.74, alpha: 1.0).cgColor,
-            ]
-            gradient.startPoint = CGPoint(x: 0, y: 0.5)
-            gradient.endPoint = CGPoint(x: 1, y: 0.5)
-            gradient.frame = CGRect(x: 0, y: 0, width: 120, height: 36)
-            insertBtn.layer.insertSublayer(gradient, at: 0)
-            bottomRow.addSubview(insertBtn)
+            let gradientBg = GradientView()
+            gradientBg.translatesAutoresizingMaskIntoConstraints = false
+            insertContainer.addSubview(gradientBg)
+
+            let insertLabel = UILabel()
+            insertLabel.text = "Inserir ↗"
+            insertLabel.textColor = .white
+            insertLabel.font = UIFont.boldSystemFont(ofSize: 12)
+            insertLabel.textAlignment = .center
+            insertLabel.translatesAutoresizingMaskIntoConstraints = false
+            insertContainer.addSubview(insertLabel)
+
+            let insertTap = UITapGestureRecognizer(target: self, action: #selector(insertOwnTapped))
+            insertContainer.addGestureRecognizer(insertTap)
+            insertContainer.isUserInteractionEnabled = true
+
+            NSLayoutConstraint.activate([
+                gradientBg.topAnchor.constraint(equalTo: insertContainer.topAnchor),
+                gradientBg.bottomAnchor.constraint(equalTo: insertContainer.bottomAnchor),
+                gradientBg.leadingAnchor.constraint(equalTo: insertContainer.leadingAnchor),
+                gradientBg.trailingAnchor.constraint(equalTo: insertContainer.trailingAnchor),
+                insertLabel.topAnchor.constraint(equalTo: insertContainer.topAnchor),
+                insertLabel.bottomAnchor.constraint(equalTo: insertContainer.bottomAnchor),
+                insertLabel.leadingAnchor.constraint(equalTo: insertContainer.leadingAnchor),
+                insertLabel.trailingAnchor.constraint(equalTo: insertContainer.trailingAnchor),
+            ])
+            bottomRow.addSubview(insertContainer)
 
             NSLayoutConstraint.activate([
                 backBtn.leadingAnchor.constraint(equalTo: bottomRow.leadingAnchor),
@@ -1926,11 +1939,11 @@ class KeyboardViewController: UIInputViewController {
                 spaceBtn.topAnchor.constraint(equalTo: bottomRow.topAnchor),
                 spaceBtn.bottomAnchor.constraint(equalTo: bottomRow.bottomAnchor),
 
-                insertBtn.leadingAnchor.constraint(equalTo: spaceBtn.trailingAnchor, constant: keySpacing),
-                insertBtn.trailingAnchor.constraint(equalTo: bottomRow.trailingAnchor),
-                insertBtn.topAnchor.constraint(equalTo: bottomRow.topAnchor),
-                insertBtn.bottomAnchor.constraint(equalTo: bottomRow.bottomAnchor),
-                insertBtn.widthAnchor.constraint(equalToConstant: 90),
+                insertContainer.leadingAnchor.constraint(equalTo: spaceBtn.trailingAnchor, constant: keySpacing),
+                insertContainer.trailingAnchor.constraint(equalTo: bottomRow.trailingAnchor),
+                insertContainer.topAnchor.constraint(equalTo: bottomRow.topAnchor),
+                insertContainer.bottomAnchor.constraint(equalTo: bottomRow.bottomAnchor),
+                insertContainer.widthAnchor.constraint(equalToConstant: 90),
             ])
         }
 
@@ -1969,4 +1982,23 @@ class KeyboardViewController: UIInputViewController {
 
         return btn
     }
+}
+
+// MARK: - GradientView (auto-sizing gradient for Auto Layout)
+private class GradientView: UIView {
+    override class var layerClass: AnyClass { CAGradientLayer.self }
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        guard let g = layer as? CAGradientLayer else { return }
+        g.colors = [
+            UIColor(red: 1.0, green: 0.23, blue: 0.19, alpha: 1.0).cgColor,
+            UIColor(red: 0.91, green: 0.12, blue: 0.39, alpha: 1.0).cgColor,
+            UIColor(red: 0.48, green: 0.18, blue: 0.74, alpha: 1.0).cgColor,
+        ]
+        g.startPoint = CGPoint(x: 0, y: 0.5)
+        g.endPoint = CGPoint(x: 1, y: 0.5)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
 }
