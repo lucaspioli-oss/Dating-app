@@ -35,6 +35,11 @@ workflows:
           rm -rf ios
           flutter create --org com.desenrolaai --project-name app --platforms ios .
 
+          # Remove SceneDelegate (new Flutter generates scene-based lifecycle
+          # which breaks our custom AppDelegate that accesses window?.rootViewController)
+          rm -f ios/Runner/SceneDelegate.swift
+          /usr/libexec/PlistBuddy -c "Delete :UIApplicationSceneManifest" ios/Runner/Info.plist 2>/dev/null || true
+
           # Restore custom files
           cp /tmp/AppDelegate.swift ios/Runner/AppDelegate.swift
           if [ -f /tmp/GoogleService-Info.plist ]; then
