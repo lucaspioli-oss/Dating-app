@@ -91,6 +91,7 @@ class KeyboardViewController: UIInputViewController {
     private var isLoadingSuggestions = false
     private var writeOwnText: String = ""
     private var isShiftActive: Bool = true
+    private var isSearchActive: Bool = false
 
     // Shared config
     private var sharedDefaults: UserDefaults? {
@@ -166,113 +167,160 @@ class KeyboardViewController: UIInputViewController {
             titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
         ])
 
-        // Search label (shows current filter text)
-        let searchLabel = UILabel()
-        searchLabel.text = searchText.isEmpty ? "🔍 Buscar..." : "🔍 \(searchText)"
-        searchLabel.textColor = searchText.isEmpty ? Theme.textSecondary : .white
-        searchLabel.backgroundColor = Theme.cardBg
-        searchLabel.font = UIFont.systemFont(ofSize: 13)
-        searchLabel.layer.cornerRadius = 8
-        searchLabel.clipsToBounds = true
-        searchLabel.translatesAutoresizingMaskIntoConstraints = false
-        containerView.addSubview(searchLabel)
-
-        // Add padding to label
+        // Search bar (tappable — opens QWERTY overlay)
         let searchContainer = UIView()
-        searchContainer.backgroundColor = Theme.cardBg
+        searchContainer.backgroundColor = isSearchActive ? Theme.rose.withAlphaComponent(0.15) : Theme.cardBg
         searchContainer.layer.cornerRadius = 8
+        if isSearchActive {
+            searchContainer.layer.borderWidth = 0.5
+            searchContainer.layer.borderColor = Theme.rose.withAlphaComponent(0.5).cgColor
+        }
         searchContainer.translatesAutoresizingMaskIntoConstraints = false
+        searchContainer.isUserInteractionEnabled = true
+        let searchTap = UITapGestureRecognizer(target: self, action: #selector(searchBarTapped))
+        searchContainer.addGestureRecognizer(searchTap)
         containerView.addSubview(searchContainer)
+
+        let searchLabel = UILabel()
+        searchLabel.text = searchText.isEmpty ? "🔍 Buscar perfil..." : "🔍 \(searchText)"
+        searchLabel.textColor = searchText.isEmpty ? Theme.textSecondary : .white
+        searchLabel.font = UIFont.systemFont(ofSize: 13)
+        searchLabel.translatesAutoresizingMaskIntoConstraints = false
         searchContainer.addSubview(searchLabel)
 
         NSLayoutConstraint.activate([
             searchContainer.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
             searchContainer.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
             searchContainer.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
-            searchContainer.heightAnchor.constraint(equalToConstant: 26),
+            searchContainer.heightAnchor.constraint(equalToConstant: 28),
             searchLabel.leadingAnchor.constraint(equalTo: searchContainer.leadingAnchor, constant: 8),
             searchLabel.trailingAnchor.constraint(equalTo: searchContainer.trailingAnchor, constant: -8),
             searchLabel.centerYAnchor.constraint(equalTo: searchContainer.centerYAnchor),
         ])
 
-        // QWERTY mini keyboard for search
-        let qwertyView = makeQWERTYKeyboard(forSearch: true)
-        containerView.addSubview(qwertyView)
+        if isSearchActive {
+            // --- QWERTY overlay mode: keyboard + filtered results ---
+            let qwertyView = makeQWERTYKeyboard(forSearch: true)
+            containerView.addSubview(qwertyView)
 
-        NSLayoutConstraint.activate([
-            qwertyView.topAnchor.constraint(equalTo: searchContainer.bottomAnchor, constant: 3),
-            qwertyView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 4),
-            qwertyView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -4),
-            qwertyView.heightAnchor.constraint(equalToConstant: 82),
-        ])
+            NSLayoutConstraint.activate([
+                qwertyView.topAnchor.constraint(equalTo: searchContainer.bottomAnchor, constant: 3),
+                qwertyView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 4),
+                qwertyView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -4),
+                qwertyView.heightAnchor.constraint(equalToConstant: 82),
+            ])
 
-        // Profile list
-        let scrollView = UIScrollView()
-        scrollView.translatesAutoresizingMaskIntoConstraints = false
-        scrollView.showsHorizontalScrollIndicator = false
-        containerView.addSubview(scrollView)
+            // Filtered profile list below QWERTY
+            let scrollView = UIScrollView()
+            scrollView.translatesAutoresizingMaskIntoConstraints = false
+            scrollView.showsHorizontalScrollIndicator = false
+            containerView.addSubview(scrollView)
 
-        NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: qwertyView.bottomAnchor, constant: 4),
-            scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
-            scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
-            scrollView.heightAnchor.constraint(equalToConstant: 56),
-        ])
+            NSLayoutConstraint.activate([
+                scrollView.topAnchor.constraint(equalTo: qwertyView.bottomAnchor, constant: 4),
+                scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+                scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+                scrollView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -4),
+            ])
 
-        let stackView = UIStackView()
-        stackView.axis = .horizontal
-        stackView.spacing = 8
-        stackView.translatesAutoresizingMaskIntoConstraints = false
-        scrollView.addSubview(stackView)
+            let stackView = UIStackView()
+            stackView.axis = .horizontal
+            stackView.spacing = 8
+            stackView.translatesAutoresizingMaskIntoConstraints = false
+            scrollView.addSubview(stackView)
 
-        NSLayoutConstraint.activate([
-            stackView.topAnchor.constraint(equalTo: scrollView.topAnchor),
-            stackView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
-            stackView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
-            stackView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
-            stackView.heightAnchor.constraint(equalTo: scrollView.heightAnchor),
-        ])
+            NSLayoutConstraint.activate([
+                stackView.topAnchor.constraint(equalTo: scrollView.topAnchor),
+                stackView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
+                stackView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
+                stackView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
+                stackView.heightAnchor.constraint(equalTo: scrollView.heightAnchor),
+            ])
 
-        if isLoadingProfiles {
-            let l = makeLabel("Carregando perfis...", size: 12)
-            l.textColor = Theme.textSecondary
-            stackView.addArrangedSubview(l)
-        } else if let error = profilesError {
-            let l = makeLabel(error, size: 11)
-            l.textColor = Theme.errorText
-            l.numberOfLines = 2
-            stackView.addArrangedSubview(l)
-        } else if filteredConversations.isEmpty && !searchText.isEmpty {
-            let l = makeLabel("Nenhum perfil encontrado", size: 12)
-            l.textColor = Theme.textSecondary
-            stackView.addArrangedSubview(l)
-        } else if conversations.isEmpty {
-            let l = makeLabel("Nenhum perfil criado.\nCrie um perfil no app primeiro.", size: 12)
-            l.textColor = Theme.textSecondary
-            l.numberOfLines = 2
-            stackView.addArrangedSubview(l)
-        } else {
-            for (index, conv) in filteredConversations.enumerated() {
-                stackView.addArrangedSubview(makeProfileButton(conv, tag: index))
+            if filteredConversations.isEmpty && !searchText.isEmpty {
+                let l = makeLabel("Nenhum perfil encontrado", size: 12)
+                l.textColor = Theme.textSecondary
+                stackView.addArrangedSubview(l)
+            } else {
+                for (index, conv) in filteredConversations.enumerated() {
+                    stackView.addArrangedSubview(makeProfileButton(conv, tag: index))
+                }
             }
+
+        } else {
+            // --- Normal mode: profiles + quick button visible ---
+            let scrollView = UIScrollView()
+            scrollView.translatesAutoresizingMaskIntoConstraints = false
+            scrollView.showsHorizontalScrollIndicator = false
+            containerView.addSubview(scrollView)
+
+            NSLayoutConstraint.activate([
+                scrollView.topAnchor.constraint(equalTo: searchContainer.bottomAnchor, constant: 8),
+                scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+                scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+                scrollView.heightAnchor.constraint(equalToConstant: 80),
+            ])
+
+            let stackView = UIStackView()
+            stackView.axis = .horizontal
+            stackView.spacing = 8
+            stackView.translatesAutoresizingMaskIntoConstraints = false
+            scrollView.addSubview(stackView)
+
+            NSLayoutConstraint.activate([
+                stackView.topAnchor.constraint(equalTo: scrollView.topAnchor),
+                stackView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
+                stackView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
+                stackView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
+                stackView.heightAnchor.constraint(equalTo: scrollView.heightAnchor),
+            ])
+
+            if isLoadingProfiles {
+                let l = makeLabel("Carregando perfis...", size: 12)
+                l.textColor = Theme.textSecondary
+                stackView.addArrangedSubview(l)
+            } else if let error = profilesError {
+                let l = makeLabel(error, size: 11)
+                l.textColor = Theme.errorText
+                l.numberOfLines = 2
+                stackView.addArrangedSubview(l)
+            } else if conversations.isEmpty {
+                let l = makeLabel("Nenhum perfil criado.\nCrie um perfil no app primeiro.", size: 12)
+                l.textColor = Theme.textSecondary
+                l.numberOfLines = 2
+                stackView.addArrangedSubview(l)
+            } else {
+                for (index, conv) in filteredConversations.enumerated() {
+                    stackView.addArrangedSubview(makeProfileButton(conv, tag: index))
+                }
+            }
+
+            let quickButton = makeGradientButton("⚡ Modo Rápido — sem perfil", fontSize: 13)
+            quickButton.addTarget(self, action: #selector(quickModeTapped), for: .touchUpInside)
+            containerView.addSubview(quickButton)
+
+            let switchBtn = makeKeyboardSwitchButton()
+            containerView.addSubview(switchBtn)
+
+            NSLayoutConstraint.activate([
+                quickButton.topAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: 8),
+                quickButton.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
+                quickButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -56),
+                quickButton.heightAnchor.constraint(equalToConstant: 36),
+                switchBtn.centerYAnchor.constraint(equalTo: quickButton.centerYAnchor),
+                switchBtn.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+                switchBtn.widthAnchor.constraint(equalToConstant: 32),
+            ])
         }
+    }
 
-        let quickButton = makeGradientButton("⚡ Modo Rápido — sem perfil", fontSize: 13)
-        quickButton.addTarget(self, action: #selector(quickModeTapped), for: .touchUpInside)
-        containerView.addSubview(quickButton)
-
-        let switchBtn = makeKeyboardSwitchButton()
-        containerView.addSubview(switchBtn)
-
-        NSLayoutConstraint.activate([
-            quickButton.topAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: 6),
-            quickButton.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
-            quickButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -56),
-            quickButton.heightAnchor.constraint(equalToConstant: 34),
-            switchBtn.centerYAnchor.constraint(equalTo: quickButton.centerYAnchor),
-            switchBtn.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
-            switchBtn.widthAnchor.constraint(equalToConstant: 32),
-        ])
+    @objc private func searchBarTapped() {
+        isSearchActive = !isSearchActive
+        if !isSearchActive {
+            searchText = ""
+            filteredConversations = conversations
+        }
+        renderCurrentState()
     }
 
     // MARK: - Estado 2: Awaiting Clipboard (PRO)
@@ -1041,6 +1089,7 @@ class KeyboardViewController: UIInputViewController {
         clipboardText = nil
         suggestions = []
         searchText = ""
+        isSearchActive = false
         previousClipboard = UIPasteboard.general.string
         currentState = .awaitingClipboard
         renderCurrentState()
@@ -1101,6 +1150,7 @@ class KeyboardViewController: UIInputViewController {
         if currentState == .profileSelector {
             searchText = ""
             filteredConversations = conversations
+            isSearchActive = false
             renderCurrentState()
         } else if currentState == .writeOwn {
             writeOwnText = ""
@@ -1117,6 +1167,7 @@ class KeyboardViewController: UIInputViewController {
     @objc private func quickModeTapped() {
         selectedConversation = nil
         suggestions = []
+        isSearchActive = false
         currentState = .basicMode
         renderCurrentState()
     }
@@ -1125,6 +1176,7 @@ class KeyboardViewController: UIInputViewController {
         stopClipboardPolling()
         suggestions = []
         searchText = ""
+        isSearchActive = false
         filteredConversations = conversations
         currentState = authToken != nil ? .profileSelector : .basicMode
         renderCurrentState()
