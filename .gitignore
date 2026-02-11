@@ -1,3 +1,20 @@
+# Secrets and keys
+.env
+.env.*
+ios_key
+ios_key.pub
+*.p8
+*.p12
+*.mobileprovision
+*.jks
+*.keystore
+
+# Firebase
+.firebase/
+
+# Claude
+.claude/
+
 # Logs
 logs
 *.log
