@@ -151,7 +151,7 @@ class KeyboardViewController: UIInputViewController {
             containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             containerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             containerView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            containerView.heightAnchor.constraint(equalToConstant: 220)
+            containerView.heightAnchor.constraint(equalToConstant: (currentState == .profileSelector && isSearchActive) ? 260 : 220)
         ])
 
         switch currentState {
@@ -166,15 +166,6 @@ class KeyboardViewController: UIInputViewController {
     // MARK: - Estado 1: Profile Selector
 
     private func renderProfileSelector() {
-        let titleLabel = makeLabel("Com quem você está falando?", size: 14, bold: true)
-        containerView.addSubview(titleLabel)
-
-        NSLayoutConstraint.activate([
-            titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
-            titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
-            titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
-        ])
-
         // Search bar (tappable — opens QWERTY overlay)
         let searchContainer = UIView()
         searchContainer.backgroundColor = isSearchActive ? Theme.rose.withAlphaComponent(0.15) : Theme.cardBg
@@ -196,18 +187,32 @@ class KeyboardViewController: UIInputViewController {
         searchLabel.translatesAutoresizingMaskIntoConstraints = false
         searchContainer.addSubview(searchLabel)
 
-        NSLayoutConstraint.activate([
-            searchContainer.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
-            searchContainer.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
-            searchContainer.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
-            searchContainer.heightAnchor.constraint(equalToConstant: 28),
-            searchLabel.leadingAnchor.constraint(equalTo: searchContainer.leadingAnchor, constant: 8),
-            searchLabel.trailingAnchor.constraint(equalTo: searchContainer.trailingAnchor, constant: -8),
-            searchLabel.centerYAnchor.constraint(equalTo: searchContainer.centerYAnchor),
-        ])
-
         if isSearchActive {
-            // --- QWERTY overlay mode: keyboard + filtered results ---
+            // --- SEARCH MODE: no title, input at top, QWERTY + profiles ---
+
+            // Blinking cursor in search bar
+            let cursor = UIView()
+            cursor.backgroundColor = Theme.rose
+            cursor.translatesAutoresizingMaskIntoConstraints = false
+            searchContainer.addSubview(cursor)
+
+            NSLayoutConstraint.activate([
+                searchContainer.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
+                searchContainer.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+                searchContainer.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+                searchContainer.heightAnchor.constraint(equalToConstant: 32),
+                searchLabel.leadingAnchor.constraint(equalTo: searchContainer.leadingAnchor, constant: 8),
+                searchLabel.centerYAnchor.constraint(equalTo: searchContainer.centerYAnchor),
+                cursor.leadingAnchor.constraint(equalTo: searchLabel.trailingAnchor, constant: 1),
+                cursor.centerYAnchor.constraint(equalTo: searchContainer.centerYAnchor),
+                cursor.widthAnchor.constraint(equalToConstant: 2),
+                cursor.heightAnchor.constraint(equalToConstant: 16),
+            ])
+
+            UIView.animate(withDuration: 0.6, delay: 0, options: [.repeat, .autoreverse, .curveEaseInOut], animations: {
+                cursor.alpha = 0
+            })
+
             let qwertyView = makeQWERTYKeyboard(forSearch: true)
             containerView.addSubview(qwertyView)
 
@@ -256,6 +261,22 @@ class KeyboardViewController: UIInputViewController {
             }
 
         } else {
+            // --- NORMAL MODE: title + search bar + profiles + quick button ---
+            let titleLabel = makeLabel("Com quem você está falando?", size: 14, bold: true)
+            containerView.addSubview(titleLabel)
+
+            NSLayoutConstraint.activate([
+                titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
+                titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
+                titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+                searchContainer.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
+                searchContainer.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+                searchContainer.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+                searchContainer.heightAnchor.constraint(equalToConstant: 28),
+                searchLabel.leadingAnchor.constraint(equalTo: searchContainer.leadingAnchor, constant: 8),
+                searchLabel.trailingAnchor.constraint(equalTo: searchContainer.trailingAnchor, constant: -8),
+                searchLabel.centerYAnchor.constraint(equalTo: searchContainer.centerYAnchor),
+            ])
             // --- Normal mode: profiles + quick button visible ---
             let scrollView = UIScrollView()
             scrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -523,6 +544,12 @@ class KeyboardViewController: UIInputViewController {
         writeLabel.translatesAutoresizingMaskIntoConstraints = false
         writeBar.addSubview(writeLabel)
 
+        // Blinking cursor in write bar
+        let writeCursor = UIView()
+        writeCursor.backgroundColor = Theme.rose
+        writeCursor.translatesAutoresizingMaskIntoConstraints = false
+        writeBar.addSubview(writeCursor)
+
         // Styled regen button
         let regenBtn = UIButton(type: .system)
         if #available(iOSApplicationExtension 13.0, *) {
@@ -565,7 +592,11 @@ class KeyboardViewController: UIInputViewController {
             writeIcon.centerYAnchor.constraint(equalTo: writeBar.centerYAnchor),
             writeLabel.leadingAnchor.constraint(equalTo: writeIcon.trailingAnchor, constant: 4),
             writeLabel.centerYAnchor.constraint(equalTo: writeBar.centerYAnchor),
-            writeLabel.trailingAnchor.constraint(equalTo: writeBar.trailingAnchor, constant: -8),
+            writeCursor.leadingAnchor.constraint(equalTo: writeLabel.trailingAnchor, constant: 1),
+            writeCursor.centerYAnchor.constraint(equalTo: writeBar.centerYAnchor),
+            writeCursor.widthAnchor.constraint(equalToConstant: 1.5),
+            writeCursor.heightAnchor.constraint(equalToConstant: 14),
+            writeCursor.trailingAnchor.constraint(lessThanOrEqualTo: writeBar.trailingAnchor, constant: -4),
 
             regenBtn.leadingAnchor.constraint(equalTo: writeBar.trailingAnchor, constant: 6),
             regenBtn.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor),
@@ -578,6 +609,10 @@ class KeyboardViewController: UIInputViewController {
             tonePill.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor),
             tonePill.trailingAnchor.constraint(lessThanOrEqualTo: bottomBar.trailingAnchor),
         ])
+
+        UIView.animate(withDuration: 0.6, delay: 0, options: [.repeat, .autoreverse, .curveEaseInOut], animations: {
+            writeCursor.alpha = 0
+        })
     }
 
     private func makeSuggestionCard(index: Int, text: String, isBasicMode: Bool = false) -> UIView {
@@ -657,9 +692,7 @@ class KeyboardViewController: UIInputViewController {
         let cursor = UIView()
         cursor.backgroundColor = Theme.rose
         cursor.translatesAutoresizingMaskIntoConstraints = false
-        if !writeOwnText.isEmpty {
-            textDisplay.addSubview(cursor)
-        }
+        textDisplay.addSubview(cursor)
 
         // QWERTY keyboard for typing
         let qwertyView = makeQWERTYKeyboard(forSearch: false)
@@ -682,14 +715,16 @@ class KeyboardViewController: UIInputViewController {
             qwertyView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -4),
         ])
 
-        if !writeOwnText.isEmpty {
-            NSLayoutConstraint.activate([
-                cursor.leadingAnchor.constraint(equalTo: displayLabel.trailingAnchor, constant: 1),
-                cursor.centerYAnchor.constraint(equalTo: textDisplay.centerYAnchor),
-                cursor.widthAnchor.constraint(equalToConstant: 2),
-                cursor.heightAnchor.constraint(equalToConstant: 18),
-            ])
-        }
+        NSLayoutConstraint.activate([
+            cursor.leadingAnchor.constraint(equalTo: displayLabel.trailingAnchor, constant: 1),
+            cursor.centerYAnchor.constraint(equalTo: textDisplay.centerYAnchor),
+            cursor.widthAnchor.constraint(equalToConstant: 2),
+            cursor.heightAnchor.constraint(equalToConstant: 18),
+        ])
+
+        UIView.animate(withDuration: 0.6, delay: 0, options: [.repeat, .autoreverse, .curveEaseInOut], animations: {
+            cursor.alpha = 0
+        })
     }
 
     // MARK: - Estado 4: Basic Mode
@@ -1884,18 +1919,25 @@ class KeyboardViewController: UIInputViewController {
                 bkspBtn.addTarget(self, action: #selector(qwertyBackspaceTapped), for: .touchUpInside)
                 rowView.addSubview(bkspBtn)
 
-                // Clear button
+                // Clear/close button
                 let clearBtn = UIButton(type: .system)
-                clearBtn.setTitle("✕", for: .normal)
-                clearBtn.setTitleColor(Theme.errorText, for: .normal)
-                clearBtn.backgroundColor = Theme.suggestionBg
+                if forSearch {
+                    clearBtn.setTitle("Fechar", for: .normal)
+                    clearBtn.setTitleColor(.white, for: .normal)
+                    clearBtn.backgroundColor = Theme.rose.withAlphaComponent(0.6)
+                } else {
+                    clearBtn.setTitle("✕", for: .normal)
+                    clearBtn.setTitleColor(Theme.errorText, for: .normal)
+                    clearBtn.backgroundColor = Theme.suggestionBg
+                }
                 clearBtn.layer.cornerRadius = 5
-                clearBtn.titleLabel?.font = UIFont.systemFont(ofSize: forSearch ? 11 : 13)
+                clearBtn.titleLabel?.font = UIFont.systemFont(ofSize: forSearch ? 10 : 13, weight: forSearch ? .semibold : .regular)
                 clearBtn.translatesAutoresizingMaskIntoConstraints = false
                 clearBtn.addTarget(self, action: #selector(qwertyClearTapped), for: .touchUpInside)
                 rowView.addSubview(clearBtn)
 
                 let shiftWidth: CGFloat = forSearch ? 28 : 36
+                let clearWidth: CGFloat = forSearch ? 44 : 30
                 NSLayoutConstraint.activate([
                     rowStack.leadingAnchor.constraint(equalTo: rowView.leadingAnchor, constant: shiftWidth + keySpacing),
                     rowStack.topAnchor.constraint(equalTo: rowView.topAnchor),
@@ -1908,7 +1950,7 @@ class KeyboardViewController: UIInputViewController {
                     clearBtn.trailingAnchor.constraint(equalTo: rowView.trailingAnchor),
                     clearBtn.topAnchor.constraint(equalTo: rowView.topAnchor),
                     clearBtn.bottomAnchor.constraint(equalTo: rowView.bottomAnchor),
-                    clearBtn.widthAnchor.constraint(equalToConstant: forSearch ? 24 : 30),
+                    clearBtn.widthAnchor.constraint(equalToConstant: clearWidth),
                 ])
             } else {
                 NSLayoutConstraint.activate([
