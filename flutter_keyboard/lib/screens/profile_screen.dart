@@ -1,7 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../providers/user_profile_provider.dart';
 import '../models/user_profile.dart';
@@ -422,36 +420,14 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         const SizedBox(height: 16),
 
         if (isActive) ...[
-          // Detect if subscription is via Stripe or Apple IAP
-          if (details?.stripeSubscriptionId != null) ...[
-            // Stripe subscription - contact support to manage
-            OutlinedButton.icon(
-              onPressed: () => _contactSupportForSubscription(),
-              icon: const Icon(Icons.mail_outline),
-              label: const Text('Contatar Suporte'),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.all(16),
-              ),
+          OutlinedButton.icon(
+            onPressed: () => _openSubscriptionManagement(),
+            icon: const Icon(Icons.settings),
+            label: const Text('Gerenciar Assinatura'),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.all(16),
             ),
-            const SizedBox(height: 4),
-            Text(
-              'Entre em contato com o suporte para alterações na sua assinatura.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ] else ...[
-            // Apple IAP subscription - manage via App Store
-            OutlinedButton.icon(
-              onPressed: () => _openSubscriptionManagement(),
-              icon: const Icon(Icons.settings),
-              label: const Text('Gerenciar Assinatura'),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.all(16),
-              ),
-            ),
-          ],
+          ),
         ] else ...[
           // No subscription - navigate to Apple IAP subscription screen
           FilledButton.icon(
@@ -473,25 +449,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         ],
       ],
     );
-  }
-
-  Future<void> _contactSupportForSubscription() async {
-    final user = FirebaseAuth.instance.currentUser;
-    final email = Uri.encodeComponent(user?.email ?? '');
-    final subject = Uri.encodeComponent('Gerenciar assinatura - Desenrola AI');
-    final body = Uri.encodeComponent('Olá, gostaria de gerenciar minha assinatura.\n\nEmail da conta: ${user?.email ?? ""}');
-    final url = Uri.parse('mailto:suporte@desenrolaai.com?subject=$subject&body=$body');
-    try {
-      await launchUrl(url);
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Envie um email para suporte@desenrolaai.com'),
-          ),
-        );
-      }
-    }
   }
 
   Future<void> _openSubscriptionManagement() async {
