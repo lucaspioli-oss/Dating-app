@@ -1431,7 +1431,8 @@ class KeyboardViewController: UIInputViewController {
                     DispatchQueue.main.async {
                         self?.isLoadingProfiles = false
                         self?.profilesError = "Erro ao processar: \(error.localizedDescription)"
-                    self?.renderCurrentState()
+                        self?.renderCurrentState()
+                    }
                 }
             }
         }.resume()
