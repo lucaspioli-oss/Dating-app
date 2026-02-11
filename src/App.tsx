@@ -10,22 +10,9 @@ import CheckoutAnual from "./pages/CheckoutAnual"
 import Success from "./pages/Success"
 import Teste from "./pages/Teste"
 
-// Game Funnel Pages
-import GameLanding from "./pages/game/Landing"
-import GameIncomingCall from "./pages/game/IncomingCall"
-import GameCallCode from "./pages/game/CallCode"
-import GameDialer from "./pages/game/Dialer"
-import GameCallAna from "./pages/game/CallAna"
-import GamePhoneNotification from "./pages/game/PhoneNotification"
-import GameChat from "./pages/game/Chat"
-import GameCheckout from "./pages/game/Checkout"
-import GameTikTokFeed from "./pages/game/TikTokFeed"
-import GameTikTokProfile from "./pages/game/TikTokProfile"
-
 function App() {
   return (
     <Switch>
-      {/* Funil Original */}
       <Route path="/" component={Landing} />
       <Route path="/quiz" component={Quiz} />
       <Route path="/result" component={Result} />
@@ -36,18 +23,6 @@ function App() {
       <Route path="/checkout/anual" component={CheckoutAnual} />
       <Route path="/success" component={Success} />
       <Route path="/teste" component={Teste} />
-
-      {/* Funil Game - Ligação */}
-      <Route path="/game" component={GameLanding} />
-      <Route path="/game/ligacao" component={GameIncomingCall} />
-      <Route path="/game/ligacao/code" component={GameCallCode} />
-      <Route path="/game/discar" component={GameDialer} />
-      <Route path="/game/ligacao/ana" component={GameCallAna} />
-      <Route path="/game/notificacao" component={GamePhoneNotification} />
-      <Route path="/game/chat" component={GameChat} />
-      <Route path="/game/checkout" component={GameCheckout} />
-      <Route path="/game/tiktok" component={GameTikTokFeed} />
-      <Route path="/game/tiktok/perfil" component={GameTikTokProfile} />
 
       <Route>
         <div className="min-h-screen flex items-center justify-center bg-[hsl(280,40%,2%)] text-white">
