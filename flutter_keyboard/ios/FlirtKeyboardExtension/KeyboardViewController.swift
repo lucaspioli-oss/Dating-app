@@ -118,8 +118,16 @@ class KeyboardViewController: UIInputViewController {
         previousClipboard = UIPasteboard.general.string
 
         if authToken != nil {
-            currentState = .profileSelector
-            fetchConversations()
+            // Try to restore previously selected conversation
+            if let saved = restoreSavedConversation() {
+                selectedConversation = saved
+                currentState = .awaitingClipboard
+                // Also fetch conversations in background so back button works
+                fetchConversations(silent: true)
+            } else {
+                currentState = .profileSelector
+                fetchConversations()
+            }
         } else {
             currentState = .basicMode
         }
@@ -1086,6 +1094,7 @@ class KeyboardViewController: UIInputViewController {
         let index = sender.tag
         guard index < filteredConversations.count else { return }
         selectedConversation = filteredConversations[index]
+        saveSelectedConversation(selectedConversation)
         clipboardText = nil
         suggestions = []
         searchText = ""
@@ -1166,6 +1175,7 @@ class KeyboardViewController: UIInputViewController {
 
     @objc private func quickModeTapped() {
         selectedConversation = nil
+        saveSelectedConversation(nil)
         suggestions = []
         isSearchActive = false
         currentState = .basicMode
@@ -1177,6 +1187,8 @@ class KeyboardViewController: UIInputViewController {
         suggestions = []
         searchText = ""
         isSearchActive = false
+        selectedConversation = nil
+        saveSelectedConversation(nil)
         filteredConversations = conversations
         currentState = authToken != nil ? .profileSelector : .basicMode
         renderCurrentState()
@@ -1267,18 +1279,56 @@ class KeyboardViewController: UIInputViewController {
 
     // MARK: - Network
 
-    private func fetchConversations() {
+    // MARK: - Persist Selected Conversation
+
+    private func saveSelectedConversation(_ conv: ConversationContext?) {
+        guard let defaults = sharedDefaults else { return }
+        if let conv = conv {
+            defaults.set(conv.conversationId, forKey: "kb_selectedConvId")
+            defaults.set(conv.profileId, forKey: "kb_selectedProfileId")
+            defaults.set(conv.matchName, forKey: "kb_selectedMatchName")
+            defaults.set(conv.platform, forKey: "kb_selectedPlatform")
+            defaults.set(conv.lastMessage, forKey: "kb_selectedLastMsg")
+        } else {
+            defaults.removeObject(forKey: "kb_selectedConvId")
+            defaults.removeObject(forKey: "kb_selectedProfileId")
+            defaults.removeObject(forKey: "kb_selectedMatchName")
+            defaults.removeObject(forKey: "kb_selectedPlatform")
+            defaults.removeObject(forKey: "kb_selectedLastMsg")
+        }
+        defaults.synchronize()
+    }
+
+    private func restoreSavedConversation() -> ConversationContext? {
+        guard let defaults = sharedDefaults,
+              let name = defaults.string(forKey: "kb_selectedMatchName"),
+              !name.isEmpty else { return nil }
+        return ConversationContext(
+            conversationId: defaults.string(forKey: "kb_selectedConvId"),
+            profileId: defaults.string(forKey: "kb_selectedProfileId"),
+            matchName: name,
+            platform: defaults.string(forKey: "kb_selectedPlatform") ?? "tinder",
+            lastMessage: defaults.string(forKey: "kb_selectedLastMsg"),
+            faceImageBase64: nil
+        )
+    }
+
+    private func fetchConversations(silent: Bool = false) {
         guard let token = authToken,
               let url = URL(string: "\(backendUrl)/keyboard/context") else {
-            isLoadingProfiles = false
-            profilesError = "Token não encontrado. Abra o app para fazer login."
-            renderCurrentState()
+            if !silent {
+                isLoadingProfiles = false
+                profilesError = "Token não encontrado. Abra o app para fazer login."
+                renderCurrentState()
+            }
             return
         }
 
-        isLoadingProfiles = true
-        profilesError = nil
-        renderCurrentState()
+        if !silent {
+            isLoadingProfiles = true
+            profilesError = nil
+            renderCurrentState()
+        }
 
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
@@ -1286,53 +1336,63 @@ class KeyboardViewController: UIInputViewController {
         request.timeoutInterval = 10
 
         URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
-            if let error = error {
-                DispatchQueue.main.async {
-                    self?.isLoadingProfiles = false
-                    self?.profilesError = "Erro de conexão: \(error.localizedDescription)"
-                    self?.renderCurrentState()
+            if error != nil {
+                if !silent {
+                    DispatchQueue.main.async {
+                        self?.isLoadingProfiles = false
+                        self?.profilesError = "Erro de conexão"
+                        self?.renderCurrentState()
+                    }
                 }
                 return
             }
 
             guard let http = response as? HTTPURLResponse else {
-                DispatchQueue.main.async {
-                    self?.isLoadingProfiles = false
-                    self?.profilesError = "Sem resposta do servidor."
-                    self?.renderCurrentState()
+                if !silent {
+                    DispatchQueue.main.async {
+                        self?.isLoadingProfiles = false
+                        self?.profilesError = "Sem resposta do servidor."
+                        self?.renderCurrentState()
+                    }
                 }
                 return
             }
 
             if http.statusCode == 401 || http.statusCode == 403 {
-                DispatchQueue.main.async {
-                    self?.isLoadingProfiles = false
-                    self?.profilesError = "Sessão expirada. Abra o app para renovar."
-                    self?.renderCurrentState()
+                if !silent {
+                    DispatchQueue.main.async {
+                        self?.isLoadingProfiles = false
+                        self?.profilesError = "Sessão expirada. Abra o app para renovar."
+                        self?.renderCurrentState()
+                    }
                 }
                 return
             }
 
             guard let data = data else {
-                DispatchQueue.main.async {
-                    self?.isLoadingProfiles = false
-                    self?.profilesError = "Sem dados (HTTP \(http.statusCode))."
-                    self?.renderCurrentState()
+                if !silent {
+                    DispatchQueue.main.async {
+                        self?.isLoadingProfiles = false
+                        self?.profilesError = "Sem dados (HTTP \(http.statusCode))."
+                        self?.renderCurrentState()
+                    }
                 }
                 return
             }
 
             // Handle non-200 status codes
             if http.statusCode != 200 {
-                var errorMsg = "Erro do servidor (HTTP \(http.statusCode))"
-                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let msg = json["message"] as? String ?? json["error"] as? String {
-                    errorMsg = msg
-                }
-                DispatchQueue.main.async {
-                    self?.isLoadingProfiles = false
-                    self?.profilesError = errorMsg
-                    self?.renderCurrentState()
+                if !silent {
+                    var errorMsg = "Erro do servidor (HTTP \(http.statusCode))"
+                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let msg = json["message"] as? String ?? json["error"] as? String {
+                        errorMsg = msg
+                    }
+                    DispatchQueue.main.async {
+                        self?.isLoadingProfiles = false
+                        self?.profilesError = errorMsg
+                        self?.renderCurrentState()
+                    }
                 }
                 return
             }
@@ -1356,10 +1416,9 @@ class KeyboardViewController: UIInputViewController {
                         self?.filteredConversations = contexts
                         self?.isLoadingProfiles = false
                         self?.profilesError = nil
-                        self?.renderCurrentState()
+                        if !silent { self?.renderCurrentState() }
                     }
-                } else {
-                    // Show raw response for debugging
+                } else if !silent {
                     let raw = String(data: data, encoding: .utf8) ?? "?"
                     DispatchQueue.main.async {
                         self?.isLoadingProfiles = false
@@ -1368,9 +1427,10 @@ class KeyboardViewController: UIInputViewController {
                     }
                 }
             } catch {
-                DispatchQueue.main.async {
-                    self?.isLoadingProfiles = false
-                    self?.profilesError = "Erro ao processar: \(error.localizedDescription)"
+                if !silent {
+                    DispatchQueue.main.async {
+                        self?.isLoadingProfiles = false
+                        self?.profilesError = "Erro ao processar: \(error.localizedDescription)"
                     self?.renderCurrentState()
                 }
             }
