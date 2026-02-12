@@ -35,9 +35,10 @@ workflows:
           rm -rf ios
           flutter create --org com.desenrolaai --project-name app --platforms ios .
 
-          # Remove SceneDelegate (new Flutter generates scene-based lifecycle
-          # which breaks our custom AppDelegate that accesses window?.rootViewController)
-          rm -f ios/Runner/SceneDelegate.swift
+          # Disable scene-based lifecycle (new Flutter generates SceneDelegate which
+          # breaks our custom AppDelegate that accesses window?.rootViewController).
+          # Keep SceneDelegate.swift so Xcode can compile it, but remove the manifest
+          # so iOS uses the traditional AppDelegate lifecycle instead.
           /usr/libexec/PlistBuddy -c "Delete :UIApplicationSceneManifest" ios/Runner/Info.plist 2>/dev/null || true
 
           # Restore custom files
