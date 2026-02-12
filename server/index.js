@@ -915,10 +915,87 @@ fastify.post('/apple/activate-subscription', {
         });
     }
 });
+// === GDPR: Delete user account and all associated data ===
+fastify.delete('/user/account', { preHandler: [auth_1.verifyAuthOnly] }, async (request, reply) => {
+    try {
+        const admin = require('firebase-admin');
+        const db = admin.firestore();
+        const userId = request.user.uid;
+        const batch = db.batch();
+        // Delete user document
+        batch.delete(db.collection('users').doc(userId));
+        // Delete profile
+        batch.delete(db.collection('profiles').doc(userId));
+        // Delete analytics
+        batch.delete(db.collection('analytics').doc(userId));
+        // Delete conversations
+        const conversationsSnapshot = await db.collection('conversations')
+            .where('userId', '==', userId)
+            .get();
+        conversationsSnapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        // Delete subscriptions
+        const subscriptionsSnapshot = await db.collection('subscriptions')
+            .where('userId', '==', userId)
+            .get();
+        subscriptionsSnapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        // Delete training feedback
+        const feedbackSnapshot = await db.collection('trainingFeedback')
+            .where('userId', '==', userId)
+            .get();
+        feedbackSnapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        await batch.commit();
+        // Delete Firebase Auth user
+        await admin.auth().deleteUser(userId);
+        return reply.code(200).send({ success: true, message: 'Account and all data deleted' });
+    }
+    catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send({
+            error: 'Failed to delete account',
+            message: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+// === Cron: Check expired subscriptions every 24h ===
+async function checkExpiredSubscriptions() {
+    try {
+        const admin = require('firebase-admin');
+        const db = admin.firestore();
+        const now = new Date();
+        const expiredSnapshot = await db.collection('users')
+            .where('subscription.status', '==', 'active')
+            .where('subscription.expiresAt', '<', now)
+            .get();
+        if (expiredSnapshot.empty) {
+            console.log('Subscription check: no expired subscriptions found');
+            return;
+        }
+        const batch = db.batch();
+        expiredSnapshot.docs.forEach(doc => {
+            batch.update(doc.ref, {
+                'subscription.status': 'expired',
+            });
+        });
+        await batch.commit();
+        console.log(`Subscription check: marked ${expiredSnapshot.size} subscriptions as expired`);
+    }
+    catch (error) {
+        console.error('Subscription check failed:', error.message || error);
+    }
+}
 const start = async () => {
     try {
         await fastify.listen({ port: env_1.env.PORT, host: '0.0.0.0' });
-        console.log(`🚀 Servidor rodando na porta ${env_1.env.PORT}`);
+        console.log(`Servidor rodando na porta ${env_1.env.PORT}`);
+        // Run subscription check on startup, then every 24h
+        checkExpiredSubscriptions();
+        setInterval(checkExpiredSubscriptions, 24 * 60 * 60 * 1000);
     }
     catch (err) {
         fastify.log.error(err);

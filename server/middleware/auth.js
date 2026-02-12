@@ -74,13 +74,26 @@ async function verifyAuth(request, reply) {
         // Verify Firebase token
         const decodedToken = await admin.auth().verifyIdToken(token);
         // Check subscription status
-        const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+        let userDoc = await db.collection('users').doc(decodedToken.uid).get();
         if (!userDoc.exists) {
-            reply.code(403).send({
-                error: 'Forbidden',
-                message: 'User not found',
-            });
-            return;
+            // Auto-create user document on first authenticated request
+            const newUser = {
+                id: decodedToken.uid,
+                email: decodedToken.email || '',
+                displayName: decodedToken.name || 'Usuário',
+                createdAt: new Date(),
+                subscription: {
+                    status: 'inactive',
+                    plan: 'none',
+                },
+                stats: {
+                    totalConversations: 0,
+                    totalMessages: 0,
+                    aiSuggestionsUsed: 0,
+                },
+            };
+            await db.collection('users').doc(decodedToken.uid).set(newUser);
+            userDoc = await db.collection('users').doc(decodedToken.uid).get();
         }
         const userData = userDoc.data();
         const subscription = userData?.subscription;
