@@ -198,7 +198,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
       _PlatformInfo(PlatformType.hinge, 'Hinge', 'assets/images/hinge.png', const Color(0xFF8B5CF6)),
       _PlatformInfo(PlatformType.happn, 'Happn', null, const Color(0xFFFF9500)),
       _PlatformInfo(PlatformType.umatch, 'Umatch', null, const Color(0xFF00C853)),
-      _PlatformInfo(PlatformType.whatsapp, 'WhatsApp', null, const Color(0xFF25D366)),
+      _PlatformInfo(PlatformType.whatsapp, 'WhatsApp', 'assets/images/whatsapp.png', const Color(0xFF25D366)),
       _PlatformInfo(PlatformType.outro, 'Outro', null, const Color(0xFF6B7280)),
     ];
 
