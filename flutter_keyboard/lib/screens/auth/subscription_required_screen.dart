@@ -42,21 +42,11 @@ class _SubscriptionRequiredScreenState
         case PurchaseStatus.purchased:
         case PurchaseStatus.restored:
           setState(() => _isPurchasing = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Assinatura ativada com sucesso!'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          AppSnackBar.success(context, 'Assinatura ativada com sucesso!');
           break;
         case PurchaseStatus.error:
           setState(() => _isPurchasing = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Erro ao processar compra. Tente novamente.'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          AppSnackBar.error(context, 'Erro ao processar compra. Tente novamente.');
           break;
         case PurchaseStatus.canceled:
           setState(() => _isPurchasing = false);
@@ -79,7 +69,7 @@ class _SubscriptionRequiredScreenState
     final authService = FirebaseAuthService();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D1A),
+      backgroundColor: AppColors.backgroundDark,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.only(
@@ -97,7 +87,7 @@ class _SubscriptionRequiredScreenState
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   fontSize: 28,
                 ),
               ),
@@ -107,7 +97,7 @@ class _SubscriptionRequiredScreenState
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   fontSize: 22,
                 ),
               ),
@@ -116,7 +106,7 @@ class _SubscriptionRequiredScreenState
                 'Desbloqueie todo o potencial do Desenrola AI',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.grey[400],
+                  color: AppColors.textTertiary,
                   fontSize: 14,
                 ),
               ),
@@ -126,7 +116,7 @@ class _SubscriptionRequiredScreenState
               if (_isLoadingProducts)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 40),
-                  child: CircularProgressIndicator(color: Color(0xFFE91E63)),
+                  child: CircularProgressIndicator(color: AppColors.primary),
                 )
               else
                 Column(
@@ -171,7 +161,7 @@ class _SubscriptionRequiredScreenState
                       },
                 child: Text(
                   'Restaurar compras',
-                  style: TextStyle(color: Colors.grey[400], fontSize: 13),
+                  style: TextStyle(color: AppColors.textTertiary, fontSize: 13),
                 ),
               ),
 
@@ -212,20 +202,20 @@ class _SubscriptionRequiredScreenState
       onTap: () => setState(() => _selectedPlan = index),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A2E),
+          color: AppColors.surfaceDark,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isPopular
-                ? const Color(0xFFE91E63)
+                ? AppColors.primary
                 : (isSelected
-                    ? const Color(0xFFE91E63).withOpacity(0.5)
-                    : const Color(0xFF2A2A3E)),
+                    ? AppColors.primary.withOpacity(0.5)
+                    : AppColors.elevatedDark),
             width: isPopular ? 2 : 1,
           ),
           boxShadow: isPopular
               ? [
                   BoxShadow(
-                    color: const Color(0xFFE91E63).withOpacity(0.2),
+                    color: AppColors.primary.withOpacity(0.2),
                     blurRadius: 20,
                     spreadRadius: 2,
                   ),
@@ -241,7 +231,7 @@ class _SubscriptionRequiredScreenState
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFFE91E63), Color(0xFFFF5722)],
+                    colors: [AppColors.primary, Color(0xFFFF5722)],
                   ),
                   borderRadius:
                       BorderRadius.vertical(top: Radius.circular(18)),
@@ -250,7 +240,7 @@ class _SubscriptionRequiredScreenState
                   'Mais Popular',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
@@ -272,8 +262,8 @@ class _SubscriptionRequiredScreenState
                           shape: BoxShape.circle,
                           border: Border.all(
                             color: isSelected
-                                ? const Color(0xFFE91E63)
-                                : Colors.grey,
+                                ? AppColors.primary
+                                : AppColors.textTertiary,
                             width: 2,
                           ),
                         ),
@@ -284,7 +274,7 @@ class _SubscriptionRequiredScreenState
                                   height: 10,
                                   decoration: const BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: Color(0xFFE91E63),
+                                    color: AppColors.primary,
                                   ),
                                 ),
                               )
@@ -294,7 +284,7 @@ class _SubscriptionRequiredScreenState
                       Text(
                         planName,
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AppColors.textPrimary,
                           fontWeight: FontWeight.w600,
                           fontSize: 16,
                         ),
@@ -308,7 +298,7 @@ class _SubscriptionRequiredScreenState
                     Text(
                       displayPrice,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
                         height: 1,
@@ -318,7 +308,7 @@ class _SubscriptionRequiredScreenState
                     Text(
                       period,
                       style: TextStyle(
-                        color: Colors.grey[400],
+                        color: AppColors.textTertiary,
                         fontSize: 14,
                       ),
                     ),
@@ -326,7 +316,7 @@ class _SubscriptionRequiredScreenState
                     Text(
                       planName,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
@@ -345,8 +335,8 @@ class _SubscriptionRequiredScreenState
                               _purchase(productId);
                             },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE91E63),
-                        foregroundColor: Colors.white,
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: AppColors.textPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -359,7 +349,7 @@ class _SubscriptionRequiredScreenState
                               width: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                color: AppColors.textPrimary,
                               ),
                             )
                           : const Text(
@@ -382,23 +372,13 @@ class _SubscriptionRequiredScreenState
 
   Future<void> _purchase(String productId) async {
     if (!_iapService.isAvailable) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Loja nao disponivel. Tente novamente mais tarde.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      AppSnackBar.error(context, 'Loja nao disponivel. Tente novamente mais tarde.');
       return;
     }
 
     final product = _iapService.getProduct(productId);
     if (product == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Produto nao encontrado. Tente novamente mais tarde.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      AppSnackBar.error(context, 'Produto nao encontrado. Tente novamente mais tarde.');
       return;
     }
 
@@ -409,12 +389,7 @@ class _SubscriptionRequiredScreenState
     } catch (e) {
       if (mounted) {
         setState(() => _isPurchasing = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppSnackBar.error(context, 'Erro: $e');
       }
     }
   }

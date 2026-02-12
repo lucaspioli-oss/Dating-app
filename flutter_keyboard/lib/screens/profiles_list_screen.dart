@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../config/app_theme.dart';
 import '../models/profile_model.dart';
 import '../providers/app_state.dart';
 import '../services/profile_service.dart';
@@ -33,7 +34,7 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
 
     if (userId == null) {
       return Scaffold(
-        backgroundColor: const Color(0xFF0D0D1A),
+        backgroundColor: AppColors.backgroundDark,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -41,13 +42,13 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
               Icon(
                 Icons.lock_outline,
                 size: 64,
-                color: Colors.grey.shade600,
+                color: AppColors.textSecondary,
               ),
               const SizedBox(height: 16),
               Text(
                 'Faça login para ver seus contatos',
                 style: TextStyle(
-                  color: Colors.grey.shade400,
+                  color: AppColors.textTertiary,
                   fontSize: 16,
                 ),
               ),
@@ -58,7 +59,7 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D1A),
+      backgroundColor: AppColors.backgroundDark,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -72,7 +73,7 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
                   const Text(
                     'Contatos',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                     ),
@@ -87,7 +88,7 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
               child: Text(
                 'Suas conversas e conexões',
                 style: TextStyle(
-                  color: Colors.grey.shade500,
+                  color: AppColors.textTertiary,
                   fontSize: 14,
                 ),
               ),
@@ -99,14 +100,14 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
               child: TextField(
                 controller: _searchController,
                 onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
-                style: const TextStyle(color: Colors.white, fontSize: 15),
+                style: const TextStyle(color: AppColors.textPrimary, fontSize: 15),
                 decoration: InputDecoration(
                   hintText: 'Buscar por nome...',
-                  hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 15),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey.shade600, size: 22),
+                  hintStyle: TextStyle(color: AppColors.textSecondary, fontSize: 15),
+                  prefixIcon: Icon(Icons.search, color: AppColors.textSecondary, size: 22),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
-                          icon: Icon(Icons.close, color: Colors.grey.shade500, size: 20),
+                          icon: Icon(Icons.close, color: AppColors.textTertiary, size: 20),
                           onPressed: () {
                             _searchController.clear();
                             setState(() => _searchQuery = '');
@@ -114,19 +115,19 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
                         )
                       : null,
                   filled: true,
-                  fillColor: const Color(0xFF1A1A2E),
+                  fillColor: AppColors.surfaceDark,
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: Color(0xFF2A2A3E)),
+                    borderSide: const BorderSide(color: AppColors.elevatedDark),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: Color(0xFF2A2A3E)),
+                    borderSide: const BorderSide(color: AppColors.elevatedDark),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: Color(0xFFE91E63), width: 1),
+                    borderSide: const BorderSide(color: AppColors.primary, width: 1),
                   ),
                 ),
               ),
@@ -149,13 +150,13 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
                           Icon(
                             Icons.error_outline,
                             size: 48,
-                            color: Colors.red.shade400,
+                            color: AppColors.error,
                           ),
                           const SizedBox(height: 16),
                           Text(
                             'Erro ao carregar contatos',
                             style: TextStyle(
-                              color: Colors.grey.shade400,
+                              color: AppColors.textTertiary,
                               fontSize: 16,
                             ),
                           ),
@@ -178,7 +179,7 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
                     return Center(
                       child: Text(
                         'Nenhum contato encontrado',
-                        style: TextStyle(color: Colors.grey.shade500, fontSize: 15),
+                        style: TextStyle(color: AppColors.textTertiary, fontSize: 15),
                       ),
                     );
                   }
@@ -200,20 +201,20 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFFE91E63), Color(0xFFFF5722)],
+            colors: [AppColors.primary, Color(0xFFFF5722)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFE91E63).withOpacity(0.3),
+              color: AppColors.primary.withOpacity(0.3),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: const Icon(Icons.add, color: Colors.white, size: 24),
+        child: const Icon(Icons.add, color: AppColors.textPrimary, size: 24),
       ),
     );
   }
@@ -231,7 +232,7 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    const Color(0xFFE91E63).withOpacity(0.2),
+                    AppColors.primary.withOpacity(0.2),
                     const Color(0xFFFF5722).withOpacity(0.2),
                   ],
                   begin: Alignment.topLeft,
@@ -242,14 +243,14 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
               child: const Icon(
                 Icons.people_outline,
                 size: 56,
-                color: Color(0xFFE91E63),
+                color: AppColors.primary,
               ),
             ),
             const SizedBox(height: 32),
             const Text(
               'Adicione seu primeiro match',
               style: TextStyle(
-                color: Colors.white,
+                color: AppColors.textPrimary,
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
               ),
@@ -258,7 +259,7 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
             Text(
               'Crie um perfil para quem voce esta\nconversando e receba sugestoes\npersonalizadas via teclado',
               style: TextStyle(
-                color: Colors.grey.shade500,
+                color: AppColors.textTertiary,
                 fontSize: 15,
                 height: 1.5,
               ),
@@ -271,14 +272,14 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFFE91E63), Color(0xFFFF5722)],
+                    colors: [AppColors.primary, Color(0xFFFF5722)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(30),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFE91E63).withOpacity(0.3),
+                      color: AppColors.primary.withOpacity(0.3),
                       blurRadius: 20,
                       offset: const Offset(0, 8),
                     ),
@@ -287,12 +288,12 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.person_add_alt_1, color: Colors.white),
+                    Icon(Icons.person_add_alt_1, color: AppColors.textPrimary),
                     SizedBox(width: 12),
                     Text(
                       'Adicionar Contato',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
@@ -330,9 +331,9 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A2E),
+          color: AppColors.surfaceDark,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFF2A2A3E)),
+          border: Border.all(color: AppColors.elevatedDark),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.2),
@@ -363,7 +364,7 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
                         child: Text(
                           profile.name,
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: AppColors.textPrimary,
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
@@ -374,7 +375,7 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
                       Text(
                         _formatRelativeTime(activityDate),
                         style: TextStyle(
-                          color: Colors.grey.shade600,
+                          color: AppColors.textSecondary,
                           fontSize: 12,
                         ),
                       ),
@@ -386,7 +387,7 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
                     Text(
                       profile.lastMessagePreview!,
                       style: TextStyle(
-                        color: Colors.grey.shade500,
+                        color: AppColors.textTertiary,
                         fontSize: 13,
                       ),
                       maxLines: 1,
@@ -405,13 +406,13 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF2A2A3E),
+                              color: AppColors.elevatedDark,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               '+${platforms.length - 4}',
                               style: const TextStyle(
-                                color: Colors.white70,
+                                color: AppColors.textPrimary.withOpacity(0.7),
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -427,7 +428,7 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
               padding: const EdgeInsets.only(left: 8),
               child: Icon(
                 Icons.chevron_right,
-                color: Colors.grey.shade600,
+                color: AppColors.textSecondary,
                 size: 24,
               ),
             ),
@@ -507,7 +508,7 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
         child: Text(
           _getPlatformInitial(type),
           style: const TextStyle(
-            color: Colors.white,
+            color: AppColors.textPrimary,
             fontSize: 12,
             fontWeight: FontWeight.bold,
           ),

@@ -15,9 +15,20 @@ const auth_1 = require("./middleware/auth");
 const fastify = (0, fastify_1.default)({
     logger: true,
 });
-// Habilitar CORS
+// Habilitar CORS (restrito a origens confiáveis)
 fastify.register(cors_1.default, {
-    origin: true, // Aceita qualquer origem (para desenvolvimento)
+    origin: [
+        'https://desenrola-ia.web.app',
+        'https://desenrola-ia.firebaseapp.com',
+    ],
+});
+// Rate limiting
+fastify.register(require('@fastify/rate-limit'), {
+    max: 30,
+    timeWindow: '1 minute',
+    keyGenerator: (request) => {
+        return request.user?.uid || request.ip;
+    },
 });
 // Raw body parser for Stripe webhooks
 fastify.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, body, done) => {
@@ -199,7 +210,6 @@ fastify.post('/generate-first-message', async (request, reply) => {
         const { matchName, matchBio, platform, tone, photoDescription, specificDetail, userContext } = request.body;
         // Extrair características do perfil para buscar insights relevantes
         const profileTags = extractProfileTags(matchBio, photoDescription);
-        console.log(`[Collective] Tags extraídas do perfil:`, profileTags);
         // Buscar insights da inteligência coletiva por CARACTERÍSTICAS, não por nome
         let collectiveInsights;
         try {
@@ -213,7 +223,6 @@ fastify.post('/generate-first-message', async (request, reply) => {
                     bestOpenerTypes: insights.bestTypes,
                     matchedTags: insights.matchedTags,
                 };
-                console.log(`[Collective] Insights encontrados para tags:`, insights.matchedTags);
             }
         }
         catch (err) {
@@ -321,7 +330,7 @@ fastify.post('/generate-instagram-opener', async (request, reply) => {
         // Extrair características do perfil
         const allText = [bio, ...(recentPosts || []), ...(stories || [])].filter(Boolean).join(' ');
         const profileTags = extractProfileTags(allText);
-        console.log(`[Collective] Tags Instagram extraídas:`, profileTags);
+        // Tags extracted for collective insights lookup
         // Buscar insights por características
         let collectiveInsights;
         try {
@@ -334,7 +343,7 @@ fastify.post('/generate-instagram-opener', async (request, reply) => {
                     badOpenerExamples: insights.badExamples,
                     matchedTags: insights.matchedTags,
                 };
-                console.log(`[Collective] Insights Instagram para tags:`, insights.matchedTags);
+                // Insights found for Instagram tags
             }
         }
         catch (err) {
@@ -372,10 +381,7 @@ fastify.post('/reply', async (request, reply) => {
 fastify.post('/analyze-profile-image', async (request, reply) => {
     try {
         const { imageBase64, imageMediaType, platform } = request.body;
-        console.log('📸 Recebendo requisição de análise de imagem');
-        console.log('Platform:', platform);
-        console.log('Media Type:', imageMediaType);
-        console.log('Image Base64 length:', imageBase64?.length);
+        // Image analysis request received
         if (!imageBase64) {
             return reply.code(400).send({
                 error: 'Imagem não fornecida',
@@ -383,13 +389,13 @@ fastify.post('/analyze-profile-image', async (request, reply) => {
             });
         }
         const agent = new agents_1.ProfileImageAnalyzerAgent();
-        console.log('🤖 Iniciando análise com Claude Vision...');
+        // Starting Claude Vision analysis
         const result = await agent.analyzeImageAndParse({
             imageBase64,
             imageMediaType: imageMediaType || 'image/jpeg',
             platform,
         });
-        console.log('✅ Análise concluída com sucesso');
+        // Analysis completed successfully
         return reply.code(200).send({ extractedData: result });
     }
     catch (error) {
@@ -894,13 +900,7 @@ fastify.post('/apple/activate-subscription', {
                 startedAt: admin.firestore.FieldValue.serverTimestamp(),
             },
         }, { merge: true });
-        console.log(`✅ Apple subscription activated for ${user.email}:`, {
-            userId: user.uid,
-            plan,
-            productId,
-            transactionId,
-            expiresAt,
-        });
+        console.log('Apple subscription activated:', { plan, expiresAt });
         return reply.code(200).send({
             success: true,
             plan,

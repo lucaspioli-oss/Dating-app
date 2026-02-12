@@ -57,6 +57,7 @@ class BaseAgent {
         const message = await this.client.messages.create({
             model: this.model,
             max_tokens: 1024,
+            temperature: 0.85,
             system: systemPrompt,
             messages: [
                 {

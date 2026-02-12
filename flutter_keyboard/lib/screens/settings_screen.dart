@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
+import '../config/app_theme.dart';
 import '../services/subscription_service.dart';
 import '../services/keyboard_service.dart';
 import '../services/firebase_auth_service.dart';
@@ -80,7 +81,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _isKeyboardEnabled
                     ? Icons.check_circle
                     : Icons.warning_amber_rounded,
-                color: _isKeyboardEnabled ? Colors.green : Colors.orange,
+                color: _isKeyboardEnabled ? AppColors.success : AppColors.warning,
               ),
               title: const Text('Status do Teclado'),
               subtitle: Text(
@@ -177,13 +178,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: Colors.orange,
+                    color: AppColors.warning,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: const Text(
                     'DEV',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                     ),
@@ -244,13 +245,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const Divider(),
             ListTile(
-              leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text('Sair da conta', style: TextStyle(color: Colors.red)),
+              leading: Icon(Icons.logout, color: AppColors.error),
+              title: Text('Sair da conta', style: TextStyle(color: AppColors.error)),
               onTap: () => _showLogoutDialog(context),
             ),
             ListTile(
-              leading: const Icon(Icons.delete_forever, color: Colors.red),
-              title: const Text('Deletar conta', style: TextStyle(color: Colors.red)),
+              leading: Icon(Icons.delete_forever, color: AppColors.error),
+              title: Text('Deletar conta', style: TextStyle(color: AppColors.error)),
               subtitle: const Text('Remove sua conta e todos os dados permanentemente'),
               onTap: () => _showDeleteAccountDialog(context),
             ),
@@ -280,25 +281,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 await KeyboardService().clearKeyboardAuth();
                 await FirebaseAuthService().deleteAccount();
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Conta deletada com sucesso.'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
+                  AppSnackBar.success(context, 'Conta deletada com sucesso.');
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Erro ao deletar conta: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
+                  AppSnackBar.error(context, 'Erro ao deletar conta: $e');
                 }
               }
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
             child: const Text('Deletar Permanentemente'),
           ),
         ],
@@ -323,7 +314,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               await KeyboardService().clearKeyboardAuth();
               await FirebaseAuth.instance.signOut();
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
             child: const Text('Sair'),
           ),
         ],

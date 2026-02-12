@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import '../config/app_theme.dart';
 import '../providers/app_state.dart';
 import '../providers/user_profile_provider.dart';
 import '../services/conversation_service.dart';
@@ -75,9 +76,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
-        );
+        AppSnackBar.error(context, 'Erro: $e');
       }
     }
   }
@@ -89,7 +88,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
   void _showGenerateOptionsMenu() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1A1A2E),
+      backgroundColor: AppColors.surfaceDark,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -105,7 +104,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade700,
+                    color: AppColors.textSecondary,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -114,16 +113,16 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
               const Text(
                 'Como você quer informar a mensagem dela?',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 8),
-              Text(
+              const Text(
                 'A IA vai analisar e sugerir respostas',
                 style: TextStyle(
-                  color: Colors.grey.shade500,
+                  color: AppColors.textTertiary,
                   fontSize: 14,
                 ),
               ),
@@ -134,7 +133,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                 icon: Icons.photo_camera,
                 title: 'Upload do print',
                 subtitle: 'Envie um screenshot da conversa',
-                color: const Color(0xFFE91E63),
+                color: AppColors.primary,
                 onTap: () {
                   Navigator.pop(context);
                   _pickAndAnalyzeImage();
@@ -209,7 +208,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                   Text(
                     title,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
@@ -217,8 +216,8 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      color: Colors.grey.shade500,
+                    style: const TextStyle(
+                      color: AppColors.textTertiary,
                       fontSize: 13,
                     ),
                   ),
@@ -269,9 +268,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         Navigator.of(context).popUntil((route) => route.isFirst || route.settings.name == '/conversation');
       }
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
-        );
+        AppSnackBar.error(context, 'Erro: $e');
       }
     }
   }
@@ -281,7 +278,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
+        backgroundColor: AppColors.surfaceDark,
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -297,16 +294,16 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            const CircularProgressIndicator(color: Color(0xFFE91E63)),
+            const CircularProgressIndicator(color: AppColors.primary),
             const SizedBox(height: 16),
             const Text(
               'Analisando imagem...',
-              style: TextStyle(color: Colors.white, fontSize: 16),
+              style: TextStyle(color: AppColors.textPrimary, fontSize: 16),
             ),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               'Extraindo texto da conversa',
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+              style: TextStyle(color: AppColors.textTertiary, fontSize: 13),
             ),
           ],
         ),
@@ -320,11 +317,11 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
+        backgroundColor: AppColors.surfaceDark,
         contentPadding: const EdgeInsets.all(16),
         title: Text(
           extractedMessage != null ? 'Confirme a mensagem' : 'Digite a mensagem',
-          style: const TextStyle(color: Colors.white, fontSize: 18),
+          style: const TextStyle(color: AppColors.textPrimary, fontSize: 18),
         ),
         content: SingleChildScrollView(
           child: Column(
@@ -335,7 +332,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                 constraints: const BoxConstraints(maxHeight: 150),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF2A2A3E)),
+                  border: Border.all(color: AppColors.elevatedDark),
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(11),
@@ -347,17 +344,17 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF4CAF50).withOpacity(0.1),
+                    color: AppColors.success.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFF4CAF50).withOpacity(0.3)),
+                    border: Border.all(color: AppColors.success.withOpacity(0.3)),
                   ),
-                  child: Row(
+                  child: const Row(
                     children: [
-                      const Icon(Icons.check_circle, color: Color(0xFF4CAF50), size: 16),
-                      const SizedBox(width: 8),
+                      Icon(Icons.check_circle, color: AppColors.success, size: 16),
+                      SizedBox(width: 8),
                       Text(
                         'Texto extraído automaticamente',
-                        style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+                        style: TextStyle(color: AppColors.textTertiary, fontSize: 12),
                       ),
                     ],
                   ),
@@ -366,18 +363,18 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
+                    color: AppColors.warning.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                    border: Border.all(color: AppColors.warning.withOpacity(0.3)),
                   ),
-                  child: Row(
+                  child: const Row(
                     children: [
-                      const Icon(Icons.warning_amber, color: Colors.orange, size: 16),
-                      const SizedBox(width: 8),
+                      Icon(Icons.warning_amber, color: AppColors.warning, size: 16),
+                      SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'Digite manualmente',
-                          style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+                          style: TextStyle(color: AppColors.textTertiary, fontSize: 12),
                         ),
                       ),
                     ],
@@ -388,19 +385,19 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                 extractedMessage != null
                   ? 'Edite se necessário:'
                   : 'Digite a última mensagem que ela enviou:',
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                style: const TextStyle(color: AppColors.textTertiary, fontSize: 13),
               ),
               const SizedBox(height: 10),
               TextField(
                 controller: _herMessageController,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: AppColors.textPrimary),
                 maxLines: 3,
                 autofocus: extractedMessage == null,
                 decoration: InputDecoration(
                   hintText: 'Cole ou digite a mensagem...',
-                  hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                  hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                   filled: true,
-                  fillColor: const Color(0xFF0D0D1A),
+                  fillColor: AppColors.backgroundDark,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -413,7 +410,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancelar', style: TextStyle(color: Colors.grey.shade500)),
+            child: const Text('Cancelar', style: TextStyle(color: AppColors.textTertiary)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -423,12 +420,12 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE91E63),
+              backgroundColor: AppColors.primary,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text('Gerar Sugestões', style: TextStyle(color: Colors.white)),
+            child: const Text('Gerar Sugestões', style: TextStyle(color: AppColors.textPrimary)),
           ),
         ],
       ),
@@ -441,29 +438,29 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
+        backgroundColor: AppColors.surfaceDark,
         title: const Text(
           'O que ela disse?',
-          style: TextStyle(color: Colors.white, fontSize: 18),
+          style: TextStyle(color: AppColors.textPrimary, fontSize: 18),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
+            const Text(
               'Cole ou digite a última mensagem que ela enviou',
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+              style: TextStyle(color: AppColors.textTertiary, fontSize: 13),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _herMessageController,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: AppColors.textPrimary),
               maxLines: 4,
               autofocus: true,
               decoration: InputDecoration(
                 hintText: 'Ex: "Haha verdade! E você, o que gosta de fazer?"',
-                hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                 filled: true,
-                fillColor: const Color(0xFF0D0D1A),
+                fillColor: AppColors.backgroundDark,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -475,7 +472,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancelar', style: TextStyle(color: Colors.grey.shade500)),
+            child: const Text('Cancelar', style: TextStyle(color: AppColors.textTertiary)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -485,12 +482,12 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE91E63),
+              backgroundColor: AppColors.primary,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text('Gerar Sugestões', style: TextStyle(color: Colors.white)),
+            child: const Text('Gerar Sugestões', style: TextStyle(color: AppColors.textPrimary)),
           ),
         ],
       ),
@@ -503,31 +500,31 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
+        backgroundColor: AppColors.surfaceDark,
         title: const Text(
           'Importar conversa do WhatsApp',
-          style: TextStyle(color: Colors.white, fontSize: 18),
+          style: TextStyle(color: AppColors.textPrimary, fontSize: 18),
         ),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'No WhatsApp: Abra a conversa > Menu (⋮) > Mais > Exportar conversa > Sem midia > Copie o texto e cole aqui.',
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 12, height: 1.4),
+                style: TextStyle(color: AppColors.textTertiary, fontSize: 12, height: 1.4),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: chatController,
-                style: const TextStyle(color: Colors.white, fontSize: 13),
+                style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
                 maxLines: 8,
                 minLines: 5,
                 decoration: InputDecoration(
                   hintText: 'Cole a conversa exportada aqui...',
-                  hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
                   filled: true,
-                  fillColor: const Color(0xFF0D0D1A),
+                  fillColor: AppColors.backgroundDark,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -540,7 +537,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancelar', style: TextStyle(color: Colors.grey.shade500)),
+            child: const Text('Cancelar', style: TextStyle(color: AppColors.textTertiary)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -554,7 +551,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
               backgroundColor: const Color(0xFF25D366),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Importar', style: TextStyle(color: Colors.white)),
+            child: const Text('Importar', style: TextStyle(color: AppColors.textPrimary)),
           ),
         ],
       ),
@@ -569,12 +566,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
 
     if (parsed.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Nenhuma mensagem encontrada. Verifique o formato.'),
-            backgroundColor: Colors.orange,
-          ),
-        );
+        AppSnackBar.error(context, 'Nenhuma mensagem encontrada. Verifique o formato.');
       }
       return;
     }
@@ -600,19 +592,12 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
       setState(() => _isGeneratingSuggestions = false);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${parsed.length} mensagens importadas!'),
-            backgroundColor: const Color(0xFF25D366),
-          ),
-        );
+        AppSnackBar.success(context, '${parsed.length} mensagens importadas!');
       }
     } catch (e) {
       setState(() => _isGeneratingSuggestions = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao importar: $e'), backgroundColor: Colors.red),
-        );
+        AppSnackBar.error(context, 'Erro ao importar: $e');
       }
     }
   }
@@ -748,9 +733,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
     } catch (e) {
       setState(() => _isGeneratingSuggestions = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
-        );
+        AppSnackBar.error(context, 'Erro: $e');
       }
     }
   }
@@ -778,38 +761,18 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
       await _loadConversation();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Mensagem registrada!'),
-            backgroundColor: Color(0xFF4CAF50),
-            duration: Duration(seconds: 1),
-          ),
-        );
+        AppSnackBar.success(context, 'Mensagem registrada!');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
-        );
+        AppSnackBar.error(context, 'Erro: $e');
       }
     }
   }
 
   void _copyToClipboard(String text) {
     Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Row(
-          children: [
-            Icon(Icons.check, color: Colors.white, size: 18),
-            SizedBox(width: 8),
-            Text('Copiado!'),
-          ],
-        ),
-        backgroundColor: Color(0xFF4CAF50),
-        duration: Duration(seconds: 1),
-      ),
-    );
+    AppSnackBar.success(context, 'Copiado!');
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -820,29 +783,29 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: const Color(0xFF0D0D1A),
+        backgroundColor: AppColors.backgroundDark,
         appBar: AppBar(
-          backgroundColor: const Color(0xFF0D0D1A),
-          title: const Text('Carregando...', style: TextStyle(color: Colors.white)),
-          iconTheme: const IconThemeData(color: Colors.white),
+          backgroundColor: AppColors.backgroundDark,
+          title: const Text('Carregando...', style: TextStyle(color: AppColors.textPrimary)),
+          iconTheme: const IconThemeData(color: AppColors.textPrimary),
         ),
-        body: const Center(child: CircularProgressIndicator(color: Color(0xFFE91E63))),
+        body: const Center(child: CircularProgressIndicator(color: AppColors.primary)),
       );
     }
 
     if (_conversation == null) {
       return Scaffold(
-        backgroundColor: const Color(0xFF0D0D1A),
+        backgroundColor: AppColors.backgroundDark,
         appBar: AppBar(
-          backgroundColor: const Color(0xFF0D0D1A),
-          title: const Text('Erro', style: TextStyle(color: Colors.white)),
+          backgroundColor: AppColors.backgroundDark,
+          title: const Text('Erro', style: TextStyle(color: AppColors.textPrimary)),
         ),
-        body: const Center(child: Text('Conversa não encontrada', style: TextStyle(color: Colors.white))),
+        body: const Center(child: Text('Conversa não encontrada', style: TextStyle(color: AppColors.textPrimary))),
       );
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D1A),
+      backgroundColor: AppColors.backgroundDark,
       appBar: _buildAppBar(),
       body: Column(
         children: [
@@ -864,10 +827,10 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         : avatar.platform;
 
     return AppBar(
-      backgroundColor: const Color(0xFF1A1A2E),
+      backgroundColor: AppColors.surfaceDark,
       elevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.white),
+        icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
         onPressed: () => Navigator.pop(context),
       ),
       title: Row(
@@ -879,11 +842,11 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
             children: [
               Text(
                 displayName,
-                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                style: const TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
               ),
               Text(
                 displaySubtitle,
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                style: const TextStyle(color: AppColors.textTertiary, fontSize: 12),
               ),
             ],
           ),
@@ -891,11 +854,11 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.info_outline, color: Colors.grey),
+          icon: const Icon(Icons.info_outline, color: AppColors.textTertiary),
           onPressed: _showAvatarInfo,
         ),
         IconButton(
-          icon: const Icon(Icons.delete_outline, color: Colors.red),
+          icon: const Icon(Icons.delete_outline, color: AppColors.error),
           onPressed: _confirmDeleteConversation,
         ),
       ],
@@ -924,12 +887,12 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A2E),
+                  color: AppColors.surfaceDark,
                   borderRadius: BorderRadius.circular(40),
                 ),
                 child: const Icon(
                   Icons.chat_bubble_outline,
-                  color: Color(0xFF888888),
+                  color: AppColors.textTertiary,
                   size: 36,
                 ),
               ),
@@ -937,16 +900,16 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
               const Text(
                 'Comece a conversa!',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 8),
-              Text(
-                'Clique no botão ✨ para gerar\nsugestões de resposta',
+              const Text(
+                'Clique no botão \u2728 para gerar\nsugestões de resposta',
                 style: TextStyle(
-                  color: Colors.grey.shade500,
+                  color: AppColors.textTertiary,
                   fontSize: 14,
                 ),
                 textAlign: TextAlign.center,
@@ -981,10 +944,10 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
           constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
           decoration: BoxDecoration(
             color: isUser
-                ? const Color(0xFFE91E63)
+                ? AppColors.primary
                 : isMatch
-                    ? const Color(0xFF2A2A3E)
-                    : const Color(0xFF1A1A2E),
+                    ? AppColors.elevatedDark
+                    : AppColors.surfaceDark,
             borderRadius: BorderRadius.only(
               topLeft: const Radius.circular(16),
               topRight: const Radius.circular(16),
@@ -996,12 +959,12 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (isMatch)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 4),
                   child: Text(
                     'Ela disse:',
                     style: TextStyle(
-                      color: Colors.grey.shade500,
+                      color: AppColors.textTertiary,
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
                     ),
@@ -1010,7 +973,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
               Text(
                 message.content,
                 style: TextStyle(
-                  color: isUser ? Colors.white : Colors.grey.shade300,
+                  color: isUser ? AppColors.textPrimary : AppColors.textSecondary,
                   fontSize: 14,
                   height: 1.4,
                 ),
@@ -1021,13 +984,13 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.auto_awesome, size: 12, color: isUser ? Colors.white60 : Colors.grey.shade600),
+                      Icon(Icons.auto_awesome, size: 12, color: isUser ? AppColors.textPrimary.withOpacity(0.6) : AppColors.textSecondary),
                       const SizedBox(width: 4),
                       Text(
                         'Sugestão IA',
                         style: TextStyle(
                           fontSize: 10,
-                          color: isUser ? Colors.white60 : Colors.grey.shade600,
+                          color: isUser ? AppColors.textPrimary.withOpacity(0.6) : AppColors.textSecondary,
                         ),
                       ),
                     ],
@@ -1045,8 +1008,8 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
-        color: Color(0xFF1A1A2E),
-        border: Border(top: BorderSide(color: Color(0xFF2A2A3E))),
+        color: AppColors.surfaceDark,
+        border: Border(top: BorderSide(color: AppColors.elevatedDark)),
       ),
       child: SafeArea(
         child: Row(
@@ -1059,12 +1022,12 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                 height: 48,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFFE91E63), Color(0xFFFF5722)],
+                    colors: [AppColors.primary, Color(0xFFFF5722)],
                   ),
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFE91E63).withOpacity(0.3),
+                      color: AppColors.primary.withOpacity(0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),
@@ -1087,18 +1050,18 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0D0D1A),
+                  color: AppColors.backgroundDark,
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: const Color(0xFF2A2A3E)),
+                  border: Border.all(color: AppColors.elevatedDark),
                 ),
                 child: TextField(
                   controller: _messageInputController,
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                  decoration: InputDecoration(
+                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                  decoration: const InputDecoration(
                     hintText: 'Sua mensagem...',
-                    hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                    hintStyle: TextStyle(color: AppColors.textSecondary, fontSize: 14),
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                   maxLines: 2,
                   minLines: 1,
@@ -1118,10 +1081,10 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2A2A3E),
+                  color: AppColors.elevatedDark,
                   borderRadius: BorderRadius.circular(24),
                 ),
-                child: const Icon(Icons.send, color: Colors.white, size: 20),
+                child: const Icon(Icons.send, color: AppColors.textPrimary, size: 20),
               ),
             ),
           ],
@@ -1134,8 +1097,8 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
     return Container(
       constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.45),
       decoration: const BoxDecoration(
-        color: Color(0xFF1A1A2E),
-        border: Border(top: BorderSide(color: Color(0xFF2A2A3E))),
+        color: AppColors.surfaceDark,
+        border: Border(top: BorderSide(color: AppColors.elevatedDark)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1151,7 +1114,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                 const Text(
                   'Sugestões de resposta',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
@@ -1165,10 +1128,10 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2A2A3E),
+                      color: AppColors.elevatedDark,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.close, color: Colors.grey, size: 16),
+                    child: const Icon(Icons.close, color: AppColors.textTertiary, size: 16),
                   ),
                 ),
               ],
@@ -1203,17 +1166,17 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF0D0D1A),
+        color: AppColors.backgroundDark,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF2A2A3E)),
+        border: Border.all(color: AppColors.elevatedDark),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             suggestion,
-            style: TextStyle(
-              color: Colors.grey.shade300,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
               fontSize: 14,
               height: 1.4,
             ),
@@ -1228,18 +1191,18 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1A1A2E),
+                    color: AppColors.surfaceDark,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFF2A2A3E)),
+                    border: Border.all(color: AppColors.elevatedDark),
                   ),
-                  child: Row(
+                  child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.copy, size: 14, color: Colors.grey.shade400),
-                      const SizedBox(width: 6),
+                      Icon(Icons.copy, size: 14, color: AppColors.textTertiary),
+                      SizedBox(width: 6),
                       Text(
                         'Copiar',
-                        style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+                        style: TextStyle(color: AppColors.textTertiary, fontSize: 12),
                       ),
                     ],
                   ),
@@ -1253,7 +1216,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Color(0xFFE91E63), Color(0xFFFF5722)],
+                      colors: [AppColors.primary, Color(0xFFFF5722)],
                     ),
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -1285,20 +1248,20 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
-        title: const Text('Excluir conversa', style: TextStyle(color: Colors.white)),
+        backgroundColor: AppColors.surfaceDark,
+        title: const Text('Excluir conversa', style: TextStyle(color: AppColors.textPrimary)),
         content: Text(
           'Excluir conversa com ${_conversation!.avatar.matchName}?',
-          style: TextStyle(color: Colors.grey.shade400),
+          style: const TextStyle(color: AppColors.textTertiary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancelar', style: TextStyle(color: Colors.grey.shade500)),
+            child: const Text('Cancelar', style: TextStyle(color: AppColors.textTertiary)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
             child: const Text('Excluir'),
           ),
         ],
@@ -1312,19 +1275,12 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         await service.deleteConversation(widget.conversationId);
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Conversa excluída'),
-              backgroundColor: Color(0xFF4CAF50),
-            ),
-          );
+          AppSnackBar.success(context, 'Conversa excluída');
           Navigator.pop(context);
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
-          );
+          AppSnackBar.error(context, 'Erro: $e');
         }
       }
     }
@@ -1333,7 +1289,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
   void _showAvatarInfo() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1A1A2E),
+      backgroundColor: AppColors.surfaceDark,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -1356,7 +1312,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade700,
+                    color: AppColors.textSecondary,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -1372,11 +1328,11 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                       children: [
                         Text(
                           displayName,
-                          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         Text(
                           displaySubtitle,
-                          style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                          style: const TextStyle(color: AppColors.textTertiary, fontSize: 14),
                         ),
                       ],
                     ),
@@ -1385,12 +1341,12 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
               ),
               if (avatar.bio != null && avatar.bio!.isNotEmpty) ...[
                 const SizedBox(height: 20),
-                Text('Bio', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                const Text('Bio', style: TextStyle(color: AppColors.textTertiary, fontSize: 12)),
                 const SizedBox(height: 4),
-                Text(avatar.bio!, style: TextStyle(color: Colors.grey.shade300, fontSize: 14)),
+                Text(avatar.bio!, style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
               ],
               const SizedBox(height: 20),
-              Text('Analytics', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+              const Text('Analytics', style: TextStyle(color: AppColors.textTertiary, fontSize: 12)),
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -1412,14 +1368,14 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF0D0D1A),
+        color: AppColors.backgroundDark,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF2A2A3E)),
+        border: Border.all(color: AppColors.elevatedDark),
       ),
       child: Column(
         children: [
-          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          Text(label, style: TextStyle(color: Colors.grey.shade600, fontSize: 10)),
+          Text(value, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+          Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 10)),
         ],
       ),
     );
@@ -1433,7 +1389,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF0D0D1A),
+        color: AppColors.backgroundDark,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: const Color(0xFF8B5CF6)),
       ),
@@ -1450,24 +1406,24 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                 ),
                 child: const Text(
                   'DEV',
-                  style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: AppColors.textPrimary, fontSize: 9, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
+              const Text(
                 'Feedback das sugestões',
-                style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+                style: TextStyle(color: AppColors.textTertiary, fontSize: 12),
               ),
             ],
           ),
           const SizedBox(height: 10),
           Row(
             children: [
-              Expanded(child: _buildDevFeedbackButton('Bom', Icons.thumb_up, Colors.green, () => _submitDevFeedback('good'))),
+              Expanded(child: _buildDevFeedbackButton('Bom', Icons.thumb_up, AppColors.success, () => _submitDevFeedback('good'))),
               const SizedBox(width: 6),
-              Expanded(child: _buildDevFeedbackButton('Parcial', Icons.thumbs_up_down, Colors.orange, () => _submitDevFeedback('partial'))),
+              Expanded(child: _buildDevFeedbackButton('Parcial', Icons.thumbs_up_down, AppColors.warning, () => _submitDevFeedback('partial'))),
               const SizedBox(width: 6),
-              Expanded(child: _buildDevFeedbackButton('Ruim', Icons.thumb_down, Colors.red, () => _submitDevFeedback('bad'))),
+              Expanded(child: _buildDevFeedbackButton('Ruim', Icons.thumb_down, AppColors.error, () => _submitDevFeedback('bad'))),
             ],
           ),
         ],
@@ -1519,19 +1475,11 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
     );
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(success ? Icons.check_circle : Icons.error, color: Colors.white, size: 18),
-              const SizedBox(width: 8),
-              Text(success ? 'Feedback enviado!' : 'Erro ao enviar'),
-            ],
-          ),
-          backgroundColor: success ? Colors.green : Colors.red,
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      if (success) {
+        AppSnackBar.success(context, 'Feedback enviado!');
+      } else {
+        AppSnackBar.error(context, 'Erro ao enviar');
+      }
     }
   }
 }

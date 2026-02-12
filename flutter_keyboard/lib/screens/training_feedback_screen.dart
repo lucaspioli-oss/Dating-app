@@ -128,7 +128,7 @@ class _TrainingFeedbackScreenState extends State<TrainingFeedbackScreen> {
         backgroundColor: AppColors.surfaceDark,
         selectedColor: AppColors.primary.withAlpha(77),
         labelStyle: TextStyle(
-          color: isSelected ? AppColors.primary : Colors.white70,
+          color: isSelected ? AppColors.primary : AppColors.textPrimary.withOpacity(0.7),
         ),
       ),
     );
@@ -142,17 +142,17 @@ class _TrainingFeedbackScreenState extends State<TrainingFeedbackScreen> {
           Icon(
             Icons.psychology_outlined,
             size: 64,
-            color: Colors.white30,
+            color: AppColors.textPrimary.withOpacity(0.3),
           ),
           const SizedBox(height: 16),
           Text(
             'Nenhuma instrucao de treinamento',
-            style: TextStyle(color: Colors.white54, fontSize: 16),
+            style: TextStyle(color: AppColors.textPrimary.withOpacity(0.54), fontSize: 16),
           ),
           const SizedBox(height: 8),
           Text(
             'Adicione instrucoes para melhorar a IA',
-            style: TextStyle(color: Colors.white38, fontSize: 14),
+            style: TextStyle(color: AppColors.textPrimary.withOpacity(0.38), fontSize: 14),
           ),
         ],
       ),
@@ -189,7 +189,7 @@ class _TrainingFeedbackScreenState extends State<TrainingFeedbackScreen> {
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                 ),
               ),
             ),
@@ -209,7 +209,7 @@ class _TrainingFeedbackScreenState extends State<TrainingFeedbackScreen> {
         title: Text(
           feedback.instruction,
           style: TextStyle(
-            color: feedback.isActive ? Colors.white : Colors.white38,
+            color: feedback.isActive ? AppColors.textPrimary : AppColors.textPrimary.withOpacity(0.38),
             decoration: feedback.isActive ? null : TextDecoration.lineThrough,
           ),
         ),
@@ -221,7 +221,7 @@ class _TrainingFeedbackScreenState extends State<TrainingFeedbackScreen> {
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
                   'Ex: ${feedback.examples.first}',
-                  style: TextStyle(color: Colors.white54, fontSize: 12),
+                  style: TextStyle(color: AppColors.textPrimary.withOpacity(0.54), fontSize: 12),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -236,7 +236,7 @@ class _TrainingFeedbackScreenState extends State<TrainingFeedbackScreen> {
                 const SizedBox(width: 8),
                 Text(
                   'Usado ${feedback.usageCount}x',
-                  style: TextStyle(color: Colors.white38, fontSize: 11),
+                  style: TextStyle(color: AppColors.textPrimary.withOpacity(0.38), fontSize: 11),
                 ),
               ],
             ),
@@ -244,7 +244,7 @@ class _TrainingFeedbackScreenState extends State<TrainingFeedbackScreen> {
         ),
         trailing: Icon(
           Icons.chevron_right,
-          color: Colors.white38,
+          color: AppColors.textPrimary.withOpacity(0.38),
         ),
         onTap: () => _showEditDialog(feedback),
       ),
@@ -332,7 +332,7 @@ class _AddFeedbackDialogState extends State<_AddFeedbackDialog> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                   ],
@@ -340,7 +340,7 @@ class _AddFeedbackDialogState extends State<_AddFeedbackDialog> {
                 const SizedBox(height: 24),
 
                 // Categoria
-                const Text('Categoria', style: TextStyle(color: Colors.white70)),
+                const Text('Categoria', style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   value: _selectedCategory,
@@ -358,7 +358,7 @@ class _AddFeedbackDialogState extends State<_AddFeedbackDialog> {
                       value: cat,
                       child: Text(
                         TrainingFeedback.categoryLabel(cat),
-                        style: const TextStyle(color: Colors.white),
+                        style: const TextStyle(color: AppColors.textPrimary),
                       ),
                     );
                   }).toList(),
@@ -369,15 +369,15 @@ class _AddFeedbackDialogState extends State<_AddFeedbackDialog> {
                 const SizedBox(height: 16),
 
                 // Instrucao
-                const Text('Instrucao', style: TextStyle(color: Colors.white70)),
+                const Text('Instrucao', style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _instructionController,
                   maxLines: 3,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: AppColors.textPrimary),
                   decoration: InputDecoration(
                     hintText: 'Ex: Use humor sutil ao invés de elogios diretos',
-                    hintStyle: TextStyle(color: Colors.white38),
+                    hintStyle: TextStyle(color: AppColors.textPrimary.withOpacity(0.38)),
                     filled: true,
                     fillColor: AppColors.backgroundDark,
                     border: OutlineInputBorder(
@@ -396,15 +396,15 @@ class _AddFeedbackDialogState extends State<_AddFeedbackDialog> {
 
                 // Exemplos
                 const Text('Exemplos (um por linha, opcional)',
-                    style: TextStyle(color: Colors.white70)),
+                    style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _examplesController,
                   maxLines: 3,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: AppColors.textPrimary),
                   decoration: InputDecoration(
                     hintText: 'Ex: "quer roubar meu moletom?"\n"to no mercado, quer algo?"',
-                    hintStyle: TextStyle(color: Colors.white38),
+                    hintStyle: TextStyle(color: AppColors.textPrimary.withOpacity(0.38)),
                     filled: true,
                     fillColor: AppColors.backgroundDark,
                     border: OutlineInputBorder(
@@ -416,7 +416,7 @@ class _AddFeedbackDialogState extends State<_AddFeedbackDialog> {
                 const SizedBox(height: 16),
 
                 // Prioridade
-                const Text('Prioridade', style: TextStyle(color: Colors.white70)),
+                const Text('Prioridade', style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   value: _selectedPriority,
@@ -434,7 +434,7 @@ class _AddFeedbackDialogState extends State<_AddFeedbackDialog> {
                       value: p,
                       child: Text(
                         TrainingFeedback.priorityLabel(p),
-                        style: const TextStyle(color: Colors.white),
+                        style: const TextStyle(color: AppColors.textPrimary),
                       ),
                     );
                   }).toList(),
@@ -554,10 +554,10 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surfaceDark,
-        title: const Text('Confirmar exclusao', style: TextStyle(color: Colors.white)),
+        title: const Text('Confirmar exclusao', style: TextStyle(color: AppColors.textPrimary)),
         content: const Text(
           'Tem certeza que deseja excluir esta instrucao?',
-          style: TextStyle(color: Colors.white70),
+          style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7)),
         ),
         actions: [
           TextButton(
@@ -566,7 +566,7 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
             child: const Text('Excluir'),
           ),
         ],
@@ -607,12 +607,12 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
+                    icon: const Icon(Icons.delete, color: AppColors.error),
                     onPressed: _delete,
                   ),
                 ],
@@ -620,17 +620,17 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
               const SizedBox(height: 8),
               Text(
                 TrainingFeedback.categoryLabel(widget.feedback.category),
-                style: TextStyle(color: Colors.white54),
+                style: TextStyle(color: AppColors.textPrimary.withOpacity(0.54)),
               ),
               const SizedBox(height: 24),
 
               // Instrucao
-              const Text('Instrucao', style: TextStyle(color: Colors.white70)),
+              const Text('Instrucao', style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _instructionController,
                 maxLines: 3,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: AppColors.textPrimary),
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: AppColors.backgroundDark,
@@ -644,12 +644,12 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
 
               // Exemplos
               const Text('Exemplos (um por linha)',
-                  style: TextStyle(color: Colors.white70)),
+                  style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _examplesController,
                 maxLines: 3,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: AppColors.textPrimary),
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: AppColors.backgroundDark,
@@ -662,7 +662,7 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
               const SizedBox(height: 16),
 
               // Prioridade
-              const Text('Prioridade', style: TextStyle(color: Colors.white70)),
+              const Text('Prioridade', style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 value: _selectedPriority,
@@ -680,7 +680,7 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
                     value: p,
                     child: Text(
                       TrainingFeedback.priorityLabel(p),
-                      style: const TextStyle(color: Colors.white),
+                      style: const TextStyle(color: AppColors.textPrimary),
                     ),
                   );
                 }).toList(),
@@ -692,12 +692,12 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
 
               // Ativo
               SwitchListTile(
-                title: const Text('Ativo', style: TextStyle(color: Colors.white)),
+                title: const Text('Ativo', style: TextStyle(color: AppColors.textPrimary)),
                 subtitle: Text(
                   _isActive
                       ? 'Esta instrucao sera usada nos prompts'
                       : 'Esta instrucao está desativada',
-                  style: TextStyle(color: Colors.white54, fontSize: 12),
+                  style: TextStyle(color: AppColors.textPrimary.withOpacity(0.54), fontSize: 12),
                 ),
                 value: _isActive,
                 onChanged: (value) {
@@ -729,7 +729,7 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
                         ),
                         const Text(
                           'Usos',
-                          style: TextStyle(color: Colors.white54, fontSize: 12),
+                          style: TextStyle(color: AppColors.textPrimary.withOpacity(0.54), fontSize: 12),
                         ),
                       ],
                     ),
@@ -738,13 +738,13 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
                         Text(
                           _formatDate(widget.feedback.createdAt),
                           style: const TextStyle(
-                            color: Colors.white70,
+                            color: AppColors.textPrimary.withOpacity(0.7),
                             fontSize: 14,
                           ),
                         ),
                         const Text(
                           'Criado em',
-                          style: TextStyle(color: Colors.white54, fontSize: 12),
+                          style: TextStyle(color: AppColors.textPrimary.withOpacity(0.54), fontSize: 12),
                         ),
                       ],
                     ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import '../config/app_theme.dart';
 import '../models/profile_model.dart';
 import '../providers/app_state.dart';
 import '../services/agent_service.dart';
@@ -137,18 +138,18 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D1A),
+      backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0D0D1A),
+        backgroundColor: AppColors.backgroundDark,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+          icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary, size: 20),
           onPressed: () => _goBack(),
         ),
         title: Text(
           _getTitle(),
           style: const TextStyle(
-            color: Colors.white,
+            color: AppColors.textPrimary,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -268,7 +269,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
+        color: AppColors.surfaceDark,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -287,7 +288,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                 Text(
                   widget.profile.name,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -323,9 +324,9 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A2E),
+          color: AppColors.surfaceDark,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF2A2A3E)),
+          border: Border.all(color: AppColors.elevatedDark),
         ),
         child: Row(
           children: [
@@ -338,7 +339,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                   Text(
                     platform.displayName,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
@@ -347,7 +348,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                     Text(
                       '@${platformData!.username}',
                       style: const TextStyle(
-                        color: Color(0xFFE91E63),
+                        color: AppColors.primary,
                         fontSize: 12,
                       ),
                     ),
@@ -395,7 +396,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFE91E63).withOpacity(0.1),
+              color: AppColors.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -408,7 +409,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                 Text(
                   _selectedPlatform!.displayName,
                   style: const TextStyle(
-                    color: Color(0xFFE91E63),
+                    color: AppColors.primary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -471,9 +472,9 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A2E),
+          color: AppColors.surfaceDark,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF2A2A3E)),
+          border: Border.all(color: AppColors.elevatedDark),
         ),
         child: Row(
           children: [
@@ -481,12 +482,12 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFF2A2A3E),
+                color: AppColors.elevatedDark,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 action.icon,
-                color: const Color(0xFFE91E63),
+                color: AppColors.primary,
                 size: 22,
               ),
             ),
@@ -498,7 +499,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                   Text(
                     action.displayName,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
@@ -568,9 +569,9 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A2E),
+                  color: AppColors.surfaceDark,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF2A2A3E)),
+                  border: Border.all(color: AppColors.elevatedDark),
                 ),
                 child: Row(
                   children: [
@@ -579,7 +580,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                       height: 80,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(8),
-                        color: const Color(0xFF2A2A3E),
+                        color: AppColors.elevatedDark,
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
@@ -596,7 +597,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                           Text(
                             story.description ?? 'Story sem descrição',
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: AppColors.textPrimary,
                               fontSize: 14,
                             ),
                             maxLines: 2,
@@ -647,14 +648,14 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF1A1A2E),
+              color: AppColors.surfaceDark,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF2A2A3E)),
+              border: Border.all(color: AppColors.elevatedDark),
             ),
             child: Text(
               openingMove ?? 'Pergunta não extraída',
               style: const TextStyle(
-                color: Colors.white,
+                color: AppColors.textPrimary,
                 fontSize: 16,
               ),
             ),
@@ -665,7 +666,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
             child: ElevatedButton(
               onPressed: () => _generateSuggestions(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE91E63),
+                backgroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -674,7 +675,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
               child: const Text(
                 'Gerar Sugestões',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
@@ -704,7 +705,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
           // Toggle entre as opções
           Container(
             decoration: BoxDecoration(
-              color: const Color(0xFF1A1A2E),
+              color: AppColors.surfaceDark,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -720,7 +721,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       decoration: BoxDecoration(
                         color: !_useTextInput
-                            ? const Color(0xFFE91E63)
+                            ? AppColors.primary
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -730,8 +731,8 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                           Icon(
                             Icons.photo_camera,
                             color: !_useTextInput
-                                ? Colors.white
-                                : const Color(0xFF888888),
+                                ? AppColors.textPrimary
+                                : AppColors.textTertiary,
                             size: 20,
                           ),
                           const SizedBox(width: 8),
@@ -739,8 +740,8 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                             'Print',
                             style: TextStyle(
                               color: !_useTextInput
-                                  ? Colors.white
-                                  : const Color(0xFF888888),
+                                  ? AppColors.textPrimary
+                                  : AppColors.textTertiary,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -760,7 +761,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       decoration: BoxDecoration(
                         color: _useTextInput
-                            ? const Color(0xFFE91E63)
+                            ? AppColors.primary
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -770,8 +771,8 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                           Icon(
                             Icons.keyboard,
                             color: _useTextInput
-                                ? Colors.white
-                                : const Color(0xFF888888),
+                                ? AppColors.textPrimary
+                                : AppColors.textTertiary,
                             size: 20,
                           ),
                           const SizedBox(width: 8),
@@ -779,8 +780,8 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                             'Digitar',
                             style: TextStyle(
                               color: _useTextInput
-                                  ? Colors.white
-                                  : const Color(0xFF888888),
+                                  ? AppColors.textPrimary
+                                  : AppColors.textTertiary,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -807,23 +808,23 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
             TextField(
               controller: _messageController,
               maxLines: 4,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: AppColors.textPrimary),
               decoration: InputDecoration(
                 hintText: 'Cole ou digite a mensagem aqui...',
-                hintStyle: const TextStyle(color: Color(0xFF666666)),
+                hintStyle: const TextStyle(color: AppColors.textTertiary),
                 filled: true,
-                fillColor: const Color(0xFF1A1A2E),
+                fillColor: AppColors.surfaceDark,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF2A2A3E)),
+                  borderSide: const BorderSide(color: AppColors.elevatedDark),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF2A2A3E)),
+                  borderSide: const BorderSide(color: AppColors.elevatedDark),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE91E63)),
+                  borderSide: const BorderSide(color: AppColors.primary),
                 ),
               ),
               onChanged: (value) {
@@ -842,7 +843,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                     _generateSuggestionsFromText();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE91E63),
+                    backgroundColor: AppColors.primary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -851,7 +852,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                   child: const Text(
                     'Gerar Sugestões',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
@@ -865,9 +866,9 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A2E),
+                  color: AppColors.surfaceDark,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF2A2A3E)),
+                  border: Border.all(color: AppColors.elevatedDark),
                 ),
                 child: _lastMessageImageBytes != null
                     ? ClipRRect(
@@ -908,7 +909,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                 child: ElevatedButton(
                   onPressed: () => _generateSuggestions(),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE91E63),
+                    backgroundColor: AppColors.primary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -917,7 +918,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                   child: const Text(
                     'Gerar Sugestões',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
@@ -935,12 +936,12 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(color: Color(0xFFE91E63)),
+          CircularProgressIndicator(color: AppColors.primary),
           SizedBox(height: 24),
           Text(
             'Gerando sugestões...',
             style: TextStyle(
-              color: Colors.white,
+              color: AppColors.textPrimary,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -992,7 +993,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
             child: OutlinedButton(
               onPressed: () => _generateSuggestions(),
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Color(0xFFE91E63)),
+                side: const BorderSide(color: AppColors.primary),
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -1001,7 +1002,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
               child: const Text(
                 'Gerar Novas Sugestões',
                 style: TextStyle(
-                  color: Color(0xFFE91E63),
+                  color: AppColors.primary,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
@@ -1019,9 +1020,9 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A2E),
+          color: AppColors.surfaceDark,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF2A2A3E)),
+          border: Border.all(color: AppColors.elevatedDark),
         ),
         child: Row(
           children: [
@@ -1029,7 +1030,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
               width: 24,
               height: 24,
               decoration: BoxDecoration(
-                color: const Color(0xFF4CAF50),
+                color: AppColors.success,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Center(
@@ -1041,12 +1042,12 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
               child: Text(
                 'Escrever minha própria mensagem',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   fontSize: 15,
                 ),
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 16),
+            Icon(Icons.arrow_forward_ios, color: AppColors.textPrimary.withOpacity(0.54), size: 16),
           ],
         ),
       ),
@@ -1059,21 +1060,21 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
+        backgroundColor: AppColors.surfaceDark,
         title: const Text(
           'Sua mensagem',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: AppColors.textPrimary),
         ),
         content: TextField(
           controller: customController,
-          style: const TextStyle(color: Colors.white),
+          style: const TextStyle(color: AppColors.textPrimary),
           maxLines: 4,
           autofocus: true,
           decoration: InputDecoration(
             hintText: 'Digite sua mensagem personalizada...',
-            hintStyle: TextStyle(color: Colors.grey.shade600),
+            hintStyle: const TextStyle(color: AppColors.textSecondary),
             filled: true,
-            fillColor: const Color(0xFF0D0D1A),
+            fillColor: AppColors.backgroundDark,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -1083,7 +1084,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancelar', style: TextStyle(color: Colors.grey.shade500)),
+            child: const Text('Cancelar', style: TextStyle(color: AppColors.textTertiary)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -1093,12 +1094,12 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE91E63),
+              backgroundColor: AppColors.primary,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text('Usar', style: TextStyle(color: Colors.white)),
+            child: const Text('Usar', style: TextStyle(color: AppColors.textPrimary)),
           ),
         ],
       ),
@@ -1109,9 +1110,9 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
+        color: AppColors.surfaceDark,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF2A2A3E)),
+        border: Border.all(color: AppColors.elevatedDark),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1122,14 +1123,14 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                 width: 24,
                 height: 24,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE91E63),
+                  color: AppColors.primary,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
                   child: Text(
                     '${index + 1}',
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),
@@ -1142,7 +1143,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
           Text(
             suggestion,
             style: const TextStyle(
-              color: Colors.white,
+              color: AppColors.textPrimary,
               fontSize: 15,
               height: 1.4,
             ),
@@ -1155,28 +1156,22 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                 child: GestureDetector(
                   onTap: () {
                     Clipboard.setData(ClipboardData(text: suggestion));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Copiado!'),
-                        duration: Duration(seconds: 1),
-                        backgroundColor: Color(0xFF4CAF50),
-                      ),
-                    );
+                    AppSnackBar.success(context, 'Copiado!');
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2A2A3E),
+                      color: AppColors.elevatedDark,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.copy, color: Colors.white70, size: 16),
-                        SizedBox(width: 6),
+                        Icon(Icons.copy, color: AppColors.textPrimary.withOpacity(0.7), size: 16),
+                        const SizedBox(width: 6),
                         Text(
                           'Copiar',
-                          style: TextStyle(color: Colors.white70, fontSize: 13),
+                          style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7), fontSize: 13),
                         ),
                       ],
                     ),
@@ -1192,7 +1187,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [Color(0xFFE91E63), Color(0xFFFF5722)],
+                        colors: [AppColors.primary, Color(0xFFFF5722)],
                       ),
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -1454,12 +1449,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppSnackBar.error(context, 'Erro: $e');
       }
     }
   }

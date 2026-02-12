@@ -39,7 +39,7 @@ class _SignupScreenState extends State<SignupScreen> {
         SnackBar(
           content: const Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.white),
+              Icon(Icons.warning_amber_rounded, color: AppColors.textPrimary),
               SizedBox(width: 12),
               Text('Aceite os termos de uso'),
             ],
@@ -64,7 +64,7 @@ class _SignupScreenState extends State<SignupScreen> {
           SnackBar(
             content: const Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.white),
+                Icon(Icons.check_circle, color: AppColors.textPrimary),
                 SizedBox(width: 12),
                 Text('Conta criada com sucesso!'),
               ],
@@ -82,7 +82,7 @@ class _SignupScreenState extends State<SignupScreen> {
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.info_outline, color: Colors.white),
+                const Icon(Icons.info_outline, color: AppColors.textPrimary),
                 const SizedBox(width: 12),
                 Expanded(child: Text(e.toString())),
               ],

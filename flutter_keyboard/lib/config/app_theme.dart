@@ -478,3 +478,27 @@ class GradientText extends StatelessWidget {
     );
   }
 }
+
+/// Utility class for standardized SnackBar display
+class AppSnackBar {
+  static void error(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: AppColors.error,
+    ));
+  }
+
+  static void success(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: AppColors.success,
+    ));
+  }
+
+  static void info(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: AppColors.info,
+    ));
+  }
+}

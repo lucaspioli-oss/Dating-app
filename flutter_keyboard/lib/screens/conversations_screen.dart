@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../config/app_theme.dart';
 import '../providers/app_state.dart';
 import '../providers/user_profile_provider.dart';
 import '../services/conversation_service.dart';
@@ -37,9 +38,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: ${e.toString()}'), backgroundColor: Colors.red),
-        );
+        AppSnackBar.error(context, 'Erro: ${e.toString()}');
       }
     }
   }
@@ -105,7 +104,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.chat_bubble_outline, size: 80, color: Colors.grey),
+            Icon(Icons.chat_bubble_outline, size: 80, color: AppColors.textTertiary),
             const SizedBox(height: 16),
             const Text(
               'Nenhuma conversa ainda',
@@ -115,7 +114,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
             Text(
               'Vá para "Análise" e gere um opener para começar!',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade600),
+              style: TextStyle(color: AppColors.textSecondary),
             ),
           ],
         ),
@@ -136,8 +135,8 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
-        color: Colors.red,
-        child: const Icon(Icons.delete, color: Colors.white),
+        color: AppColors.error,
+        child: const Icon(Icons.delete, color: AppColors.textPrimary),
       ),
       confirmDismiss: (direction) => _confirmDelete(conv),
       onDismissed: (direction) => _deleteConversation(conv.id),
@@ -165,11 +164,11 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
           children: [
             Text(
               _formatDate(conv.lastMessageAt),
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
             ),
             const SizedBox(width: 8),
             IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+              icon: Icon(Icons.delete_outline, color: AppColors.error, size: 20),
               onPressed: () => _confirmAndDelete(conv),
             ),
           ],
@@ -189,7 +188,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
       badge: Container(
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
-          color: const Color(0xFF0D0D1A),
+          color: AppColors.backgroundDark,
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
@@ -216,7 +215,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
             child: const Text('Excluir'),
           ),
         ],
@@ -242,18 +241,11 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Conversa excluída'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        AppSnackBar.success(context, 'Conversa excluída');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
-        );
+        AppSnackBar.error(context, 'Erro: $e');
       }
     }
   }

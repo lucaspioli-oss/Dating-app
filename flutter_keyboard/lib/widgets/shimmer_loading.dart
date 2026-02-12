@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
+import '../config/app_theme.dart';
 
 class ShimmerProfileList extends StatelessWidget {
   final int itemCount;
@@ -9,8 +10,8 @@ class ShimmerProfileList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: const Color(0xFF1A1A2E),
-      highlightColor: const Color(0xFF2A2A3E),
+      baseColor: AppColors.surfaceDark,
+      highlightColor: AppColors.elevatedDark,
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
         itemCount: itemCount,
@@ -20,7 +21,7 @@ class ShimmerProfileList extends StatelessWidget {
             child: Container(
               height: 80,
               decoration: BoxDecoration(
-                color: const Color(0xFF1A1A2E),
+                color: AppColors.surfaceDark,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
@@ -29,8 +30,8 @@ class ShimmerProfileList extends StatelessWidget {
                   Container(
                     width: 80,
                     height: 80,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF2A2A3E),
+                    decoration: BoxDecoration(
+                      color: AppColors.elevatedDark,
                       borderRadius:
                           BorderRadius.horizontal(left: Radius.circular(16)),
                     ),
@@ -48,7 +49,7 @@ class ShimmerProfileList extends StatelessWidget {
                             height: 14,
                             width: 120,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF2A2A3E),
+                              color: AppColors.elevatedDark,
                               borderRadius: BorderRadius.circular(4),
                             ),
                           ),
@@ -57,7 +58,7 @@ class ShimmerProfileList extends StatelessWidget {
                             height: 10,
                             width: 180,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF2A2A3E),
+                              color: AppColors.elevatedDark,
                               borderRadius: BorderRadius.circular(4),
                             ),
                           ),
@@ -83,8 +84,8 @@ class ShimmerConversationList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: const Color(0xFF1A1A2E),
-      highlightColor: const Color(0xFF2A2A3E),
+      baseColor: AppColors.surfaceDark,
+      highlightColor: AppColors.elevatedDark,
       child: Column(
         children: List.generate(itemCount, (index) {
           return Padding(
@@ -92,7 +93,7 @@ class ShimmerConversationList extends StatelessWidget {
             child: Container(
               height: 64,
               decoration: BoxDecoration(
-                color: const Color(0xFF1A1A2E),
+                color: AppColors.surfaceDark,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Padding(
@@ -104,7 +105,7 @@ class ShimmerConversationList extends StatelessWidget {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF2A2A3E),
+                        color: AppColors.elevatedDark,
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
@@ -118,7 +119,7 @@ class ShimmerConversationList extends StatelessWidget {
                             height: 12,
                             width: 100,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF2A2A3E),
+                              color: AppColors.elevatedDark,
                               borderRadius: BorderRadius.circular(4),
                             ),
                           ),
@@ -127,7 +128,7 @@ class ShimmerConversationList extends StatelessWidget {
                             height: 10,
                             width: 160,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF2A2A3E),
+                              color: AppColors.elevatedDark,
                               borderRadius: BorderRadius.circular(4),
                             ),
                           ),

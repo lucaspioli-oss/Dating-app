@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import '../config/app_theme.dart';
 
 /// Reusable professional avatar widget with gradient border and glow.
 /// Used consistently across the app for profile photos.
@@ -67,14 +68,14 @@ class ProfileAvatar extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: const LinearGradient(
-              colors: [Color(0xFFE91E63), Color(0xFFFF5722), Color(0xFFFF9800)],
+              colors: [AppColors.primary, Color(0xFFFF5722), AppColors.warning],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             boxShadow: showShadow
                 ? [
                     BoxShadow(
-                      color: const Color(0xFFE91E63).withOpacity(0.25),
+                      color: AppColors.primary.withOpacity(0.25),
                       blurRadius: size * 0.18,
                       offset: Offset(0, size * 0.04),
                     ),
@@ -85,7 +86,7 @@ class ProfileAvatar extends StatelessWidget {
           child: Container(
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
-              color: Color(0xFF0D0D1A),
+              color: AppColors.backgroundDark,
             ),
             padding: EdgeInsets.all(ringGap),
             child: ClipOval(
@@ -133,7 +134,7 @@ class ProfileAvatar extends StatelessWidget {
       height: innerSize,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF2A2A3E), Color(0xFF1A1A2E)],
+          colors: [AppColors.elevatedDark, AppColors.surfaceDark],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

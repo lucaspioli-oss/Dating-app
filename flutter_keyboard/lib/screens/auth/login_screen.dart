@@ -38,36 +38,14 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 12),
-                Text('Login realizado com sucesso!'),
-              ],
-            ),
-            backgroundColor: const Color(0xFF4CAF50),
-          ),
-        );
+        AppSnackBar.success(context, 'Login realizado com sucesso!');
 
         // Navigate to home (AuthWrapper will handle the rest)
         Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.info_outline, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(child: Text(e.toString())),
-              ],
-            ),
-            backgroundColor: Colors.orange,
-          ),
-        );
+        AppSnackBar.error(context, e.toString());
       }
     } finally {
       if (mounted) {
@@ -80,18 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailController.text.trim();
 
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Row(
-            children: [
-              Icon(Icons.info_outline, color: Colors.white),
-              SizedBox(width: 12),
-              Text('Digite seu email primeiro'),
-            ],
-          ),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      AppSnackBar.info(context, 'Digite seu email primeiro');
       return;
     }
 
@@ -99,33 +66,11 @@ class _LoginScreenState extends State<LoginScreen> {
       await _authService.sendPasswordResetEmail(email);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.email, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(child: Text('Email enviado para $email')),
-              ],
-            ),
-            backgroundColor: const Color(0xFF4CAF50),
-          ),
-        );
+        AppSnackBar.success(context, 'Email enviado para $email');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.info_outline, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(child: Text(e.toString())),
-              ],
-            ),
-            backgroundColor: Colors.orange,
-          ),
-        );
+        AppSnackBar.error(context, e.toString());
       }
     }
   }
@@ -136,7 +81,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final isDesktop = screenWidth > 800;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D1A),
+      backgroundColor: AppColors.backgroundDark,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -167,7 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       'Seu assistente inteligente de conversas',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: Colors.grey[500],
+                        color: AppColors.textTertiary,
                         fontSize: isDesktop ? 16 : 14,
                       ),
                     ),
@@ -177,7 +122,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text(
                       'Bem-vindo de volta!',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                         fontWeight: FontWeight.bold,
                         fontSize: isDesktop ? 28 : 24,
                       ),
@@ -186,7 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text(
                       'Faça login para continuar',
                       style: TextStyle(
-                        color: Colors.grey[500],
+                        color: AppColors.textTertiary,
                         fontSize: 14,
                       ),
                     ),
@@ -223,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           _obscurePassword
                               ? Icons.visibility_outlined
                               : Icons.visibility_off_outlined,
-                          color: Colors.grey[600],
+                          color: AppColors.textSecondary,
                         ),
                         onPressed: () {
                           setState(() => _obscurePassword = !_obscurePassword);
@@ -249,7 +194,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: Text(
                           'Esqueceu a senha?',
                           style: TextStyle(
-                            color: const Color(0xFFE91E63),
+                            color: AppColors.primary,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -263,9 +208,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _signIn,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE91E63),
-                          foregroundColor: Colors.white,
-                          disabledBackgroundColor: const Color(0xFFE91E63).withOpacity(0.5),
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: AppColors.textPrimary,
+                          disabledBackgroundColor: AppColors.primary.withOpacity(0.5),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -276,7 +221,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 width: 24,
                                 height: 24,
                                 child: CircularProgressIndicator(
-                                  color: Colors.white,
+                                  color: AppColors.textPrimary,
                                   strokeWidth: 2,
                                 ),
                               )
@@ -296,19 +241,19 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         Expanded(
                           child: Divider(
-                            color: Colors.grey[800],
+                            color: AppColors.textSecondary,
                           ),
                         ),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
                             'ou',
-                            style: TextStyle(color: Colors.grey[600]),
+                            style: TextStyle(color: AppColors.textSecondary),
                           ),
                         ),
                         Expanded(
                           child: Divider(
-                            color: Colors.grey[800],
+                            color: AppColors.textSecondary,
                           ),
                         ),
                       ],
@@ -321,7 +266,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         Text(
                           'Não tem uma conta?',
-                          style: TextStyle(color: Colors.grey[500]),
+                          style: TextStyle(color: AppColors.textTertiary),
                         ),
                         TextButton(
                           onPressed: _isLoading
@@ -337,7 +282,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: const Text(
                             'Criar conta',
                             style: TextStyle(
-                              color: Color(0xFFE91E63),
+                              color: AppColors.primary,
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
                             ),
@@ -371,7 +316,7 @@ class _LoginScreenState extends State<LoginScreen> {
         Text(
           label,
           style: TextStyle(
-            color: Colors.grey[400],
+            color: AppColors.textTertiary,
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
@@ -381,34 +326,34 @@ class _LoginScreenState extends State<LoginScreen> {
           controller: controller,
           keyboardType: keyboardType,
           obscureText: obscureText,
-          style: const TextStyle(color: Colors.white),
+          style: const TextStyle(color: AppColors.textPrimary),
           validator: validator,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey[600]),
-            prefixIcon: Icon(icon, color: Colors.grey[600]),
+            hintStyle: TextStyle(color: AppColors.textSecondary),
+            prefixIcon: Icon(icon, color: AppColors.textSecondary),
             suffixIcon: suffixIcon,
             filled: true,
-            fillColor: const Color(0xFF1A1A2E),
+            fillColor: AppColors.surfaceDark,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[800]!),
+              borderSide: BorderSide(color: AppColors.textSecondary),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[800]!),
+              borderSide: BorderSide(color: AppColors.textSecondary),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE91E63)),
+              borderSide: const BorderSide(color: AppColors.primary),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.red),
+              borderSide: const BorderSide(color: AppColors.error),
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.red),
+              borderSide: const BorderSide(color: AppColors.error),
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           ),

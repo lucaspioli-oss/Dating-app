@@ -40,23 +40,10 @@ const admin = __importStar(require("firebase-admin"));
 // Initialize Firebase Admin (only if not already initialized)
 if (!admin.apps.length) {
     const rawKey = process.env.FIREBASE_PRIVATE_KEY;
-    // Debug: verificar formato da chave
-    console.log('=== Firebase Config Debug ===');
-    console.log('PROJECT_ID:', process.env.FIREBASE_PROJECT_ID);
-    console.log('CLIENT_EMAIL:', process.env.FIREBASE_CLIENT_EMAIL);
-    console.log('PRIVATE_KEY exists:', !!rawKey);
-    console.log('PRIVATE_KEY length:', rawKey?.length);
-    console.log('PRIVATE_KEY starts with:', rawKey?.substring(0, 30));
-    console.log('PRIVATE_KEY contains \\n:', rawKey?.includes('\\n'));
-    console.log('PRIVATE_KEY contains real newline:', rawKey?.includes('\n') && !rawKey?.includes('\\n'));
-    // Tentar diferentes formas de processar a chave
     let privateKey = rawKey;
     if (rawKey?.includes('\\n')) {
         privateKey = rawKey.replace(/\\n/g, '\n');
-        console.log('Converted \\n to real newlines');
     }
-    console.log('Final key starts with:', privateKey?.substring(0, 30));
-    console.log('=============================');
     admin.initializeApp({
         credential: admin.credential.cert({
             projectId: process.env.FIREBASE_PROJECT_ID,
@@ -74,12 +61,9 @@ const db = admin.firestore();
  * Middleware to verify Firebase Auth token
  */
 async function verifyAuth(request, reply) {
-    console.log('=== verifyAuth START ===');
     try {
         const authHeader = request.headers.authorization;
-        console.log('1. Auth header exists:', !!authHeader);
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            console.log('1. FAIL - No auth header');
             reply.code(401).send({
                 error: 'Unauthorized',
                 message: 'Missing or invalid authorization header',
@@ -87,17 +71,11 @@ async function verifyAuth(request, reply) {
             return;
         }
         const token = authHeader.substring(7); // Remove 'Bearer '
-        console.log('2. Token length:', token.length);
         // Verify Firebase token
-        console.log('3. Verifying token with Firebase Auth...');
         const decodedToken = await admin.auth().verifyIdToken(token);
-        console.log('3. Token verified! UID:', decodedToken.uid, 'Email:', decodedToken.email);
         // Check subscription status
-        console.log('4. Getting user doc from Firestore...');
         const userDoc = await db.collection('users').doc(decodedToken.uid).get();
-        console.log('4. User doc exists:', userDoc.exists);
         if (!userDoc.exists) {
-            console.log('4. FAIL - User doc not found');
             reply.code(403).send({
                 error: 'Forbidden',
                 message: 'User not found',
@@ -105,22 +83,18 @@ async function verifyAuth(request, reply) {
             return;
         }
         const userData = userDoc.data();
-        console.log('5. User data:', JSON.stringify(userData, null, 2));
         const subscription = userData?.subscription;
         // Check for admin/developer status (stored in Firestore, not in code)
         const isAdmin = userData?.isAdmin === true;
         const isDeveloper = userData?.isDeveloper === true;
-        console.log('5. isAdmin:', isAdmin, 'isDeveloper:', isDeveloper);
         const now = new Date();
         const expiresAt = subscription?.expiresAt?.toDate();
-        console.log('5. Subscription status:', subscription?.status, 'expiresAt:', expiresAt);
         // Admins and developers always have access
         // Active subscription with valid expiration date
         const hasActiveSubscription = isAdmin ||
             isDeveloper ||
             (subscription?.status === 'active' &&
                 (!expiresAt || now < expiresAt));
-        console.log('6. hasActiveSubscription:', hasActiveSubscription);
         // Attach user to request
         request.user = {
             uid: decodedToken.uid,
@@ -131,7 +105,6 @@ async function verifyAuth(request, reply) {
         };
         // If no active subscription (and not admin/developer), return error
         if (!hasActiveSubscription) {
-            console.log('6. FAIL - No active subscription');
             reply.code(403).send({
                 error: 'Subscription Required',
                 message: 'You need an active subscription to use this feature',
@@ -140,14 +113,9 @@ async function verifyAuth(request, reply) {
             });
             return;
         }
-        console.log('=== verifyAuth SUCCESS ===');
     }
     catch (error) {
-        console.error('=== verifyAuth ERROR ===');
-        console.error('Error name:', error.name);
-        console.error('Error code:', error.code);
-        console.error('Error message:', error.message);
-        console.error('Full error:', error);
+        console.error('Auth verification failed:', error.code || error.message);
         reply.code(401).send({
             error: 'Unauthorized',
             message: error.message || 'Invalid token',
@@ -179,7 +147,7 @@ async function verifyAuthOnly(request, reply) {
         };
     }
     catch (error) {
-        console.error('Auth error:', error);
+        console.error('Auth error:', error.code || error.message);
         reply.code(401).send({
             error: 'Unauthorized',
             message: error.message || 'Invalid token',
@@ -222,6 +190,5 @@ async function optionalAuth(request, reply) {
     }
     catch (error) {
         // Invalid token, continue without user
-        console.warn('Optional auth failed:', error);
     }
 }

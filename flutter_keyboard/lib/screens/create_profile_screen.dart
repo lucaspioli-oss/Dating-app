@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:image/image.dart' as img;
+import '../config/app_theme.dart';
 import '../models/profile_model.dart';
 import '../providers/app_state.dart';
 import '../services/agent_service.dart';
@@ -43,18 +44,18 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D1A),
+      backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0D0D1A),
+        backgroundColor: AppColors.backgroundDark,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+          icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Novo Perfil',
           style: TextStyle(
-            color: Colors.white,
+            color: AppColors.textPrimary,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -76,7 +77,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  const Color(0xFFE91E63).withOpacity(0.2),
+                  AppColors.primary.withOpacity(0.2),
                   const Color(0xFFFF5722).withOpacity(0.2),
                 ],
                 begin: Alignment.topLeft,
@@ -89,7 +90,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                 width: 40,
                 height: 40,
                 child: CircularProgressIndicator(
-                  color: Color(0xFFE91E63),
+                  color: AppColors.primary,
                   strokeWidth: 3,
                 ),
               ),
@@ -99,16 +100,16 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           const Text(
             'Analisando perfil...',
             style: TextStyle(
-              color: Colors.white,
+              color: AppColors.textPrimary,
               fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 12),
-          Text(
+          const Text(
             'Extraindo informações das imagens',
             style: TextStyle(
-              color: Colors.grey.shade500,
+              color: AppColors.textTertiary,
               fontSize: 14,
             ),
           ),
@@ -126,16 +127,16 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           const Text(
             'Selecione a rede social',
             style: TextStyle(
-              color: Colors.white,
+              color: AppColors.textPrimary,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 8),
-          Text(
+          const Text(
             'Onde você conheceu essa pessoa?',
             style: TextStyle(
-              color: Colors.grey.shade500,
+              color: AppColors.textTertiary,
               fontSize: 13,
             ),
           ),
@@ -168,18 +169,18 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.red.withOpacity(0.1),
+              color: AppColors.error.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.red.withOpacity(0.3)),
+              border: Border.all(color: AppColors.error.withOpacity(0.3)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.error_outline, color: Colors.red, size: 22),
+                const Icon(Icons.error_outline, color: AppColors.error, size: 22),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     _errorMessage!,
-                    style: const TextStyle(color: Colors.red, fontSize: 14),
+                    style: const TextStyle(color: AppColors.error, fontSize: 14),
                   ),
                 ),
               ],
@@ -193,7 +194,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   Widget _buildPlatformGrid({required Function(PlatformType) onSelect}) {
     final platforms = [
       _PlatformInfo(PlatformType.instagram, 'Instagram', 'assets/images/instagram.png', const Color(0xFFE1306C)),
-      _PlatformInfo(PlatformType.tinder, 'Tinder', 'assets/images/tinder.png', const Color(0xFFFF6B6B)),
+      _PlatformInfo(PlatformType.tinder, 'Tinder', 'assets/images/tinder.png', AppColors.primaryCoral),
       _PlatformInfo(PlatformType.bumble, 'Bumble', 'assets/images/bumble.png', const Color(0xFFFFD93D)),
       _PlatformInfo(PlatformType.hinge, 'Hinge', 'assets/images/hinge.png', const Color(0xFF8B5CF6)),
       _PlatformInfo(PlatformType.happn, 'Happn', null, const Color(0xFFFF9500)),
@@ -222,9 +223,9 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A2E),
+          color: AppColors.surfaceDark,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF2A2A3E)),
+          border: Border.all(color: AppColors.elevatedDark),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -257,7 +258,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             Text(
               platform.name,
               style: const TextStyle(
-                color: Colors.white,
+                color: AppColors.textPrimary,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
@@ -275,7 +276,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
       margin: EdgeInsets.only(top: index > 0 ? 20 : 0, bottom: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
+        color: AppColors.surfaceDark,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: platformInfo.color.withOpacity(0.3)),
       ),
@@ -314,7 +315,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                 child: Text(
                   platformInfo.name,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -322,7 +323,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
               ),
               if (_platformEntries.length > 1)
                 IconButton(
-                  icon: Icon(Icons.close, color: Colors.grey.shade500, size: 20),
+                  icon: const Icon(Icons.close, color: AppColors.textTertiary, size: 20),
                   onPressed: () => _removePlatform(index),
                 ),
             ],
@@ -335,7 +336,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
               const Text(
                 'Como você quer adicionar?',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
@@ -349,23 +350,23 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 20),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF2A2A3E),
+                          color: AppColors.elevatedDark,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: const Color(0xFF3A3A4E)),
                         ),
                         child: Column(
                           children: [
-                            const Text('📸', style: TextStyle(fontSize: 28)),
+                            const Text('\uD83D\uDCF8', style: TextStyle(fontSize: 28)),
                             const SizedBox(height: 8),
                             const Text(
                               'Print do Perfil',
-                              style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                              style: TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
                             ),
                             const SizedBox(height: 4),
-                            Text(
+                            const Text(
                               'Um print geral\ndo perfil dela',
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                              style: TextStyle(color: AppColors.textTertiary, fontSize: 11),
                             ),
                           ],
                         ),
@@ -379,23 +380,23 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 20),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF2A2A3E),
+                          color: AppColors.elevatedDark,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: const Color(0xFF3A3A4E)),
                         ),
                         child: Column(
                           children: [
-                            const Text('🖼', style: TextStyle(fontSize: 28)),
+                            const Text('\uD83D\uDDBC', style: TextStyle(fontSize: 28)),
                             const SizedBox(height: 8),
                             const Text(
                               'Fotos Individuais',
-                              style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                              style: TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
                             ),
                             const SizedBox(height: 4),
-                            Text(
+                            const Text(
                               'Adicione as fotos\numa por uma',
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                              style: TextStyle(color: AppColors.textTertiary, fontSize: 11),
                             ),
                           ],
                         ),
@@ -413,7 +414,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                         ? '📸 Print do Perfil'
                         : '🖼 Fotos Individuais',
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
@@ -424,7 +425,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                     child: Text(
                       'Trocar modo',
                       style: TextStyle(
-                        color: const Color(0xFFE91E63),
+                        color: AppColors.primary,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
@@ -443,22 +444,22 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 32),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF2A2A3E),
+                        color: AppColors.elevatedDark,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: const Color(0xFF3A3A4E)),
                       ),
                       child: Column(
                         children: [
-                          Icon(Icons.screenshot_outlined, color: Colors.grey.shade500, size: 36),
+                          const Icon(Icons.screenshot_outlined, color: AppColors.textTertiary, size: 36),
                           const SizedBox(height: 12),
                           const Text(
                             'Adicionar print do perfil',
-                            style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                            style: TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
                           ),
                           const SizedBox(height: 4),
-                          Text(
+                          const Text(
                             'Tire um print da página do perfil dela no Instagram',
-                            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                            style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
                           ),
                         ],
                       ),
@@ -508,7 +509,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                                     color: Colors.black.withOpacity(0.7),
                                     shape: BoxShape.circle,
                                   ),
-                                  child: const Icon(Icons.close, size: 14, color: Colors.white),
+                                  child: const Icon(Icons.close, size: 14, color: AppColors.textPrimary),
                                 ),
                               ),
                             ),
@@ -521,10 +522,10 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                         flex: 2,
                         child: Column(
                           children: [
-                            Text(
+                            const Text(
                               'Foto de perfil\n(recorte automático)',
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.grey.shade400, fontSize: 11),
+                              style: TextStyle(color: AppColors.textTertiary, fontSize: 11),
                             ),
                             const SizedBox(height: 8),
                             if (entry.croppedProfilePicBytes != null)
@@ -534,7 +535,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: const Color(0xFFE91E63).withOpacity(0.5),
+                                    color: AppColors.primary.withOpacity(0.5),
                                     width: 2,
                                   ),
                                 ),
@@ -561,16 +562,16 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             const Text(
               'Fotos do Perfil',
               style: TextStyle(
-                color: Colors.white,
+                color: AppColors.textPrimary,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               'Adicione as fotos do perfil dela (pode adicionar várias)',
               style: TextStyle(
-                color: Colors.grey.shade500,
+                color: AppColors.textTertiary,
                 fontSize: 12,
               ),
             ),
@@ -584,16 +585,16 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             const Text(
               'Stories (opcional)',
               style: TextStyle(
-                color: Colors.white,
+                color: AppColors.textPrimary,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               'Adicione stories para usar como contexto nas sugestões',
               style: TextStyle(
-                color: Colors.grey.shade500,
+                color: AppColors.textTertiary,
                 fontSize: 12,
               ),
             ),
@@ -640,40 +641,40 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         // Name field
         TextField(
           controller: entry.nameController,
-          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+          style: const TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
           decoration: InputDecoration(
             hintText: 'Nome dela',
-            hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 16, fontWeight: FontWeight.w600),
+            hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 16, fontWeight: FontWeight.w600),
             filled: true,
-            fillColor: const Color(0xFF2A2A3E),
+            fillColor: AppColors.elevatedDark,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            prefixIcon: Icon(Icons.person_outline, color: Colors.grey.shade500, size: 20),
+            prefixIcon: const Icon(Icons.person_outline, color: AppColors.textTertiary, size: 20),
           ),
         ),
         const SizedBox(height: 10),
         // Bio field
         TextField(
           controller: entry.bioController,
-          style: const TextStyle(color: Colors.white, fontSize: 14),
+          style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
           maxLines: 3,
           minLines: 2,
           decoration: InputDecoration(
             hintText: 'Bio / descricao do perfil',
-            hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+            hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
             filled: true,
-            fillColor: const Color(0xFF2A2A3E),
+            fillColor: AppColors.elevatedDark,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            prefixIcon: Padding(
-              padding: const EdgeInsets.only(bottom: 28),
-              child: Icon(Icons.info_outline, color: Colors.grey.shade500, size: 20),
+            prefixIcon: const Padding(
+              padding: EdgeInsets.only(bottom: 28),
+              child: Icon(Icons.info_outline, color: AppColors.textTertiary, size: 20),
             ),
           ),
         ),
@@ -684,15 +685,15 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             const Text(
               'Stories',
               style: TextStyle(
-                color: Colors.white,
+                color: AppColors.textPrimary,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(width: 6),
-            Text(
+            const Text(
               '(opcional)',
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+              style: TextStyle(color: AppColors.textTertiary, fontSize: 12),
             ),
           ],
         ),
@@ -713,7 +714,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         // Divider
         Container(
           height: 1,
-          color: const Color(0xFF2A2A3E),
+          color: AppColors.elevatedDark,
         ),
         const SizedBox(height: 16),
         // Photos section - grid layout
@@ -722,15 +723,15 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             const Text(
               'Fotos do Perfil',
               style: TextStyle(
-                color: Colors.white,
+                color: AppColors.textPrimary,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const Spacer(),
-            Text(
+            const Text(
               'A 1a foto vira avatar',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
             ),
           ],
         ),
@@ -755,7 +756,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           Text(
             title,
             style: const TextStyle(
-              color: Colors.white,
+              color: AppColors.textPrimary,
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
@@ -767,7 +768,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                 width: double.infinity,
                 height: isSmall ? 150 : 220,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2A2A3E),
+                  color: AppColors.elevatedDark,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: ClipRRect(
@@ -786,10 +787,10 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(6),
                     decoration: const BoxDecoration(
-                      color: Color(0xFFE91E63),
+                      color: AppColors.primary,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.close, size: 16, color: Colors.white),
+                    child: const Icon(Icons.close, size: 16, color: AppColors.textPrimary),
                   ),
                 ),
               ),
@@ -805,7 +806,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         width: double.infinity,
         padding: EdgeInsets.symmetric(vertical: isSmall ? 24 : 32),
         decoration: BoxDecoration(
-          color: const Color(0xFF2A2A3E),
+          color: AppColors.elevatedDark,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: const Color(0xFF3A3A4E),
@@ -817,14 +818,14 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           children: [
             Icon(
               Icons.add_photo_alternate_outlined,
-              color: Colors.grey.shade500,
+              color: AppColors.textTertiary,
               size: isSmall ? 28 : 36,
             ),
             const SizedBox(height: 12),
             Text(
               title,
               style: TextStyle(
-                color: Colors.white,
+                color: AppColors.textPrimary,
                 fontSize: isSmall ? 13 : 14,
                 fontWeight: FontWeight.w600,
               ),
@@ -833,7 +834,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             Text(
               subtitle,
               style: TextStyle(
-                color: Colors.grey.shade600,
+                color: AppColors.textSecondary,
                 fontSize: isSmall ? 11 : 12,
               ),
             ),
@@ -889,13 +890,13 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE91E63),
+                  color: AppColors.primary,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Text(
                   'Principal',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                     fontSize: 9,
                     fontWeight: FontWeight.bold,
                   ),
@@ -914,7 +915,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                   color: Colors.black.withOpacity(0.7),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.close, size: 14, color: Colors.white),
+                child: const Icon(Icons.close, size: 14, color: AppColors.textPrimary),
               ),
             ),
           ),
@@ -930,7 +931,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         width: 100,
         height: 130,
         decoration: BoxDecoration(
-          color: const Color(0xFF2A2A3E),
+          color: AppColors.elevatedDark,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: const Color(0xFF3A3A4E),
@@ -940,24 +941,24 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.add_photo_alternate_outlined,
-              color: Colors.grey.shade500,
+              color: AppColors.textTertiary,
               size: 28,
             ),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               'Adicionar',
               style: TextStyle(
-                color: Colors.grey.shade500,
+                color: AppColors.textTertiary,
                 fontSize: 12,
               ),
             ),
             const SizedBox(height: 2),
-            Text(
+            const Text(
               '(várias)',
               style: TextStyle(
-                color: Colors.grey.shade600,
+                color: AppColors.textSecondary,
                 fontSize: 10,
               ),
             ),
@@ -986,7 +987,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             padding: const EdgeInsets.all(2),
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFF1A1A2E),
+                color: AppColors.surfaceDark,
                 borderRadius: BorderRadius.circular(8),
               ),
               padding: const EdgeInsets.all(2),
@@ -1012,7 +1013,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                   color: Colors.black.withOpacity(0.6),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.close, size: 12, color: Colors.white),
+                child: const Icon(Icons.close, size: 12, color: AppColors.textPrimary),
               ),
             ),
           ),
@@ -1028,30 +1029,30 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         width: 80,
         height: 100,
         decoration: BoxDecoration(
-          color: const Color(0xFF2A2A3E),
+          color: AppColors.elevatedDark,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: const Color(0xFF3A3A4E)),
         ),
-        child: Column(
+        child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               Icons.add,
-              color: Colors.grey.shade500,
+              color: AppColors.textTertiary,
               size: 24,
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             Text(
               'Stories',
               style: TextStyle(
-                color: Colors.grey.shade500,
+                color: AppColors.textTertiary,
                 fontSize: 11,
               ),
             ),
             Text(
               '(várias)',
               style: TextStyle(
-                color: Colors.grey.shade600,
+                color: AppColors.textSecondary,
                 fontSize: 9,
               ),
             ),
@@ -1074,26 +1075,26 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A2E),
+          color: AppColors.surfaceDark,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: const Color(0xFF2A2A3E),
+            color: AppColors.elevatedDark,
             style: BorderStyle.solid,
           ),
         ),
-        child: Row(
+        child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               Icons.add_circle_outline,
-              color: Colors.grey.shade400,
+              color: AppColors.textTertiary,
               size: 22,
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             Text(
               'Adicionar outra rede social',
               style: TextStyle(
-                color: Colors.grey.shade400,
+                color: AppColors.textTertiary,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
@@ -1112,14 +1113,14 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         padding: const EdgeInsets.symmetric(vertical: 18),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFFE91E63), Color(0xFFFF5722)],
+            colors: [AppColors.primary, Color(0xFFFF5722)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFE91E63).withOpacity(0.3),
+              color: AppColors.primary.withOpacity(0.3),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -1160,7 +1161,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   void _showAddPlatformDialog() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1A1A2E),
+      backgroundColor: AppColors.surfaceDark,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -1174,7 +1175,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
               const Text(
                 'Adicionar Rede Social',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -1485,7 +1486,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
       case PlatformType.instagram:
         return _PlatformInfo(type, 'Instagram', 'assets/images/instagram.png', const Color(0xFFE1306C));
       case PlatformType.tinder:
-        return _PlatformInfo(type, 'Tinder', 'assets/images/tinder.png', const Color(0xFFFF6B6B));
+        return _PlatformInfo(type, 'Tinder', 'assets/images/tinder.png', AppColors.primaryCoral);
       case PlatformType.bumble:
         return _PlatformInfo(type, 'Bumble', 'assets/images/bumble.png', const Color(0xFFFFD93D));
       case PlatformType.hinge:

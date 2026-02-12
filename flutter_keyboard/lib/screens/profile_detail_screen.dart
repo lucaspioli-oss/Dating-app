@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:image/image.dart' as img;
+import '../config/app_theme.dart';
 import '../models/profile_model.dart';
 import '../providers/app_state.dart';
 import '../services/agent_service.dart';
@@ -55,33 +56,33 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: const Color(0xFF0D0D1A),
+        backgroundColor: AppColors.backgroundDark,
         appBar: AppBar(
-          backgroundColor: const Color(0xFF0D0D1A),
+          backgroundColor: AppColors.backgroundDark,
           elevation: 0,
         ),
         body: const Center(
-          child: CircularProgressIndicator(color: Color(0xFFE91E63)),
+          child: CircularProgressIndicator(color: AppColors.primary),
         ),
       );
     }
 
     if (_profile == null) {
       return Scaffold(
-        backgroundColor: const Color(0xFF0D0D1A),
+        backgroundColor: AppColors.backgroundDark,
         appBar: AppBar(
-          backgroundColor: const Color(0xFF0D0D1A),
+          backgroundColor: AppColors.backgroundDark,
           elevation: 0,
         ),
-        body: Center(
+        body: const Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.person_off_outlined, size: 64, color: Colors.grey.shade600),
-              const SizedBox(height: 16),
+              Icon(Icons.person_off_outlined, size: 64, color: AppColors.textSecondary),
+              SizedBox(height: 16),
               Text(
                 'Perfil não encontrado',
-                style: TextStyle(color: Colors.grey.shade400, fontSize: 16),
+                style: TextStyle(color: AppColors.textTertiary, fontSize: 16),
               ),
             ],
           ),
@@ -90,18 +91,18 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D1A),
+      backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0D0D1A),
+        backgroundColor: AppColors.backgroundDark,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+          icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: Colors.white, size: 22),
-            color: const Color(0xFF1A1A2E),
+            icon: const Icon(Icons.more_vert, color: AppColors.textPrimary, size: 22),
+            color: AppColors.surfaceDark,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             onSelected: (value) {
               if (value == 'delete') {
@@ -113,9 +114,9 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                 value: 'delete',
                 child: Row(
                   children: [
-                    Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                    Icon(Icons.delete_outline, color: AppColors.error, size: 20),
                     SizedBox(width: 10),
-                    Text('Excluir Perfil', style: TextStyle(color: Colors.red)),
+                    Text('Excluir Perfil', style: TextStyle(color: AppColors.error)),
                   ],
                 ),
               ),
@@ -155,14 +156,14 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFFE91E63), Color(0xFFFF5722)],
+            colors: [AppColors.primary, Color(0xFFFF5722)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFE91E63).withOpacity(0.4),
+              color: AppColors.primary.withOpacity(0.4),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -207,7 +208,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                 Text(
                   _profile!.name,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                     fontWeight: FontWeight.bold,
                     fontSize: 24,
                   ),
@@ -249,21 +250,21 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
+        color: AppColors.surfaceDark,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF2A2A3E)),
+        border: Border.all(color: AppColors.elevatedDark),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Text('📸', style: TextStyle(fontSize: 24)),
+              const Text('\uD83D\uDCF8', style: TextStyle(fontSize: 24)),
               const SizedBox(width: 8),
               const Text(
                 'Instagram',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -273,7 +274,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                 Text(
                   '@${instagram.username}',
                   style: const TextStyle(
-                    color: Color(0xFFE91E63),
+                    color: AppColors.primary,
                     fontSize: 14,
                   ),
                 ),
@@ -284,7 +285,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
             Text(
               instagram.bio!,
               style: const TextStyle(
-                color: Color(0xFFAAAAAA),
+                color: AppColors.textSecondary,
                 fontSize: 14,
               ),
               maxLines: 3,
@@ -298,7 +299,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
               const Text(
                 'Stories',
                 style: TextStyle(
-                  color: Color(0xFF888888),
+                  color: AppColors.textTertiary,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -308,12 +309,12 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                 icon: const Icon(
                   Icons.add,
                   size: 16,
-                  color: Color(0xFFE91E63),
+                  color: AppColors.primary,
                 ),
                 label: const Text(
                   'Adicionar',
                   style: TextStyle(
-                    color: Color(0xFFE91E63),
+                    color: AppColors.primary,
                     fontSize: 12,
                   ),
                 ),
@@ -364,7 +365,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
-            color: const Color(0xFF1A1A2E),
+            color: AppColors.surfaceDark,
           ),
           padding: const EdgeInsets.all(2),
           child: ClipRRect(
@@ -394,7 +395,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
         width: 70,
         height: 70,
         decoration: BoxDecoration(
-          color: const Color(0xFF2A2A3E),
+          color: AppColors.elevatedDark,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: const Color(0xFF3A3A4E)),
         ),
@@ -403,14 +404,14 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
           children: [
             Icon(
               Icons.add,
-              color: Color(0xFF888888),
+              color: AppColors.textTertiary,
               size: 24,
             ),
             SizedBox(height: 4),
             Text(
               'Story',
               style: TextStyle(
-                color: Color(0xFF888888),
+                color: AppColors.textTertiary,
                 fontSize: 10,
               ),
             ),
@@ -425,9 +426,9 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
+        color: AppColors.surfaceDark,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF2A2A3E)),
+        border: Border.all(color: AppColors.elevatedDark),
       ),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -444,7 +445,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
               const Text(
                 'Apps de Relacionamento',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
@@ -454,13 +455,13 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE91E63).withOpacity(0.2),
+                    color: AppColors.primary.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
                     '${datingApps.length}',
                     style: const TextStyle(
-                      color: Color(0xFFE91E63),
+                      color: AppColors.primary,
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
@@ -468,8 +469,8 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                 ),
             ],
           ),
-          iconColor: const Color(0xFF888888),
-          collapsedIconColor: const Color(0xFF888888),
+          iconColor: AppColors.textTertiary,
+          collapsedIconColor: AppColors.textTertiary,
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -492,7 +493,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF2A2A3E),
+        color: AppColors.elevatedDark,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -506,7 +507,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                 Text(
                   app.type.displayName,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -514,7 +515,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                   Text(
                     app.bio!,
                     style: const TextStyle(
-                      color: Color(0xFF888888),
+                      color: AppColors.textTertiary,
                       fontSize: 12,
                     ),
                     maxLines: 1,
@@ -525,13 +526,13 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                     margin: const EdgeInsets.only(top: 4),
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE91E63).withOpacity(0.1),
+                      color: AppColors.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: const Text(
                       'Opening Move',
                       style: TextStyle(
-                        color: Color(0xFFE91E63),
+                        color: AppColors.primary,
                         fontSize: 10,
                       ),
                     ),
@@ -558,7 +559,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0xFF2A2A3E),
+          color: AppColors.elevatedDark,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: const Color(0xFF3A3A4E),
@@ -570,14 +571,14 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
           children: [
             Icon(
               Icons.add,
-              color: Color(0xFF888888),
+              color: AppColors.textTertiary,
               size: 20,
             ),
             SizedBox(width: 8),
             Text(
               'Adicionar App',
               style: TextStyle(
-                color: Color(0xFF888888),
+                color: AppColors.textTertiary,
               ),
             ),
           ],
@@ -596,7 +597,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
             const Text(
               'CONVERSAS',
               style: TextStyle(
-                color: Color(0xFF888888),
+                color: AppColors.textTertiary,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.5,
@@ -612,7 +613,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2A2A3E),
+                  color: AppColors.elevatedDark,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -621,31 +622,31 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                     Text(
                       _conversationFilter ?? 'Todas',
                       style: const TextStyle(
-                        color: Color(0xFFAAAAAA),
+                        color: AppColors.textSecondary,
                         fontSize: 12,
                       ),
                     ),
                     const SizedBox(width: 4),
                     const Icon(
                       Icons.arrow_drop_down,
-                      color: Color(0xFFAAAAAA),
+                      color: AppColors.textSecondary,
                       size: 16,
                     ),
                   ],
                 ),
               ),
-              color: const Color(0xFF2A2A3E),
+              color: AppColors.elevatedDark,
               itemBuilder: (context) => [
                 const PopupMenuItem(
                   value: null,
-                  child: Text('Todas', style: TextStyle(color: Colors.white)),
+                  child: Text('Todas', style: TextStyle(color: AppColors.textPrimary)),
                 ),
                 ..._profile!.platforms.keys.map((platform) {
                   return PopupMenuItem(
                     value: platform.name,
                     child: Text(
                       platform.displayName,
-                      style: const TextStyle(color: Colors.white),
+                      style: const TextStyle(color: AppColors.textPrimary),
                     ),
                   );
                 }),
@@ -673,7 +674,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
               return Container(
                 padding: const EdgeInsets.all(32),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A2E),
+                  color: AppColors.surfaceDark,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Column(
@@ -687,7 +688,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                     Text(
                       'Comece a conversa',
                       style: TextStyle(
-                        color: Color(0xFF888888),
+                        color: AppColors.textTertiary,
                         fontSize: 14,
                       ),
                     ),
@@ -734,9 +735,9 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A2E),
+          color: AppColors.surfaceDark,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFF2A2A3E)),
+          border: Border.all(color: AppColors.elevatedDark),
         ),
         child: Row(
           children: [
@@ -751,7 +752,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                 decoration: BoxDecoration(
                   color: platformColor,
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF1A1A2E), width: 2),
+                  border: Border.all(color: AppColors.surfaceDark, width: 2),
                 ),
                 child: Text(
                   platformIcon,
@@ -769,7 +770,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                       Text(
                         _getPlatformDisplayName(conv.platform),
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AppColors.textPrimary,
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
                         ),
@@ -791,8 +792,8 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                   const SizedBox(height: 4),
                   Text(
                     conv.lastMessage.isNotEmpty ? conv.lastMessage : 'Toque para ver a conversa',
-                    style: TextStyle(
-                      color: Colors.grey.shade500,
+                    style: const TextStyle(
+                      color: AppColors.textTertiary,
                       fontSize: 13,
                     ),
                     maxLines: 1,
@@ -901,12 +902,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
       await _profileService.addStory(widget.profileId, story);
       await _loadProfile();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao adicionar story: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      AppSnackBar.error(context, 'Erro ao adicionar story: $e');
     }
   }
 
@@ -914,14 +910,14 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF2A2A3E),
+        backgroundColor: AppColors.elevatedDark,
         title: const Text(
           'Excluir Story?',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: AppColors.textPrimary),
         ),
         content: const Text(
           'Esta ação não pode ser desfeita.',
-          style: TextStyle(color: Color(0xFFAAAAAA)),
+          style: TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
@@ -936,7 +932,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
             },
             child: const Text(
               'Excluir',
-              style: TextStyle(color: Colors.red),
+              style: TextStyle(color: AppColors.error),
             ),
           ),
         ],
@@ -948,14 +944,14 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF2A2A3E),
+        backgroundColor: AppColors.elevatedDark,
         title: Text(
           'Remover ${type.displayName}?',
-          style: const TextStyle(color: Colors.white),
+          style: const TextStyle(color: AppColors.textPrimary),
         ),
         content: const Text(
           'Os dados desta plataforma serão removidos.',
-          style: TextStyle(color: Color(0xFFAAAAAA)),
+          style: TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
@@ -970,7 +966,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
             },
             child: const Text(
               'Remover',
-              style: TextStyle(color: Colors.red),
+              style: TextStyle(color: AppColors.error),
             ),
           ),
         ],
@@ -982,14 +978,14 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF2A2A3E),
+        backgroundColor: AppColors.elevatedDark,
         title: const Text(
           'Excluir Perfil?',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: AppColors.textPrimary),
         ),
         content: const Text(
           'O perfil e todas as conversas serão excluídos permanentemente.',
-          style: TextStyle(color: Color(0xFFAAAAAA)),
+          style: TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
@@ -1004,7 +1000,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
             },
             child: const Text(
               'Excluir',
-              style: TextStyle(color: Colors.red),
+              style: TextStyle(color: AppColors.error),
             ),
           ),
         ],
@@ -1019,17 +1015,13 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
         .toList();
 
     if (availablePlatforms.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Todas as plataformas já foram adicionadas'),
-        ),
-      );
+      AppSnackBar.info(context, 'Todas as plataformas já foram adicionadas');
       return;
     }
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1A1A2E),
+      backgroundColor: AppColors.surfaceDark,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -1043,7 +1035,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
               const Text(
                 'Adicionar Plataforma',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -1064,7 +1056,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                         vertical: 12,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF2A2A3E),
+                        color: AppColors.elevatedDark,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -1077,7 +1069,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                           const SizedBox(width: 8),
                           Text(
                             platform.displayName,
-                            style: const TextStyle(color: Colors.white),
+                            style: const TextStyle(color: AppColors.textPrimary),
                           ),
                         ],
                       ),
@@ -1131,12 +1123,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
       await _profileService.addPlatform(widget.profileId, platformData);
       await _loadProfile();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao adicionar plataforma: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      AppSnackBar.error(context, 'Erro ao adicionar plataforma: $e');
     }
   }
 

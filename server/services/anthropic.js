@@ -47,11 +47,12 @@ async function analyzeMessage(request) {
         const message = await client.messages.create({
             model: 'claude-sonnet-4-5-20250929',
             max_tokens: 512,
+            temperature: 0.85,
             system: systemPrompt,
             messages: [
                 {
                     role: 'user',
-                    content: `${request.text}\n\nIMPORTANTE: Retorne APENAS as sugestões de resposta numeradas (1. 2. 3.). NÃO inclua análise, explicações, headers, red flags, grau de investimento, raciocínio ou qualquer outro texto. SOMENTE as mensagens prontas para enviar.`,
+                    content: `${request.text}\n\nIMPORTANTE: Retorne APENAS as sugestões de resposta numeradas (1. 2. 3.). NÃO inclua análise, explicações, headers, red flags, grau de investimento, raciocínio ou qualquer outro texto. SOMENTE as mensagens prontas para enviar.\n\nAs 3 sugestões devem ter estilos DIFERENTES entre si:\n1. Uma resposta curta e direta\n2. Uma resposta mais elaborada e envolvente\n3. Uma resposta criativa/ousada`,
                 },
             ],
         });

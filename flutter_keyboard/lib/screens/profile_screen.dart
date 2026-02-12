@@ -136,7 +136,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Selecione pelo menos um interesse!'),
-          backgroundColor: Colors.orange,
+          backgroundColor: AppColors.warning,
         ),
       );
       return;
@@ -161,7 +161,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('✅ Perfil salvo com sucesso!'),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.success,
         ),
       );
     }
@@ -328,7 +328,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             Icon(
               isActive ? Icons.verified : Icons.info_outline,
               size: 64,
-              color: isActive ? Colors.green : Colors.grey,
+              color: isActive ? AppColors.success : AppColors.textTertiary,
             ),
             const SizedBox(height: 16),
             Text(
@@ -344,7 +344,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 return Text(
                   msgSnapshot.data ?? 'Carregando...',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey.shade600,
+                    color: AppColors.textSecondary,
                   ),
                   textAlign: TextAlign.center,
                 );
@@ -392,7 +392,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         children: [
           Text(
             label,
-            style: TextStyle(color: Colors.grey.shade600),
+            style: TextStyle(color: AppColors.textSecondary),
           ),
           Text(
             value,
@@ -461,7 +461,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Abra Ajustes > Apple ID > Assinaturas para gerenciar.'),
-            backgroundColor: Colors.orange,
+            backgroundColor: AppColors.warning,
           ),
         );
       }
@@ -527,7 +527,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                           'Conta conectada',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey.shade600,
+                            color: AppColors.textSecondary,
                           ),
                         ),
                       ],
@@ -549,8 +549,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               },
             ),
             ListTile(
-              leading: Icon(Icons.logout, color: Colors.red.shade400),
-              title: Text('Sair da conta', style: TextStyle(color: Colors.red.shade400)),
+              leading: Icon(Icons.logout, color: AppColors.error),
+              title: Text('Sair da conta', style: TextStyle(color: AppColors.error)),
               onTap: () async {
                 Navigator.pop(context);
                 final confirm = await showDialog<bool>(
@@ -597,7 +597,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         Text(
           'A IA usa essas informacoes para personalizar as respostas',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey.shade500,
+                color: AppColors.textTertiary,
               ),
         ),
       ],
