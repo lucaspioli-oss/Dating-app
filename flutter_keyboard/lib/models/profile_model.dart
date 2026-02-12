@@ -9,6 +9,7 @@ enum PlatformType {
   happn,
   innerCircle,
   umatch,
+  whatsapp,
   outro;
 
   String get displayName {
@@ -27,6 +28,8 @@ enum PlatformType {
         return 'Inner Circle';
       case PlatformType.umatch:
         return 'Umatch';
+      case PlatformType.whatsapp:
+        return 'WhatsApp';
       case PlatformType.outro:
         return 'Outro';
     }
@@ -48,6 +51,8 @@ enum PlatformType {
         return '⭐';
       case PlatformType.umatch:
         return '💚';
+      case PlatformType.whatsapp:
+        return '💬';
       case PlatformType.outro:
         return '💬';
     }

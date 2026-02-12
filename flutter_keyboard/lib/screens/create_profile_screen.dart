@@ -198,6 +198,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
       _PlatformInfo(PlatformType.hinge, 'Hinge', 'assets/images/hinge.png', const Color(0xFF8B5CF6)),
       _PlatformInfo(PlatformType.happn, 'Happn', null, const Color(0xFFFF9500)),
       _PlatformInfo(PlatformType.umatch, 'Umatch', null, const Color(0xFF00C853)),
+      _PlatformInfo(PlatformType.whatsapp, 'WhatsApp', null, const Color(0xFF25D366)),
       _PlatformInfo(PlatformType.outro, 'Outro', null, const Color(0xFF6B7280)),
     ];
 
@@ -1495,6 +1496,8 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         return _PlatformInfo(type, 'Inner Circle', null, const Color(0xFF1E88E5));
       case PlatformType.umatch:
         return _PlatformInfo(type, 'Umatch', null, const Color(0xFF00C853));
+      case PlatformType.whatsapp:
+        return _PlatformInfo(type, 'WhatsApp', null, const Color(0xFF25D366));
       case PlatformType.outro:
         return _PlatformInfo(type, 'Outro', null, const Color(0xFF6B7280));
     }

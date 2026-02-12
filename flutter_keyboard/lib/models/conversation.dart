@@ -330,6 +330,8 @@ class ConversationListItem {
         return '💕';
       case 'instagram':
         return '📸';
+      case 'whatsapp':
+        return '💬';
       default:
         return '📱';
     }

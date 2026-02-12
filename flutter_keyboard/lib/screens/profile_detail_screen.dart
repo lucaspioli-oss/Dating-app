@@ -840,6 +840,8 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
         return const Color(0xFFFF9500);
       case 'innerCircle':
         return const Color(0xFF1E88E5);
+      case 'whatsapp':
+        return const Color(0xFF25D366);
       default:
         return const Color(0xFF6B7280);
     }
