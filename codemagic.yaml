@@ -70,6 +70,10 @@ workflows:
         script: |
           dart run flutter_launcher_icons
 
+      - name: Generate native splash screen
+        script: |
+          dart run flutter_native_splash:create
+
       - name: Add keyboard extension to Xcode project
         script: |
           gem install xcodeproj
