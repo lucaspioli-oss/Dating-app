@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
 import '../../config/app_theme.dart';
 import '../../config/app_page_transitions.dart';
 import '../../config/app_haptics.dart';
@@ -40,7 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (mounted) {
-        AppSnackBar.success(context, 'Login realizado com sucesso!');
+        AppSnackBar.success(context, AppLocalizations.of(context)!.loginSuccess);
 
         // Navigate to home (AuthWrapper will handle the rest)
         Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
@@ -60,7 +61,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailController.text.trim();
 
     if (email.isEmpty) {
-      AppSnackBar.info(context, 'Digite seu email primeiro');
+      AppSnackBar.info(context, AppLocalizations.of(context)!.emailRequiredInfo);
       return;
     }
 
@@ -68,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
       await _authService.sendPasswordResetEmail(email);
 
       if (mounted) {
-        AppSnackBar.success(context, 'Email enviado para $email');
+        AppSnackBar.success(context, '${AppLocalizations.of(context)!.passwordResetSent} $email');
       }
     } catch (e) {
       if (mounted) {
@@ -112,7 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     // Subtitle
                     Text(
-                      'Seu assistente inteligente de conversas',
+                      AppLocalizations.of(context)!.appSubtitle,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: AppColors.textTertiary,
@@ -123,7 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     // Welcome text
                     Text(
-                      'Bem-vindo de volta!',
+                      AppLocalizations.of(context)!.welcomeBackTitle,
                       style: TextStyle(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.bold,
@@ -132,7 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Faça login para continuar',
+                      AppLocalizations.of(context)!.loginSubtitle,
                       style: TextStyle(
                         color: AppColors.textTertiary,
                         fontSize: 14,
@@ -143,16 +144,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Email field
                     _buildTextField(
                       controller: _emailController,
-                      label: 'Email',
-                      hint: 'seu@email.com',
+                      label: AppLocalizations.of(context)!.emailLabel,
+                      hint: AppLocalizations.of(context)!.emailHint,
                       icon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Digite seu email';
+                          return AppLocalizations.of(context)!.emailValidationEmpty;
                         }
                         if (!value.contains('@')) {
-                          return 'Email inválido';
+                          return AppLocalizations.of(context)!.emailValidationInvalid;
                         }
                         return null;
                       },
@@ -162,8 +163,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Password field
                     _buildTextField(
                       controller: _passwordController,
-                      label: 'Senha',
-                      hint: 'Digite sua senha',
+                      label: AppLocalizations.of(context)!.passwordLabel,
+                      hint: AppLocalizations.of(context)!.passwordHint,
                       icon: Icons.lock_outlined,
                       obscureText: _obscurePassword,
                       suffixIcon: IconButton(
@@ -179,10 +180,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Digite sua senha';
+                          return AppLocalizations.of(context)!.passwordValidationEmpty;
                         }
                         if (value.length < 6) {
-                          return 'Senha deve ter no mínimo 6 caracteres';
+                          return AppLocalizations.of(context)!.passwordValidationMinLength;
                         }
                         return null;
                       },
@@ -195,7 +196,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: TextButton(
                         onPressed: _isLoading ? null : _resetPassword,
                         child: Text(
-                          'Esqueceu a senha?',
+                          AppLocalizations.of(context)!.forgotPasswordButton,
                           style: TextStyle(
                             color: AppColors.primary,
                             fontWeight: FontWeight.w500,
@@ -231,9 +232,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   strokeWidth: 2,
                                 ),
                               )
-                            : const Text(
-                                'Entrar',
-                                style: TextStyle(
+                            : Text(
+                                AppLocalizations.of(context)!.loginButton,
+                                style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
                                 ),
@@ -253,7 +254,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
-                            'ou',
+                            AppLocalizations.of(context)!.orDivider,
                             style: TextStyle(color: AppColors.textSecondary),
                           ),
                         ),
@@ -271,7 +272,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Não tem uma conta?',
+                          AppLocalizations.of(context)!.noAccountText,
                           style: TextStyle(color: AppColors.textTertiary),
                         ),
                         TextButton(
@@ -283,9 +284,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                     FadeSlideRoute(page: const SignupScreen()),
                                   );
                                 },
-                          child: const Text(
-                            'Criar conta',
-                            style: TextStyle(
+                          child: Text(
+                            AppLocalizations.of(context)!.signupLink,
+                            style: const TextStyle(
                               color: AppColors.primary,
                               fontWeight: FontWeight.w600,
                               fontSize: 14,

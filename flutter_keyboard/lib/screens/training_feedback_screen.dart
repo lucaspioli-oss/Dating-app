@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
 import '../models/training_feedback_model.dart';
 import '../services/training_feedback_service.dart';
 import '../config/app_theme.dart';
@@ -66,7 +67,7 @@ class _TrainingFeedbackScreenState extends State<TrainingFeedbackScreen> {
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
-        title: const Text('Treinamento IA'),
+        title: Text(AppLocalizations.of(context)!.trainingTitle),
         backgroundColor: AppColors.surfaceDark,
         actions: [
           IconButton(
@@ -90,7 +91,7 @@ class _TrainingFeedbackScreenState extends State<TrainingFeedbackScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddDialog,
         icon: const Icon(Icons.add),
-        label: const Text('Nova Instrucao'),
+        label: Text(AppLocalizations.of(context)!.newInstruction),
         backgroundColor: AppColors.primary,
       ),
     );
@@ -103,7 +104,7 @@ class _TrainingFeedbackScreenState extends State<TrainingFeedbackScreen> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            _buildFilterChip(null, 'Todos'),
+            _buildFilterChip(null, AppLocalizations.of(context)!.allFilter),
             ...TrainingFeedback.categories.map((cat) =>
               _buildFilterChip(cat, TrainingFeedback.categoryLabel(cat))
             ),
@@ -146,12 +147,12 @@ class _TrainingFeedbackScreenState extends State<TrainingFeedbackScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Nenhuma instrucao de treinamento',
+            AppLocalizations.of(context)!.noTrainingInstructions,
             style: TextStyle(color: AppColors.textPrimary.withOpacity(0.54), fontSize: 16),
           ),
           const SizedBox(height: 8),
           Text(
-            'Adicione instrucoes para melhorar a IA',
+            AppLocalizations.of(context)!.addInstructionsToImprove,
             style: TextStyle(color: AppColors.textPrimary.withOpacity(0.38), fontSize: 14),
           ),
         ],
@@ -235,7 +236,7 @@ class _TrainingFeedbackScreenState extends State<TrainingFeedbackScreen> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Usado ${feedback.usageCount}x',
+                  '${AppLocalizations.of(context)!.usedCount} ${feedback.usageCount}x',
                   style: TextStyle(color: AppColors.textPrimary.withOpacity(0.38), fontSize: 11),
                 ),
               ],
@@ -300,11 +301,11 @@ class _AddFeedbackDialogState extends State<_AddFeedbackDialog> {
       Navigator.of(context).pop();
       widget.onSaved();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Instrucao salva com sucesso!')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.instructionSavedSuccess)),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erro ao salvar instrucao')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.errorSavingInstruction)),
       );
     }
   }
@@ -327,9 +328,9 @@ class _AddFeedbackDialogState extends State<_AddFeedbackDialog> {
                   children: [
                     const Icon(Icons.psychology, color: AppColors.primary),
                     const SizedBox(width: 8),
-                    const Text(
-                      'Nova Instrucao de Treinamento',
-                      style: TextStyle(
+                    Text(
+                      AppLocalizations.of(context)!.newTrainingInstruction,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: AppColors.textPrimary,
@@ -340,7 +341,7 @@ class _AddFeedbackDialogState extends State<_AddFeedbackDialog> {
                 const SizedBox(height: 24),
 
                 // Categoria
-                Text('Categoria', style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
+                Text(AppLocalizations.of(context)!.categoryLabel, style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   value: _selectedCategory,
@@ -369,7 +370,7 @@ class _AddFeedbackDialogState extends State<_AddFeedbackDialog> {
                 const SizedBox(height: 16),
 
                 // Instrucao
-                Text('Instrucao', style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
+                Text(AppLocalizations.of(context)!.instructionLabel, style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _instructionController,
@@ -387,7 +388,7 @@ class _AddFeedbackDialogState extends State<_AddFeedbackDialog> {
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Instrucao é obrigatória';
+                      return AppLocalizations.of(context)!.instructionRequired;
                     }
                     return null;
                   },
@@ -395,7 +396,7 @@ class _AddFeedbackDialogState extends State<_AddFeedbackDialog> {
                 const SizedBox(height: 16),
 
                 // Exemplos
-                Text('Exemplos (um por linha, opcional)',
+                Text(AppLocalizations.of(context)!.examplesLabel,
                     style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
                 const SizedBox(height: 8),
                 TextFormField(
@@ -416,7 +417,7 @@ class _AddFeedbackDialogState extends State<_AddFeedbackDialog> {
                 const SizedBox(height: 16),
 
                 // Prioridade
-                Text('Prioridade', style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
+                Text(AppLocalizations.of(context)!.priorityLabel, style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   value: _selectedPriority,
@@ -450,7 +451,7 @@ class _AddFeedbackDialogState extends State<_AddFeedbackDialog> {
                   children: [
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Cancelar'),
+                      child: Text(AppLocalizations.of(context)!.cancelButton),
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton(
@@ -464,7 +465,7 @@ class _AddFeedbackDialogState extends State<_AddFeedbackDialog> {
                               height: 20,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Text('Salvar'),
+                          : Text(AppLocalizations.of(context)!.saveButton),
                     ),
                   ],
                 ),
@@ -540,11 +541,11 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
       Navigator.of(context).pop();
       widget.onSaved();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Instrucao atualizada!')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.instructionUpdated)),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erro ao atualizar')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.errorUpdating)),
       );
     }
   }
@@ -554,20 +555,20 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surfaceDark,
-        title: const Text('Confirmar exclusao', style: TextStyle(color: AppColors.textPrimary)),
+        title: Text(AppLocalizations.of(context)!.confirmDelete, style: const TextStyle(color: AppColors.textPrimary)),
         content: Text(
-          'Tem certeza que deseja excluir esta instrucao?',
+          AppLocalizations.of(context)!.confirmDeleteInstruction,
           style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancelar'),
+            child: Text(AppLocalizations.of(context)!.cancelButton),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('Excluir'),
+            child: Text(AppLocalizations.of(context)!.deleteButton),
           ),
         ],
       ),
@@ -579,7 +580,7 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
         Navigator.of(context).pop();
         widget.onDeleted();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Instrucao excluída')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.instructionDeleted)),
         );
       }
     }
@@ -601,10 +602,10 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
                 children: [
                   const Icon(Icons.edit, color: AppColors.primary),
                   const SizedBox(width: 8),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Editar Instrucao',
-                      style: TextStyle(
+                      AppLocalizations.of(context)!.editInstruction,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: AppColors.textPrimary,
@@ -625,7 +626,7 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
               const SizedBox(height: 24),
 
               // Instrucao
-              Text('Instrucao', style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
+              Text(AppLocalizations.of(context)!.instructionLabel, style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _instructionController,
@@ -643,7 +644,7 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
               const SizedBox(height: 16),
 
               // Exemplos
-              Text('Exemplos (um por linha)',
+              Text(AppLocalizations.of(context)!.examplesEditLabel,
                   style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
               const SizedBox(height: 8),
               TextFormField(
@@ -662,7 +663,7 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
               const SizedBox(height: 16),
 
               // Prioridade
-              Text('Prioridade', style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
+              Text(AppLocalizations.of(context)!.priorityLabel, style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 value: _selectedPriority,
@@ -692,11 +693,11 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
 
               // Ativo
               SwitchListTile(
-                title: const Text('Ativo', style: TextStyle(color: AppColors.textPrimary)),
+                title: Text(AppLocalizations.of(context)!.activeStatus, style: const TextStyle(color: AppColors.textPrimary)),
                 subtitle: Text(
                   _isActive
-                      ? 'Esta instrucao sera usada nos prompts'
-                      : 'Esta instrucao está desativada',
+                      ? AppLocalizations.of(context)!.instructionActiveMessage
+                      : AppLocalizations.of(context)!.instructionInactiveMessage,
                   style: TextStyle(color: AppColors.textPrimary.withOpacity(0.54), fontSize: 12),
                 ),
                 value: _isActive,
@@ -728,7 +729,7 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
                           ),
                         ),
                         Text(
-                          'Usos',
+                          AppLocalizations.of(context)!.usesLabel,
                           style: TextStyle(color: AppColors.textPrimary.withOpacity(0.54), fontSize: 12),
                         ),
                       ],
@@ -743,7 +744,7 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
                           ),
                         ),
                         Text(
-                          'Criado em',
+                          AppLocalizations.of(context)!.createdAtLabel,
                           style: TextStyle(color: AppColors.textPrimary.withOpacity(0.54), fontSize: 12),
                         ),
                       ],
@@ -759,7 +760,7 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancelar'),
+                    child: Text(AppLocalizations.of(context)!.cancelButton),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton(
@@ -773,7 +774,7 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
                             height: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text('Salvar'),
+                        : Text(AppLocalizations.of(context)!.saveButton),
                   ),
                 ],
               ),

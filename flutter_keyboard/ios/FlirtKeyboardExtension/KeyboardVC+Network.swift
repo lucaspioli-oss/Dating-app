@@ -70,7 +70,7 @@ extension KeyboardViewController {
                 if !silent {
                     DispatchQueue.main.async {
                         self?.isLoadingProfiles = false
-                        self?.profilesError = "Erro de conexão"
+                        self?.profilesError = "Sem conexão. Verifique sua internet."
                         self?.renderCurrentState()
                     }
                 }
@@ -81,18 +81,29 @@ extension KeyboardViewController {
                 if !silent {
                     DispatchQueue.main.async {
                         self?.isLoadingProfiles = false
-                        self?.profilesError = "Sem resposta do servidor."
+                        self?.profilesError = "Servidor indisponível. Tente novamente."
                         self?.renderCurrentState()
                     }
                 }
                 return
             }
 
-            if http.statusCode == 401 || http.statusCode == 403 {
+            if http.statusCode == 401 {
                 if !silent {
                     DispatchQueue.main.async {
                         self?.isLoadingProfiles = false
-                        self?.profilesError = "Sessão expirada. Abra o app para renovar."
+                        self?.profilesError = "Sessão expirada. Abra o app Desenrola para renovar."
+                        self?.renderCurrentState()
+                    }
+                }
+                return
+            }
+
+            if http.statusCode == 403 {
+                if !silent {
+                    DispatchQueue.main.async {
+                        self?.isLoadingProfiles = false
+                        self?.profilesError = "Assinatura necessária para usar o teclado."
                         self?.renderCurrentState()
                     }
                 }

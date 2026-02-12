@@ -62,9 +62,16 @@ workflows:
           /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string Desenrola AI" ios/Runner/Info.plist || \
           /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Desenrola AI" ios/Runner/Info.plist
 
+          # Contacts permission for WhatsApp contact import
+          /usr/libexec/PlistBuddy -c "Add :NSContactsUsageDescription string 'Desenrola AI usa seus contatos para importar nome e telefone de contatos do WhatsApp.'" ios/Runner/Info.plist
+
       - name: Get Flutter packages
         script: |
           flutter pub get
+
+      - name: Run tests
+        script: |
+          flutter test --reporter compact
 
       - name: Generate app icons
         script: |

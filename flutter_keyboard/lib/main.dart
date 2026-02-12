@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
 
+import 'services/analytics_service.dart';
 import 'config/app_theme.dart';
 import 'providers/app_state.dart';
 import 'providers/user_profile_provider.dart';
@@ -42,6 +43,7 @@ class DesenrolaAIApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Desenrola AI',
         debugShowCheckedModeBanner: false,
+        navigatorObservers: [AnalyticsService.observer],
         theme: AppTheme.darkTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.dark,

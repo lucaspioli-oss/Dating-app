@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
 import '../config/app_theme.dart';
 import '../config/app_page_transitions.dart';
 import '../config/app_haptics.dart';
@@ -50,7 +51,7 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Faça login para ver seus contatos',
+                AppLocalizations.of(context)!.loginToSeeContacts,
                 style: TextStyle(
                   color: AppColors.textTertiary,
                   fontSize: 16,
@@ -74,9 +75,9 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Contatos',
-                    style: TextStyle(
+                  Text(
+                    AppLocalizations.of(context)!.contactsTitle,
+                    style: const TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -90,7 +91,7 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
-                'Suas conversas e conexões',
+                AppLocalizations.of(context)!.contactsSubtitle,
                 style: TextStyle(
                   color: AppColors.textTertiary,
                   fontSize: 14,
@@ -106,7 +107,7 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
                 onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
                 style: const TextStyle(color: AppColors.textPrimary, fontSize: 15),
                 decoration: InputDecoration(
-                  hintText: 'Buscar por nome...',
+                  hintText: AppLocalizations.of(context)!.searchProfilesHint,
                   hintStyle: TextStyle(color: AppColors.textSecondary, fontSize: 15),
                   prefixIcon: Icon(Icons.search, color: AppColors.textSecondary, size: 22),
                   suffixIcon: _searchQuery.isNotEmpty
@@ -148,7 +149,7 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
 
                   if (snapshot.hasError) {
                     return AppErrorState(
-                      message: 'Erro ao carregar contatos',
+                      message: AppLocalizations.of(context)!.loadContactsError,
                       onRetry: () => setState(() {}),
                     );
                   }
@@ -166,7 +167,7 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
                   if (filtered.isEmpty) {
                     return Center(
                       child: Text(
-                        'Nenhum contato encontrado',
+                        AppLocalizations.of(context)!.noContactFound,
                         style: TextStyle(color: AppColors.textTertiary, fontSize: 15),
                       ),
                     );
@@ -235,9 +236,9 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
               ),
             ),
             const SizedBox(height: 32),
-            const Text(
-              'Adicione seu primeiro match',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context)!.addFirstMatchTitle,
+              style: const TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -245,7 +246,7 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Crie um perfil para quem voce esta\nconversando e receba sugestoes\npersonalizadas via teclado',
+              AppLocalizations.of(context)!.addFirstMatchDescription,
               style: TextStyle(
                 color: AppColors.textTertiary,
                 fontSize: 15,
@@ -273,14 +274,14 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
                     ),
                   ],
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.person_add_alt_1, color: AppColors.textPrimary),
-                    SizedBox(width: 12),
+                    const Icon(Icons.person_add_alt_1, color: AppColors.textPrimary),
+                    const SizedBox(width: 12),
                     Text(
-                      'Adicionar Contato',
-                      style: TextStyle(
+                      AppLocalizations.of(context)!.addContactButton,
+                      style: const TextStyle(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.bold,
                         fontSize: 16,

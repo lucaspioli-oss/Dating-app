@@ -54,9 +54,19 @@ IMPORTANTE:
   - centerX: centro horizontal do ROSTO (0=borda esquerda, 50=meio, 100=borda direita)
   - centerY: centro vertical do ROSTO (0=topo, 50=meio, 100=base)
   - size: LARGURA DO ROSTO como % da largura total da imagem
-  - Screenshots de INSTAGRAM: A foto de perfil circular fica no canto superior esquerdo. O rosto está DENTRO desse círculo. Coordenadas típicas: centerX≈15, centerY≈13, size≈18
-  - Screenshots de TINDER/BUMBLE/HINGE: O rosto ocupa boa parte da foto. Coordenadas típicas: centerX≈50, centerY≈30, size≈35
-  - Fotos individuais: O rosto geralmente está centralizado. Coordenadas típicas: centerX≈50, centerY≈35, size≈40
+
+IMPORTANTE para screenshots de INSTAGRAM:
+- A foto de perfil é uma imagem CIRCULAR PEQUENA no canto SUPERIOR ESQUERDO da tela
+- NÃO está no centro. NÃO confunda com a área de posts/seguidores/seguindo.
+- Coordenadas típicas: centerX entre 10-18, centerY entre 8-15, size entre 12-22
+- SEMPRE retorne facePosition para Instagram, mesmo que o círculo seja pequeno
+
+Para Tinder/Bumble/Hinge (fotos grandes):
+- centerX≈50, centerY≈30-40, size≈30-45 (rosto ocupa boa parte da imagem)
+
+Para fotos individuais:
+- centerX≈50, centerY≈30-40, size≈35-50 (rosto geralmente centralizado)
+
   - SEMPRE retorne facePosition se houver qualquer rosto visível, mesmo que pequeno
   - Se realmente não houver nenhum rosto visível na imagem, use null`;
     }

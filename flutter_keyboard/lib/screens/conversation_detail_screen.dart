@@ -1,9 +1,10 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
 import '../config/app_theme.dart';
 import '../config/app_haptics.dart';
 import '../providers/app_state.dart';
@@ -84,9 +85,9 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // GENERATE SUGGESTIONS
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   void _showGenerateOptionsMenu() {
     showModalBottomSheet(
@@ -113,18 +114,18 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
-                'Como você quer informar a mensagem dela?',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context)!.messageInputQuestion,
+                style: const TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'A IA vai analisar e sugerir respostas',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context)!.messageInputInfo,
+                style: const TextStyle(
                   color: AppColors.textTertiary,
                   fontSize: 14,
                 ),
@@ -134,8 +135,8 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
               // Option 1: Upload screenshot
               _buildOptionTile(
                 icon: Icons.photo_camera,
-                title: 'Upload do print',
-                subtitle: 'Envie um screenshot da conversa',
+                title: AppLocalizations.of(context)!.uploadScreenshotTitle,
+                subtitle: AppLocalizations.of(context)!.uploadScreenshotSubtitle,
                 color: AppColors.primary,
                 onTap: () {
                   Navigator.pop(context);
@@ -147,8 +148,8 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
               // Option 2: Type message
               _buildOptionTile(
                 icon: Icons.keyboard,
-                title: 'Digitar a mensagem',
-                subtitle: 'Cole ou digite o que ela enviou',
+                title: AppLocalizations.of(context)!.typeMessageTitle,
+                subtitle: AppLocalizations.of(context)!.typeMessageSubtitle,
                 color: const Color(0xFF8B5CF6),
                 onTap: () {
                   Navigator.pop(context);
@@ -160,8 +161,8 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
               // Option 3: Import WhatsApp conversation
               _buildOptionTile(
                 icon: Icons.chat,
-                title: 'Importar WhatsApp',
-                subtitle: 'Cole o texto exportado da conversa',
+                title: AppLocalizations.of(context)!.importWhatsAppTitle,
+                subtitle: AppLocalizations.of(context)!.importWhatsAppSubtitle,
                 color: const Color(0xFF25D366),
                 onTap: () {
                   Navigator.pop(context);
@@ -263,7 +264,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         _showImageWithMessageInput(bytes, extractedMessage: result.lastMessage);
       } else {
         // OCR failed, let user type manually
-        _showImageWithMessageInput(bytes, errorMessage: result.errorMessage ?? 'Não foi possível extrair o texto');
+        _showImageWithMessageInput(bytes, errorMessage: result.errorMessage ?? 'NÃ£o foi possÃ­vel extrair o texto');
       }
     } catch (e) {
       // Close loading dialog if open
@@ -299,14 +300,14 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
             const SizedBox(height: 20),
             const CircularProgressIndicator(color: AppColors.primary),
             const SizedBox(height: 16),
-            const Text(
-              'Analisando imagem...',
-              style: TextStyle(color: AppColors.textPrimary, fontSize: 16),
+            Text(
+              AppLocalizations.of(context)!.analyzingImageText,
+              style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Extraindo texto da conversa',
-              style: TextStyle(color: AppColors.textTertiary, fontSize: 13),
+            Text(
+              AppLocalizations.of(context)!.extractingTextInfo,
+              style: const TextStyle(color: AppColors.textTertiary, fontSize: 13),
             ),
           ],
         ),
@@ -316,6 +317,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
 
   void _showImageWithMessageInput(Uint8List imageBytes, {String? extractedMessage, String? errorMessage}) {
     _herMessageController.text = extractedMessage ?? '';
+    final l10n = AppLocalizations.of(context)!;
 
     showDialog(
       context: context,
@@ -323,7 +325,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         backgroundColor: AppColors.surfaceDark,
         contentPadding: const EdgeInsets.all(16),
         title: Text(
-          extractedMessage != null ? 'Confirme a mensagem' : 'Digite a mensagem',
+          extractedMessage != null ? l10n.confirmMessage : l10n.typeTheMessage,
           style: const TextStyle(color: AppColors.textPrimary, fontSize: 18),
         ),
         content: SingleChildScrollView(
@@ -351,13 +353,13 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: AppColors.success.withOpacity(0.3)),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.check_circle, color: AppColors.success, size: 16),
-                      SizedBox(width: 8),
+                      const Icon(Icons.check_circle, color: AppColors.success, size: 16),
+                      const SizedBox(width: 8),
                       Text(
-                        'Texto extraído automaticamente',
-                        style: TextStyle(color: AppColors.textTertiary, fontSize: 12),
+                        l10n.textExtractedAutomatically,
+                        style: const TextStyle(color: AppColors.textTertiary, fontSize: 12),
                       ),
                     ],
                   ),
@@ -370,14 +372,14 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: AppColors.warning.withOpacity(0.3)),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.warning_amber, color: AppColors.warning, size: 16),
-                      SizedBox(width: 8),
+                      const Icon(Icons.warning_amber, color: AppColors.warning, size: 16),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Digite manualmente',
-                          style: TextStyle(color: AppColors.textTertiary, fontSize: 12),
+                          l10n.typeManually,
+                          style: const TextStyle(color: AppColors.textTertiary, fontSize: 12),
                         ),
                       ),
                     ],
@@ -386,8 +388,8 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
               const SizedBox(height: 12),
               Text(
                 extractedMessage != null
-                  ? 'Edite se necessário:'
-                  : 'Digite a última mensagem que ela enviou:',
+                  ? l10n.editIfNeeded
+                  : l10n.typeLastMessageSent,
                 style: const TextStyle(color: AppColors.textTertiary, fontSize: 13),
               ),
               const SizedBox(height: 10),
@@ -397,7 +399,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                 maxLines: 3,
                 autofocus: extractedMessage == null,
                 decoration: InputDecoration(
-                  hintText: 'Cole ou digite a mensagem...',
+                  hintText: l10n.pasteOrTypeMessage,
                   hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                   filled: true,
                   fillColor: AppColors.backgroundDark,
@@ -413,7 +415,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar', style: TextStyle(color: AppColors.textTertiary)),
+            child: Text(l10n.cancelButton, style: const TextStyle(color: AppColors.textTertiary)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -428,7 +430,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text('Gerar Sugestões', style: TextStyle(color: AppColors.textPrimary)),
+            child: Text(l10n.generateSuggestionsButton, style: const TextStyle(color: AppColors.textPrimary)),
           ),
         ],
       ),
@@ -437,21 +439,22 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
 
   void _showTypeMessageDialog() {
     _herMessageController.clear();
+    final l10n = AppLocalizations.of(context)!;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surfaceDark,
-        title: const Text(
-          'O que ela disse?',
-          style: TextStyle(color: AppColors.textPrimary, fontSize: 18),
+        title: Text(
+          l10n.whatSheSaid,
+          style: const TextStyle(color: AppColors.textPrimary, fontSize: 18),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Cole ou digite a última mensagem que ela enviou',
-              style: TextStyle(color: AppColors.textTertiary, fontSize: 13),
+            Text(
+              l10n.pasteOrTypeLastMessage,
+              style: const TextStyle(color: AppColors.textTertiary, fontSize: 13),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -460,7 +463,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
               maxLines: 4,
               autofocus: true,
               decoration: InputDecoration(
-                hintText: 'Ex: "Haha verdade! E você, o que gosta de fazer?"',
+                hintText: l10n.messageExampleHint,
                 hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                 filled: true,
                 fillColor: AppColors.backgroundDark,
@@ -475,7 +478,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar', style: TextStyle(color: AppColors.textTertiary)),
+            child: Text(l10n.cancelButton, style: const TextStyle(color: AppColors.textTertiary)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -490,7 +493,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text('Gerar Sugestões', style: TextStyle(color: AppColors.textPrimary)),
+            child: Text(l10n.generateSuggestionsButton, style: const TextStyle(color: AppColors.textPrimary)),
           ),
         ],
       ),
@@ -499,23 +502,24 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
 
   void _showImportWhatsAppDialog() {
     final chatController = TextEditingController();
+    final l10n = AppLocalizations.of(context)!;
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surfaceDark,
-        title: const Text(
-          'Importar conversa do WhatsApp',
-          style: TextStyle(color: AppColors.textPrimary, fontSize: 18),
+        title: Text(
+          l10n.importConversationTitle,
+          style: const TextStyle(color: AppColors.textPrimary, fontSize: 18),
         ),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'No WhatsApp: Abra a conversa > Menu (⋮) > Mais > Exportar conversa > Sem midia > Copie o texto e cole aqui.',
-                style: TextStyle(color: AppColors.textTertiary, fontSize: 12, height: 1.4),
+              Text(
+                l10n.whatsappInstructions,
+                style: const TextStyle(color: AppColors.textTertiary, fontSize: 12, height: 1.4),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -524,7 +528,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                 maxLines: 8,
                 minLines: 5,
                 decoration: InputDecoration(
-                  hintText: 'Cole a conversa exportada aqui...',
+                  hintText: l10n.pasteConversationHint,
                   hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
                   filled: true,
                   fillColor: AppColors.backgroundDark,
@@ -540,7 +544,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancelar', style: TextStyle(color: AppColors.textTertiary)),
+            child: Text(l10n.cancelButton, style: const TextStyle(color: AppColors.textTertiary)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -554,7 +558,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
               backgroundColor: const Color(0xFF25D366),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Importar', style: TextStyle(color: AppColors.textPrimary)),
+            child: Text(l10n.importButton, style: const TextStyle(color: AppColors.textPrimary)),
           ),
         ],
       ),
@@ -615,7 +619,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
     // DD/MM/YYYY, HH:MM - Name: message
     // DD/MM/YY HH:MM - Name: message
     final regexBracket = RegExp(r'^\[(\d{1,2}/\d{1,2}/\d{2,4}),?\s+\d{1,2}:\d{2}(?::\d{2})?\]\s+([^:]+):\s*(.+)');
-    final regexDash = RegExp(r'^\d{1,2}/\d{1,2}/\d{2,4},?\s+\d{1,2}:\d{2}(?::\d{2})?\s*[-–]\s*([^:]+):\s*(.+)');
+    final regexDash = RegExp(r'^\d{1,2}/\d{1,2}/\d{2,4},?\s+\d{1,2}:\d{2}(?::\d{2})?\s*[-â€“]\s*([^:]+):\s*(.+)');
 
     // Detect all participant names first
     final names = <String>{};
@@ -670,9 +674,9 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         // Save previous message
         if (currentRole != null && currentContent != null && currentContent!.isNotEmpty) {
           // Skip system messages
-          if (!currentContent!.contains('mensagens e chamadas são protegidas') &&
+          if (!currentContent!.contains('mensagens e chamadas sÃ£o protegidas') &&
               !currentContent!.contains('criou este grupo') &&
-              currentContent != '<Mídia oculta>') {
+              currentContent != '<MÃ­dia oculta>') {
             messages.add({'role': currentRole!, 'content': currentContent!});
           }
         }
@@ -687,9 +691,9 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
 
     // Save last message
     if (currentRole != null && currentContent != null && currentContent!.isNotEmpty) {
-      if (!currentContent!.contains('mensagens e chamadas são protegidas') &&
+      if (!currentContent!.contains('mensagens e chamadas sÃ£o protegidas') &&
           !currentContent!.contains('criou este grupo') &&
-          currentContent != '<Mídia oculta>') {
+          currentContent != '<MÃ­dia oculta>') {
         messages.add({'role': currentRole!, 'content': currentContent!});
       }
     }
@@ -767,7 +771,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
       await _loadConversation();
 
       if (mounted) {
-        AppSnackBar.success(context, 'Mensagem registrada!');
+        AppSnackBar.success(context, AppLocalizations.of(context)!.messageSavedSuccess);
       }
     } catch (e) {
       if (mounted) {
@@ -780,12 +784,12 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
   void _copyToClipboard(String text) {
     Clipboard.setData(ClipboardData(text: text));
     AppHaptics.success();
-    AppSnackBar.success(context, 'Copiado!');
+    AppSnackBar.success(context, AppLocalizations.of(context)!.copiedNotification);
   }
 
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // BUILD UI
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   @override
   Widget build(BuildContext context) {
@@ -794,7 +798,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         backgroundColor: AppColors.backgroundDark,
         appBar: AppBar(
           backgroundColor: AppColors.backgroundDark,
-          title: const Text('Carregando...', style: TextStyle(color: AppColors.textPrimary)),
+          title: Text(AppLocalizations.of(context)!.loadingTitle, style: const TextStyle(color: AppColors.textPrimary)),
           iconTheme: const IconThemeData(color: AppColors.textPrimary),
         ),
         body: const AppLoading(),
@@ -806,9 +810,9 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         backgroundColor: AppColors.backgroundDark,
         appBar: AppBar(
           backgroundColor: AppColors.backgroundDark,
-          title: const Text('Erro', style: TextStyle(color: AppColors.textPrimary)),
+          title: Text(AppLocalizations.of(context)!.errorTitle, style: const TextStyle(color: AppColors.textPrimary)),
         ),
-        body: const Center(child: Text('Conversa não encontrada', style: TextStyle(color: AppColors.textPrimary))),
+        body: Center(child: Text(AppLocalizations.of(context)!.conversationNotFound, style: const TextStyle(color: AppColors.textPrimary))),
       );
     }
 
@@ -905,18 +909,18 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
-                'Comece a conversa!',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context)!.emptyConversationTitle,
+                style: const TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Clique no botão \u2728 para gerar\nsugestões de resposta',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context)!.emptyConversationInfo,
+                style: const TextStyle(
                   color: AppColors.textTertiary,
                   fontSize: 14,
                 ),
@@ -967,11 +971,11 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (isMatch)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 4),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
                   child: Text(
-                    'Ela disse:',
-                    style: TextStyle(
+                    AppLocalizations.of(context)!.sheSaidLabel,
+                    style: const TextStyle(
                       color: AppColors.textTertiary,
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
@@ -995,7 +999,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                       Icon(Icons.auto_awesome, size: 12, color: isUser ? AppColors.textPrimary.withOpacity(0.6) : AppColors.textSecondary),
                       const SizedBox(width: 4),
                       Text(
-                        'Sugestão IA',
+                        AppLocalizations.of(context)!.aiSuggestionLabel,
                         style: TextStyle(
                           fontSize: 10,
                           color: isUser ? AppColors.textPrimary.withOpacity(0.6) : AppColors.textSecondary,
@@ -1065,8 +1069,8 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                 child: TextField(
                   controller: _messageInputController,
                   style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-                  decoration: const InputDecoration(
-                    hintText: 'Sua mensagem...',
+                  decoration: InputDecoration(
+                    hintText: AppLocalizations.of(context)!.messageInputPlaceholder,
                     hintStyle: TextStyle(color: AppColors.textSecondary, fontSize: 14),
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1119,9 +1123,9 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
               children: [
                 const Icon(Icons.lightbulb, color: Color(0xFFFFD93D), size: 18),
                 const SizedBox(width: 8),
-                const Text(
-                  'Sugestões de resposta',
-                  style: TextStyle(
+                Text(
+                  AppLocalizations.of(context)!.suggestionsHeader,
+                  style: const TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -1203,14 +1207,14 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: AppColors.elevatedDark),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.copy, size: 14, color: AppColors.textTertiary),
-                      SizedBox(width: 6),
+                      const Icon(Icons.copy, size: 14, color: AppColors.textTertiary),
+                      const SizedBox(width: 6),
                       Text(
-                        'Copiar',
-                        style: TextStyle(color: AppColors.textTertiary, fontSize: 12),
+                        AppLocalizations.of(context)!.copyButtonText,
+                        style: const TextStyle(color: AppColors.textTertiary, fontSize: 12),
                       ),
                     ],
                   ),
@@ -1231,14 +1235,14 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                     ),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.check, size: 14, color: Colors.white),
-                      SizedBox(width: 6),
+                      const Icon(Icons.check, size: 14, color: Colors.white),
+                      const SizedBox(width: 6),
                       Text(
-                        'Usar',
-                        style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                        AppLocalizations.of(context)!.useButtonText,
+                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
                       ),
                     ],
                   ),
@@ -1251,29 +1255,30 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // DIALOGS AND INFO
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   Future<void> _confirmDeleteConversation() async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surfaceDark,
-        title: const Text('Excluir conversa', style: TextStyle(color: AppColors.textPrimary)),
+        title: Text(l10n.deleteConversationTitle, style: const TextStyle(color: AppColors.textPrimary)),
         content: Text(
-          'Excluir conversa com ${_conversation!.avatar.matchName}?',
+          '${l10n.deleteConversationConfirm} ${_conversation!.avatar.matchName}?',
           style: const TextStyle(color: AppColors.textTertiary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar', style: TextStyle(color: AppColors.textTertiary)),
+            child: Text(l10n.cancelButton, style: const TextStyle(color: AppColors.textTertiary)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('Excluir'),
+            child: Text(l10n.deleteButton),
           ),
         ],
       ),
@@ -1286,7 +1291,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         await service.deleteConversation(widget.conversationId);
 
         if (mounted) {
-          AppSnackBar.success(context, 'Conversa excluída');
+          AppSnackBar.success(context, 'Conversa excluÃ­da');
           Navigator.pop(context);
         }
       } catch (e) {
@@ -1305,8 +1310,9 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
+      builder: (ctx) {
         final avatar = _conversation!.avatar;
+        final l10n = AppLocalizations.of(context)!;
         final displayName = avatar.platform == 'instagram' && avatar.username != null
             ? '@${avatar.username}'
             : avatar.matchName;
@@ -1353,20 +1359,20 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
               ),
               if (avatar.bio != null && avatar.bio!.isNotEmpty) ...[
                 const SizedBox(height: 20),
-                const Text('Bio', style: TextStyle(color: AppColors.textTertiary, fontSize: 12)),
+                Text(l10n.bioLabel, style: const TextStyle(color: AppColors.textTertiary, fontSize: 12)),
                 const SizedBox(height: 4),
                 Text(avatar.bio!, style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
               ],
               const SizedBox(height: 20),
-              const Text('Analytics', style: TextStyle(color: AppColors.textTertiary, fontSize: 12)),
+              Text(AppLocalizations.of(context)!.analyticsLabel, style: const TextStyle(color: AppColors.textTertiary, fontSize: 12)),
               const SizedBox(height: 8),
               Row(
                 children: [
-                  _buildAnalyticChip('${avatar.analytics.totalMessages}', 'Mensagens'),
+                  _buildAnalyticChip('${avatar.analytics.totalMessages}', l10n.messagesAnalytic),
                   const SizedBox(width: 8),
-                  _buildAnalyticChip('${avatar.analytics.aiSuggestionsUsed}', 'IA usadas'),
+                  _buildAnalyticChip('${avatar.analytics.aiSuggestionsUsed}', l10n.aiSuggestionsAnalytic),
                   const SizedBox(width: 8),
-                  _buildAnalyticChip(avatar.analytics.conversationQuality, 'Qualidade'),
+                  _buildAnalyticChip(avatar.analytics.conversationQuality, l10n.qualityAnalytic),
                 ],
               ),
             ],
@@ -1393,9 +1399,9 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // DEVELOPER FEEDBACK
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   Widget _buildDeveloperFeedbackSection() {
     return Container(
@@ -1423,7 +1429,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
               ),
               const SizedBox(width: 8),
               const Text(
-                'Feedback das sugestões',
+                'Feedback das sugestÃµes',
                 style: TextStyle(color: AppColors.textTertiary, fontSize: 12),
               ),
             ],

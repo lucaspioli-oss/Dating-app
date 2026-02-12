@@ -619,6 +619,54 @@ class AppLocalizationsPt extends AppLocalizations {
   String get customMessageHint => 'Digite sua mensagem personalizada...';
 
   @override
+  String get selectStoryToReply => 'Selecione o story para responder:';
+
+  @override
+  String get whatDoYouWant => 'O que você quer fazer?';
+
+  @override
+  String get howToInformMessage => 'Como você quer informar a mensagem dela?';
+
+  @override
+  String get typeLastMessageSent => 'Digite a última mensagem que ela enviou:';
+
+  @override
+  String get pasteOrTypeMessage => 'Cole ou digite a mensagem aqui...';
+
+  @override
+  String get tapToUploadScreenshot => 'Toque para enviar print da conversa';
+
+  @override
+  String get aiWillAnalyzeAuto => 'A IA vai analisar automaticamente';
+
+  @override
+  String get generatingSuggestions => 'Gerando sugestões...';
+
+  @override
+  String get analyzingProfileContext => 'Analisando perfil e contexto';
+
+  @override
+  String get chooseSuggestion => 'Escolha uma sugestão ou escreva a sua:';
+
+  @override
+  String get generateNewSuggestions => 'Gerar Novas Sugestões';
+
+  @override
+  String get writeOwnMessage => 'Escrever minha própria mensagem';
+
+  @override
+  String get yourMessage => 'Sua mensagem';
+
+  @override
+  String get useButton => 'Usar';
+
+  @override
+  String get copyButton => 'Copiar';
+
+  @override
+  String get copiedMessage => 'Copiado!';
+
+  @override
   String get myAccountTitle => 'Minha Conta';
 
   @override
@@ -850,6 +898,69 @@ class AppLocalizationsPt extends AppLocalizations {
   String get instructionDeletedSuccess => 'Instrução excluída';
 
   @override
+  String get newTrainingInstruction => 'Nova Instrução de Treinamento';
+
+  @override
+  String get instructionRequired => 'A instrução é obrigatória';
+
+  @override
+  String get errorSavingInstruction => 'Erro ao salvar instrução';
+
+  @override
+  String get instructionUpdated => 'Instrução atualizada!';
+
+  @override
+  String get errorUpdating => 'Erro ao atualizar';
+
+  @override
+  String get confirmDelete => 'Confirmar exclusão';
+
+  @override
+  String get confirmDeleteInstruction =>
+      'Tem certeza que deseja excluir esta instrução?';
+
+  @override
+  String get instructionDeleted => 'Instrução excluída';
+
+  @override
+  String get activeStatus => 'Ativo';
+
+  @override
+  String get instructionActiveMessage =>
+      'Esta instrução está sendo usada pela IA';
+
+  @override
+  String get instructionInactiveMessage => 'Esta instrução está desativada';
+
+  @override
+  String get usedCount => 'Usado';
+
+  @override
+  String get usesLabel => 'Usos';
+
+  @override
+  String get createdAtLabel => 'Criado em';
+
+  @override
+  String get editInstruction => 'Editar Instrução';
+
+  @override
+  String get examplesEditLabel => 'Exemplos (um por linha)';
+
+  @override
+  String get allFilter => 'Todos';
+
+  @override
+  String get newInstruction => 'Nova Instrução';
+
+  @override
+  String get noTrainingInstructions => 'Nenhuma instrução de treinamento';
+
+  @override
+  String get addInstructionsToImprove =>
+      'Adicione instruções para melhorar a IA';
+
+  @override
   String get activateKeyboardTitle => 'Ative o Teclado Desenrola AI';
 
   @override
@@ -857,6 +968,28 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get switchKeyboardTitle => 'Troque para o Teclado';
+
+  @override
+  String get loginToSeeContacts => 'Faça login para ver seus contatos';
+
+  @override
+  String get contactsTitle => 'Contatos';
+
+  @override
+  String get contactsSubtitle => 'Suas conversas e conexões';
+
+  @override
+  String get noContactFound => 'Nenhum contato encontrado';
+
+  @override
+  String get addFirstMatchTitle => 'Adicione seu primeiro match';
+
+  @override
+  String get addFirstMatchDescription =>
+      'Crie um perfil para quem voce esta\nconversando e receba sugestoes\npersonalizadas via teclado';
+
+  @override
+  String get addContactButton => 'Adicionar Contato';
 
   @override
   String get searchProfilesHint => 'Buscar por nome...';

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
 import '../config/app_theme.dart';
 import '../config/app_page_transitions.dart';
 import '../config/app_haptics.dart';
@@ -62,9 +63,9 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
     if (diff.inDays == 0) {
       return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
     } else if (diff.inDays == 1) {
-      return 'Ontem';
+      return AppLocalizations.of(context)!.yesterdayLabel;
     } else if (diff.inDays < 7) {
-      return '${diff.inDays}d atrás';
+      return '${diff.inDays}${AppLocalizations.of(context)!.daysAgoLabel}';
     } else {
       return '${date.day}/${date.month}';
     }
@@ -74,7 +75,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('💬 Conversas'),
+        title: Text('💬 ${AppLocalizations.of(context)!.conversationsTitle}'),
         centerTitle: true,
         actions: [
           IconButton(
@@ -101,10 +102,10 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
   }
 
   Widget _buildEmptyState() {
-    return const AppEmptyState(
+    return AppEmptyState(
       icon: Icons.chat_bubble_outline,
-      title: 'Nenhuma conversa ainda',
-      description: 'Vá para "Contatos" e gere uma sugestão para começar!',
+      title: AppLocalizations.of(context)!.noConversationsTitle,
+      description: AppLocalizations.of(context)!.noConversationsDescription,
     );
   }
 
@@ -189,20 +190,21 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
   }
 
   Future<bool> _confirmDelete(ConversationListItem conv) async {
+    final l10n = AppLocalizations.of(context)!;
     return await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Excluir conversa'),
-        content: Text('Excluir conversa com ${conv.matchName}?'),
+        title: Text(l10n.deleteConversationTitle),
+        content: Text('${l10n.deleteConversationConfirm} ${conv.matchName}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancelButton),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('Excluir'),
+            child: Text(l10n.deleteButton),
           ),
         ],
       ),

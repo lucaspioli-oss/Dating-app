@@ -1264,6 +1264,102 @@ abstract class AppLocalizations {
   /// **'Digite sua mensagem personalizada...'**
   String get customMessageHint;
 
+  /// No description provided for @selectStoryToReply.
+  ///
+  /// In pt, this message translates to:
+  /// **'Selecione o story para responder:'**
+  String get selectStoryToReply;
+
+  /// No description provided for @whatDoYouWant.
+  ///
+  /// In pt, this message translates to:
+  /// **'O que você quer fazer?'**
+  String get whatDoYouWant;
+
+  /// No description provided for @howToInformMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como você quer informar a mensagem dela?'**
+  String get howToInformMessage;
+
+  /// No description provided for @typeLastMessageSent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Digite a última mensagem que ela enviou:'**
+  String get typeLastMessageSent;
+
+  /// No description provided for @pasteOrTypeMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cole ou digite a mensagem aqui...'**
+  String get pasteOrTypeMessage;
+
+  /// No description provided for @tapToUploadScreenshot.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque para enviar print da conversa'**
+  String get tapToUploadScreenshot;
+
+  /// No description provided for @aiWillAnalyzeAuto.
+  ///
+  /// In pt, this message translates to:
+  /// **'A IA vai analisar automaticamente'**
+  String get aiWillAnalyzeAuto;
+
+  /// No description provided for @generatingSuggestions.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gerando sugestões...'**
+  String get generatingSuggestions;
+
+  /// No description provided for @analyzingProfileContext.
+  ///
+  /// In pt, this message translates to:
+  /// **'Analisando perfil e contexto'**
+  String get analyzingProfileContext;
+
+  /// No description provided for @chooseSuggestion.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escolha uma sugestão ou escreva a sua:'**
+  String get chooseSuggestion;
+
+  /// No description provided for @generateNewSuggestions.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gerar Novas Sugestões'**
+  String get generateNewSuggestions;
+
+  /// No description provided for @writeOwnMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escrever minha própria mensagem'**
+  String get writeOwnMessage;
+
+  /// No description provided for @yourMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sua mensagem'**
+  String get yourMessage;
+
+  /// No description provided for @useButton.
+  ///
+  /// In pt, this message translates to:
+  /// **'Usar'**
+  String get useButton;
+
+  /// No description provided for @copyButton.
+  ///
+  /// In pt, this message translates to:
+  /// **'Copiar'**
+  String get copyButton;
+
+  /// No description provided for @copiedMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Copiado!'**
+  String get copiedMessage;
+
   /// No description provided for @myAccountTitle.
   ///
   /// In pt, this message translates to:
@@ -1714,6 +1810,126 @@ abstract class AppLocalizations {
   /// **'Instrução excluída'**
   String get instructionDeletedSuccess;
 
+  /// No description provided for @newTrainingInstruction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nova Instrução de Treinamento'**
+  String get newTrainingInstruction;
+
+  /// No description provided for @instructionRequired.
+  ///
+  /// In pt, this message translates to:
+  /// **'A instrução é obrigatória'**
+  String get instructionRequired;
+
+  /// No description provided for @errorSavingInstruction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao salvar instrução'**
+  String get errorSavingInstruction;
+
+  /// No description provided for @instructionUpdated.
+  ///
+  /// In pt, this message translates to:
+  /// **'Instrução atualizada!'**
+  String get instructionUpdated;
+
+  /// No description provided for @errorUpdating.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao atualizar'**
+  String get errorUpdating;
+
+  /// No description provided for @confirmDelete.
+  ///
+  /// In pt, this message translates to:
+  /// **'Confirmar exclusão'**
+  String get confirmDelete;
+
+  /// No description provided for @confirmDeleteInstruction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tem certeza que deseja excluir esta instrução?'**
+  String get confirmDeleteInstruction;
+
+  /// No description provided for @instructionDeleted.
+  ///
+  /// In pt, this message translates to:
+  /// **'Instrução excluída'**
+  String get instructionDeleted;
+
+  /// No description provided for @activeStatus.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ativo'**
+  String get activeStatus;
+
+  /// No description provided for @instructionActiveMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esta instrução está sendo usada pela IA'**
+  String get instructionActiveMessage;
+
+  /// No description provided for @instructionInactiveMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esta instrução está desativada'**
+  String get instructionInactiveMessage;
+
+  /// No description provided for @usedCount.
+  ///
+  /// In pt, this message translates to:
+  /// **'Usado'**
+  String get usedCount;
+
+  /// No description provided for @usesLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Usos'**
+  String get usesLabel;
+
+  /// No description provided for @createdAtLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Criado em'**
+  String get createdAtLabel;
+
+  /// No description provided for @editInstruction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Editar Instrução'**
+  String get editInstruction;
+
+  /// No description provided for @examplesEditLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Exemplos (um por linha)'**
+  String get examplesEditLabel;
+
+  /// No description provided for @allFilter.
+  ///
+  /// In pt, this message translates to:
+  /// **'Todos'**
+  String get allFilter;
+
+  /// No description provided for @newInstruction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nova Instrução'**
+  String get newInstruction;
+
+  /// No description provided for @noTrainingInstructions.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhuma instrução de treinamento'**
+  String get noTrainingInstructions;
+
+  /// No description provided for @addInstructionsToImprove.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicione instruções para melhorar a IA'**
+  String get addInstructionsToImprove;
+
   /// No description provided for @activateKeyboardTitle.
   ///
   /// In pt, this message translates to:
@@ -1731,6 +1947,48 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Troque para o Teclado'**
   String get switchKeyboardTitle;
+
+  /// No description provided for @loginToSeeContacts.
+  ///
+  /// In pt, this message translates to:
+  /// **'Faça login para ver seus contatos'**
+  String get loginToSeeContacts;
+
+  /// No description provided for @contactsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Contatos'**
+  String get contactsTitle;
+
+  /// No description provided for @contactsSubtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Suas conversas e conexões'**
+  String get contactsSubtitle;
+
+  /// No description provided for @noContactFound.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum contato encontrado'**
+  String get noContactFound;
+
+  /// No description provided for @addFirstMatchTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicione seu primeiro match'**
+  String get addFirstMatchTitle;
+
+  /// No description provided for @addFirstMatchDescription.
+  ///
+  /// In pt, this message translates to:
+  /// **'Crie um perfil para quem voce esta\nconversando e receba sugestoes\npersonalizadas via teclado'**
+  String get addFirstMatchDescription;
+
+  /// No description provided for @addContactButton.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar Contato'**
+  String get addContactButton;
 
   /// No description provided for @searchProfilesHint.
   ///

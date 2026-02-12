@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
 import 'profiles_list_screen.dart';
 import 'profile_screen.dart';
 import '../config/app_theme.dart';
@@ -13,40 +14,58 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
+  final PageController _pageController = PageController();
 
-  final List<Widget> _screens = [
-    const ProfilesListScreen(),
-    const ProfileScreen(),
-  ];
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         top: false,
-        child: IndexedStack(
-          index: _currentIndex,
-          children: _screens,
+        child: PageView(
+          controller: _pageController,
+          onPageChanged: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+            AppHaptics.selection();
+          },
+          children: const [
+            ProfilesListScreen(),
+            MyProfileContent(),
+            SubscriptionContent(),
+          ],
         ),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) {
-          AppHaptics.selection();
-          setState(() {
-            _currentIndex = index;
-          });
+          _pageController.animateToPage(
+            index,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
         },
-        destinations: const [
-          NavigationDestination(
+        destinations: [
+          const NavigationDestination(
             icon: Icon(Icons.people_outlined),
             selectedIcon: Icon(Icons.people),
             label: 'Contatos',
           ),
           NavigationDestination(
-            icon: Icon(Icons.person_outlined),
-            selectedIcon: Icon(Icons.person),
-            label: 'Minha Conta',
+            icon: const Icon(Icons.person_outlined),
+            selectedIcon: const Icon(Icons.person),
+            label: AppLocalizations.of(context)!.myProfileTab,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.credit_card_outlined),
+            selectedIcon: const Icon(Icons.credit_card),
+            label: AppLocalizations.of(context)!.subscriptionTab,
           ),
         ],
       ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:image/image.dart' as img;
+import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
 import '../config/app_theme.dart';
 import '../config/app_page_transitions.dart';
 import '../config/app_haptics.dart';
@@ -173,14 +174,14 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
             ),
           ],
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.auto_awesome, color: Colors.white, size: 22),
-            SizedBox(width: 10),
+            const Icon(Icons.auto_awesome, color: Colors.white, size: 22),
+            const SizedBox(width: 10),
             Text(
-              'Nova Sugestão',
-              style: TextStyle(
+              AppLocalizations.of(context)!.newSuggestionTitle,
+              style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
                 fontSize: 15,
@@ -301,9 +302,9 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Stories',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context)!.storiesLabel,
+                style: const TextStyle(
                   color: AppColors.textTertiary,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -911,6 +912,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
   }
 
   void _confirmDeleteStory(StoryData story) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -926,7 +928,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancelButton),
           ),
           TextButton(
             onPressed: () async {
@@ -935,9 +937,9 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
               await _profileService.removeStory(widget.profileId, story.id);
               await _loadProfile();
             },
-            child: const Text(
-              'Excluir',
-              style: TextStyle(color: AppColors.error),
+            child: Text(
+              l10n.deleteButton,
+              style: const TextStyle(color: AppColors.error),
             ),
           ),
         ],
@@ -946,6 +948,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
   }
 
   void _confirmDeletePlatform(PlatformType type) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -961,7 +964,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancelButton),
           ),
           TextButton(
             onPressed: () async {
@@ -981,6 +984,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
   }
 
   void _confirmDeleteProfile() {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -996,7 +1000,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancelButton),
           ),
           TextButton(
             onPressed: () async {
@@ -1005,9 +1009,9 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
               await _profileService.deleteProfile(widget.profileId);
               Navigator.pop(context);
             },
-            child: const Text(
-              'Excluir',
-              style: TextStyle(color: AppColors.error),
+            child: Text(
+              l10n.deleteButton,
+              style: const TextStyle(color: AppColors.error),
             ),
           ),
         ],

@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:provider/provider.dart';
 import 'package:image/image.dart' as img;
 import '../config/app_theme.dart';
@@ -160,7 +161,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         ],
 
         // Botão de analisar
-        if (_platformEntries.isNotEmpty && _platformEntries.any((e) => e.profileImages.isNotEmpty)) ...[
+        if (_platformEntries.isNotEmpty && (_platformEntries.any((e) => e.profileImages.isNotEmpty) || _platformEntries.any((e) => e.type == PlatformType.whatsapp && e.nameController.text.trim().isNotEmpty))) ...[
           const SizedBox(height: 32),
           _buildAnalyzeButton(),
         ],
@@ -559,6 +560,88 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                 _buildIndividualPhotosLayout(index, entry),
               ],
             ],
+          ] else if (entry.type == PlatformType.whatsapp) ...[
+            // WhatsApp: contact picker + optional photos
+            GestureDetector(
+              onTap: () => _pickWhatsAppContact(index),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                decoration: BoxDecoration(
+                  color: AppColors.elevatedDark,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF25D366).withOpacity(0.4)),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.contacts, color: const Color(0xFF25D366), size: 32),
+                    const SizedBox(height: 8),
+                    Text('Importar da Agenda',
+                      style: TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 4),
+                    Text('Nome e telefone vem automaticamente',
+                      style: TextStyle(color: AppColors.textTertiary, fontSize: 12)),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Manual name field (pre-filled from contact)
+            TextFormField(
+              controller: entry.nameController,
+              decoration: InputDecoration(
+                labelText: 'Nome',
+                hintText: 'Nome do contato',
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.person_outline),
+                filled: true,
+                fillColor: AppColors.elevatedDark,
+              ),
+              style: const TextStyle(color: AppColors.textPrimary),
+            ),
+            if (entry.contactPhoneNumber != null) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.elevatedDark,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.phone, color: AppColors.textTertiary, size: 18),
+                    const SizedBox(width: 8),
+                    Text(entry.contactPhoneNumber!,
+                      style: const TextStyle(color: AppColors.textPrimary)),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 10),
+            TextFormField(
+              controller: entry.bioController,
+              maxLines: 3,
+              decoration: InputDecoration(
+                labelText: 'Bio / contexto (opcional)',
+                hintText: 'Ex: conheceu na balada, amigo da faculdade...',
+                border: const OutlineInputBorder(),
+                alignLabelWithHint: true,
+                filled: true,
+                fillColor: AppColors.elevatedDark,
+              ),
+              style: const TextStyle(color: AppColors.textPrimary),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Fotos do Perfil (opcional)',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildProfileImagesGrid(index, entry),
           ] else ...[
             // Non-Instagram platforms: original behavior
             const Text(
@@ -1154,6 +1237,43 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
     });
   }
 
+  Future<void> _pickWhatsAppContact(int platformIndex) async {
+    if (!await FlutterContacts.requestPermission(readonly: true)) {
+      setState(() {
+        _errorMessage = 'Permissao de contatos necessaria para importar do WhatsApp';
+      });
+      return;
+    }
+
+    final contact = await FlutterContacts.openExternalPick();
+    if (contact == null) return;
+
+    final fullContact = await FlutterContacts.getContact(contact.id,
+      withProperties: true,
+      withPhoto: true,
+    );
+    if (fullContact == null) return;
+
+    setState(() {
+      final entry = _platformEntries[platformIndex];
+      entry.nameController.text = fullContact.displayName;
+
+      if (fullContact.phones.isNotEmpty) {
+        entry.contactPhoneNumber = fullContact.phones.first.number;
+      }
+
+      if (fullContact.photo != null && fullContact.photo!.isNotEmpty) {
+        final bytes = Uint8List.fromList(fullContact.photo!);
+        final base64str = base64Encode(bytes);
+        entry.profileImages = [bytes];
+        entry.profileBase64s = [base64str];
+        entry.profileMediaTypes = [_PlatformEntry.detectMediaType(bytes)];
+      }
+
+      _errorMessage = null;
+    });
+  }
+
   void _removePlatform(int index) {
     setState(() {
       _platformEntries.removeAt(index);
@@ -1383,11 +1503,20 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         } else {
           // Priority 3: Heuristic fallback
           final isPortrait = image.height > image.width * 1.3;
-          if (isPortrait && isScreenshot) {
+
+          if (platform == 'instagram' && isScreenshot && isPortrait) {
+            // Instagram: profile photo is in the TOP-LEFT corner (circular)
+            // ~22% of screen width, positioned at ~3% from left, ~6% from top
+            cropSize = (image.width * 0.22).round().clamp(1, maxDim);
+            cropX = (image.width * 0.03).round().clamp(0, image.width - cropSize);
+            cropY = (image.height * 0.06).round().clamp(0, image.height - cropSize);
+          } else if (isPortrait && isScreenshot) {
+            // Other dating app screenshots: face usually center-top
             cropSize = (image.width * 0.5).round().clamp(1, maxDim);
             cropX = ((image.width - cropSize) / 2).round().clamp(0, image.width - cropSize);
             cropY = (image.height * 0.05).round().clamp(0, image.height - cropSize);
           } else {
+            // Non-screenshot or landscape
             cropSize = (image.width * 0.5).round().clamp(1, maxDim);
             cropX = ((image.width - cropSize) / 2).round().clamp(0, image.width - cropSize);
             cropY = (image.height * 0.08).round().clamp(0, image.height - cropSize);
@@ -1511,9 +1640,11 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
 
     // Verificar se pelo menos uma plataforma tem imagem
     final hasImage = _platformEntries.any((e) => e.profileImages.isNotEmpty);
-    if (!hasImage) {
+    final hasWhatsAppContact = _platformEntries.any((e) =>
+      e.type == PlatformType.whatsapp && e.nameController.text.trim().isNotEmpty);
+    if (!hasImage && !hasWhatsAppContact) {
       setState(() {
-        _errorMessage = 'Adicione pelo menos uma imagem de perfil';
+        _errorMessage = 'Adicione pelo menos uma imagem de perfil ou importe um contato';
       });
       return;
     }
@@ -1545,7 +1676,28 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
       for (int i = 0; i < _platformEntries.length; i++) {
         final entry = _platformEntries[i];
 
-        if (entry.profileImages.isEmpty) continue;
+        if (entry.profileImages.isEmpty) {
+          // WhatsApp contact without photos: create platform data from name/bio
+          if (entry.type == PlatformType.whatsapp && entry.nameController.text.trim().isNotEmpty) {
+            final manualName = entry.nameController.text.trim();
+            profileName ??= manualName;
+
+            final platformData = PlatformData(
+              type: PlatformType.whatsapp,
+              bio: entry.bioController.text.trim().isNotEmpty ? entry.bioController.text.trim() : null,
+              additionalInfo: entry.contactPhoneNumber != null ? 'Telefone: ${entry.contactPhoneNumber}' : null,
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+            );
+
+            if (firstPlatform == null) {
+              firstPlatform = platformData;
+            } else {
+              additionalPlatforms.add(platformData);
+            }
+          }
+          continue;
+        }
 
         // Check if user manually entered name/bio (individual photos mode)
         final manualName = entry.nameController.text.trim();
@@ -1736,6 +1888,7 @@ class _PlatformEntry {
   // Manual name/bio for individual photos mode
   final TextEditingController nameController = TextEditingController();
   final TextEditingController bioController = TextEditingController();
+  String? contactPhoneNumber;
 
   _PlatformEntry({required this.type});
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -47,6 +48,7 @@ class SubscriptionWrapper extends StatefulWidget {
 
 class _SubscriptionWrapperState extends State<SubscriptionWrapper> with WidgetsBindingObserver {
   final SubscriptionService _subscriptionService = SubscriptionService();
+  Timer? _tokenRefreshTimer;
   bool _isLoading = true;
   SubscriptionStatus _status = SubscriptionStatus.inactive;
   bool _hasSeenKeyboardSetup = true; // default true to avoid flash
@@ -56,11 +58,24 @@ class _SubscriptionWrapperState extends State<SubscriptionWrapper> with WidgetsB
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    // Listen for token changes and re-share with keyboard
+    FirebaseAuth.instance.idTokenChanges().listen((user) {
+      if (user != null) _shareAuthWithKeyboard();
+    });
+
+    // Force-refresh token every 45 minutes (tokens expire in 60)
+    _tokenRefreshTimer = Timer.periodic(
+      const Duration(minutes: 45),
+      (_) => _shareAuthWithKeyboard(),
+    );
+
     _checkSubscription();
   }
 
   @override
   void dispose() {
+    _tokenRefreshTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }

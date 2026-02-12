@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
 import '../config/app_theme.dart';
 import '../config/app_page_transitions.dart';
 import '../config/app_haptics.dart';
@@ -33,45 +34,45 @@ enum ActionType {
 }
 
 extension ActionTypeExtension on ActionType {
-  String get displayName {
+  String localizedDisplayName(AppLocalizations l10n) {
     switch (this) {
       case ActionType.primeiraDm:
-        return 'Primeira DM';
+        return l10n.instagramFirstDM;
       case ActionType.responderStory:
-        return 'Responder Story';
+        return l10n.instagramReplyStory;
       case ActionType.continuarConversaInstagram:
-        return 'Continuar Conversa';
+        return l10n.continueChat;
       case ActionType.responderOpeningMove:
-        return 'Responder Opening Move';
+        return l10n.respondOpeningMove;
       case ActionType.primeiraEnviada:
-        return 'Primeira Mensagem';
+        return l10n.firstMessage;
       case ActionType.continuarConversaBumble:
-        return 'Continuar Conversa';
+        return l10n.continueChat;
       case ActionType.primeiraMensagem:
-        return 'Primeira Mensagem';
+        return l10n.firstMessage;
       case ActionType.continuarConversa:
-        return 'Continuar Conversa';
+        return l10n.continueChat;
     }
   }
 
-  String get description {
+  String localizedDescription(AppLocalizations l10n) {
     switch (this) {
       case ActionType.primeiraDm:
-        return 'Enviar mensagem direta pela primeira vez';
+        return l10n.firstDMDescription;
       case ActionType.responderStory:
-        return 'Responder ao story dela';
+        return l10n.replyStoryDescription;
       case ActionType.continuarConversaInstagram:
-        return 'Dar continuidade na conversa';
+        return l10n.continueChatDescription;
       case ActionType.responderOpeningMove:
-        return 'Responder a pergunta dela';
+        return l10n.respondQuestionDescription;
       case ActionType.primeiraEnviada:
-        return 'Ela fez match e você envia primeiro';
+        return l10n.firstMessageBumbleDescription;
       case ActionType.continuarConversaBumble:
-        return 'Dar continuidade na conversa';
+        return l10n.continueChatDescription;
       case ActionType.primeiraMensagem:
-        return 'Enviar a primeira mensagem';
+        return l10n.firstMessageDescription;
       case ActionType.continuarConversa:
-        return 'Dar continuidade na conversa';
+        return l10n.continueChatDescription;
     }
   }
 
@@ -163,20 +164,21 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
   }
 
   String _getTitle() {
+    final l10n = AppLocalizations.of(context)!;
     switch (_step) {
       case 0:
-        return 'Selecione a Plataforma';
+        return l10n.selectPlatformTitle;
       case 1:
-        return 'O que você quer fazer?';
+        return l10n.whatDoYouWant;
       case 2:
         if (_selectedAction == ActionType.responderStory) {
-          return 'Selecione o Story';
+          return l10n.selectStoryTitle;
         }
-        return 'Última Mensagem Dela';
+        return l10n.lastMessageTitle;
       case 3:
-        return 'Sugestões';
+        return l10n.suggestionsTitle;
       default:
-        return 'Nova Sugestão';
+        return l10n.newSuggestionTitle;
     }
   }
 
@@ -229,9 +231,9 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
 
           // Instagram (se tiver)
           if (widget.profile.hasInstagram) ...[
-            const Text(
-              'REDES SOCIAIS',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context)!.socialNetworksSection,
+              style: const TextStyle(
                 color: Color(0xFF888888),
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
@@ -245,9 +247,9 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
 
           // Apps de relacionamento
           if (widget.profile.hasDatingApps) ...[
-            const Text(
-              'APPS DE RELACIONAMENTO',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context)!.datingAppsSection,
+              style: const TextStyle(
                 color: Color(0xFF888888),
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
@@ -367,7 +369,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  '${widget.profile.stories.length} stories',
+                  '${widget.profile.stories.length} ${AppLocalizations.of(context)!.storiesBadge}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 10,
@@ -500,7 +502,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    action.displayName,
+                    action.localizedDisplayName(AppLocalizations.of(context)!),
                     style: const TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 16,
@@ -508,7 +510,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                     ),
                   ),
                   Text(
-                    action.description,
+                    action.localizedDescription(AppLocalizations.of(context)!),
                     style: const TextStyle(
                       color: Color(0xFF888888),
                       fontSize: 12,
@@ -545,9 +547,9 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Selecione o story para responder:',
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context)!.selectStoryToReply,
+            style: const TextStyle(
               color: Color(0xFF888888),
               fontSize: 14,
             ),
@@ -598,7 +600,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            story.description ?? 'Story sem descrição',
+                            story.description ?? AppLocalizations.of(context)!.storyNoDescription,
                             style: const TextStyle(
                               color: AppColors.textPrimary,
                               fontSize: 14,
@@ -640,9 +642,9 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Opening Move dela:',
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context)!.openingMoveLabel,
+            style: const TextStyle(
               color: Color(0xFF888888),
               fontSize: 14,
             ),
@@ -656,7 +658,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
               border: Border.all(color: AppColors.elevatedDark),
             ),
             child: Text(
-              openingMove ?? 'Pergunta não extraída',
+              openingMove ?? AppLocalizations.of(context)!.questionNotExtracted,
               style: const TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 16,
@@ -675,9 +677,9 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text(
-                'Gerar Sugestões',
-                style: TextStyle(
+              child: Text(
+                AppLocalizations.of(context)!.generateSuggestionsButton,
+                style: const TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -696,9 +698,9 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Como você quer informar a mensagem dela?',
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context)!.howToInformMessage,
+            style: const TextStyle(
               color: Color(0xFF888888),
               fontSize: 14,
             ),
@@ -740,7 +742,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'Print',
+                            AppLocalizations.of(context)!.screenshotTab,
                             style: TextStyle(
                               color: !_useTextInput
                                   ? AppColors.textPrimary
@@ -780,7 +782,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'Digitar',
+                            AppLocalizations.of(context)!.typeTab,
                             style: TextStyle(
                               color: _useTextInput
                                   ? AppColors.textPrimary
@@ -800,9 +802,9 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
 
           // Conteúdo baseado na opção selecionada
           if (_useTextInput) ...[
-            const Text(
-              'Digite a última mensagem que ela enviou:',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context)!.typeLastMessageSent,
+              style: const TextStyle(
                 color: Color(0xFF888888),
                 fontSize: 14,
               ),
@@ -813,7 +815,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
               maxLines: 4,
               style: const TextStyle(color: AppColors.textPrimary),
               decoration: InputDecoration(
-                hintText: 'Cole ou digite a mensagem aqui...',
+                hintText: AppLocalizations.of(context)!.pasteOrTypeMessage,
                 hintStyle: const TextStyle(color: AppColors.textTertiary),
                 filled: true,
                 fillColor: AppColors.surfaceDark,
@@ -852,9 +854,9 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Gerar Sugestões',
-                    style: TextStyle(
+                  child: Text(
+                    AppLocalizations.of(context)!.generateSuggestionsButton,
+                    style: const TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -883,19 +885,19 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                           fit: BoxFit.cover,
                         ),
                       )
-                    : const Column(
+                    : Column(
                         children: [
-                          Icon(Icons.add_photo_alternate,
+                          const Icon(Icons.add_photo_alternate,
                               color: Color(0xFF888888), size: 48),
-                          SizedBox(height: 12),
+                          const SizedBox(height: 12),
                           Text(
-                            'Toque para fazer upload do print',
-                            style: TextStyle(color: Color(0xFF888888)),
+                            AppLocalizations.of(context)!.tapToUploadScreenshot,
+                            style: const TextStyle(color: Color(0xFF888888)),
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Text(
-                            'A IA vai analisar a conversa automaticamente',
-                            style: TextStyle(
+                            AppLocalizations.of(context)!.aiWillAnalyzeAuto,
+                            style: const TextStyle(
                               color: Color(0xFF666666),
                               fontSize: 12,
                             ),
@@ -918,9 +920,9 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Gerar Sugestões',
-                    style: TextStyle(
+                  child: Text(
+                    AppLocalizations.of(context)!.generateSuggestionsButton,
+                    style: const TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -935,24 +937,24 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
   }
 
   Widget _buildGeneratingState() {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(color: AppColors.primary),
-          SizedBox(height: 24),
+          const CircularProgressIndicator(color: AppColors.primary),
+          const SizedBox(height: 24),
           Text(
-            'Gerando sugestões...',
-            style: TextStyle(
+            AppLocalizations.of(context)!.generatingSuggestions,
+            style: const TextStyle(
               color: AppColors.textPrimary,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
-            'Analisando o perfil e contexto',
-            style: TextStyle(
+            AppLocalizations.of(context)!.analyzingProfileContext,
+            style: const TextStyle(
               color: Color(0xFF888888),
               fontSize: 14,
             ),
@@ -968,9 +970,9 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Escolha uma sugestão:',
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context)!.chooseSuggestion,
+            style: const TextStyle(
               color: Color(0xFF888888),
               fontSize: 14,
             ),
@@ -1002,9 +1004,9 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text(
-                'Gerar Novas Sugestões',
-                style: TextStyle(
+              child: Text(
+                AppLocalizations.of(context)!.generateNewSuggestions,
+                style: const TextStyle(
                   color: AppColors.primary,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -1041,10 +1043,10 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
               ),
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Text(
-                'Escrever minha própria mensagem',
-                style: TextStyle(
+                AppLocalizations.of(context)!.writeOwnMessage,
+                style: const TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 15,
                 ),
@@ -1059,14 +1061,15 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
 
   void _showCustomMessageDialog() {
     final customController = TextEditingController();
+    final l10n = AppLocalizations.of(context)!;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surfaceDark,
-        title: const Text(
-          'Sua mensagem',
-          style: TextStyle(color: AppColors.textPrimary),
+        title: Text(
+          l10n.yourMessage,
+          style: const TextStyle(color: AppColors.textPrimary),
         ),
         content: TextField(
           controller: customController,
@@ -1074,7 +1077,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
           maxLines: 4,
           autofocus: true,
           decoration: InputDecoration(
-            hintText: 'Digite sua mensagem personalizada...',
+            hintText: l10n.customMessageHint,
             hintStyle: const TextStyle(color: AppColors.textSecondary),
             filled: true,
             fillColor: AppColors.backgroundDark,
@@ -1087,7 +1090,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar', style: TextStyle(color: AppColors.textTertiary)),
+            child: Text(l10n.cancelButton, style: const TextStyle(color: AppColors.textTertiary)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -1102,7 +1105,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text('Usar', style: TextStyle(color: AppColors.textPrimary)),
+            child: Text(l10n.useButton, style: const TextStyle(color: AppColors.textPrimary)),
           ),
         ],
       ),
@@ -1159,7 +1162,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                 child: GestureDetector(
                   onTap: () {
                     Clipboard.setData(ClipboardData(text: suggestion));
-                    AppSnackBar.success(context, 'Copiado!');
+                    AppSnackBar.success(context, AppLocalizations.of(context)!.copiedMessage);
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 10),
@@ -1173,7 +1176,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                         Icon(Icons.copy, color: AppColors.textPrimary.withOpacity(0.7), size: 16),
                         const SizedBox(width: 6),
                         Text(
-                          'Copiar',
+                          AppLocalizations.of(context)!.copyButton,
                           style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7), fontSize: 13),
                         ),
                       ],
@@ -1194,14 +1197,14 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
                       ),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.send, color: Colors.white, size: 16),
-                        SizedBox(width: 6),
+                        const Icon(Icons.send, color: Colors.white, size: 16),
+                        const SizedBox(width: 6),
                         Text(
-                          'Usar',
-                          style: TextStyle(
+                          AppLocalizations.of(context)!.useButton,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
