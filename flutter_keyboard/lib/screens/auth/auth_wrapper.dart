@@ -8,6 +8,7 @@ import 'login_screen.dart';
 import 'subscription_required_screen.dart';
 import '../main_screen.dart';
 import '../keyboard_setup_screen.dart';
+import '../app_tutorial_screen.dart';
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
@@ -52,6 +53,7 @@ class _SubscriptionWrapperState extends State<SubscriptionWrapper> with WidgetsB
   bool _isLoading = true;
   SubscriptionStatus _status = SubscriptionStatus.inactive;
   bool _hasSeenKeyboardSetup = true; // default true to avoid flash
+  bool _hasSeenAppTutorial = true; // default true to avoid flash
 
   @override
   void initState() {
@@ -82,9 +84,10 @@ class _SubscriptionWrapperState extends State<SubscriptionWrapper> with WidgetsB
       // Share auth token with keyboard extension via App Groups
       _shareAuthWithKeyboard();
 
-      // Check if user has seen keyboard setup
+      // Check if user has seen keyboard setup and app tutorial
       final prefs = await SharedPreferences.getInstance();
       final hasSeenSetup = prefs.getBool('hasSeenKeyboardSetup') ?? false;
+      final hasSeenTutorial = prefs.getBool('hasSeenAppTutorial') ?? false;
 
       // Get current status from stream
       final status = await _subscriptionService.subscriptionStatusStream.first;
@@ -93,6 +96,7 @@ class _SubscriptionWrapperState extends State<SubscriptionWrapper> with WidgetsB
         setState(() {
           _status = status;
           _hasSeenKeyboardSetup = hasSeenSetup;
+          _hasSeenAppTutorial = hasSeenTutorial;
           _isLoading = false;
         });
       }
@@ -138,6 +142,15 @@ class _SubscriptionWrapperState extends State<SubscriptionWrapper> with WidgetsB
           onComplete: () {
             if (mounted) {
               setState(() => _hasSeenKeyboardSetup = true);
+            }
+          },
+        );
+      }
+      if (!_hasSeenAppTutorial) {
+        return AppTutorialScreen(
+          onComplete: () {
+            if (mounted) {
+              setState(() => _hasSeenAppTutorial = true);
             }
           },
         );

@@ -8,6 +8,7 @@ import '../services/keyboard_service.dart';
 import '../services/firebase_auth_service.dart';
 import 'training_feedback_screen.dart';
 import 'keyboard_setup_screen.dart';
+import 'app_tutorial_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -130,6 +131,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   );
                 }
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.auto_awesome),
+              title: const Text('Ver tutorial do app'),
+              subtitle: Text(
+                'Como usar o Desenrola AI passo a passo',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => AppTutorialScreen(
+                      onComplete: () {
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ),
+                );
               },
             ),
           ],
