@@ -66,11 +66,23 @@ extension KeyboardViewController {
         request.timeoutInterval = 10
 
         URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
-            if error != nil {
+            if let error = error {
                 if !silent {
+                    let nsError = error as NSError
+                    let errorMsg: String
+                    switch nsError.code {
+                    case NSURLErrorNotConnectedToInternet, NSURLErrorNetworkConnectionLost:
+                        errorMsg = "Sem conexão. Verifique sua internet."
+                    case NSURLErrorTimedOut:
+                        errorMsg = "Servidor demorou para responder. Tente novamente."
+                    case NSURLErrorSecureConnectionFailed, NSURLErrorServerCertificateUntrusted:
+                        errorMsg = "Erro de segurança na conexão (SSL)."
+                    default:
+                        errorMsg = "Erro de conexão: \(nsError.localizedDescription) (\(nsError.code))"
+                    }
                     DispatchQueue.main.async {
                         self?.isLoadingProfiles = false
-                        self?.profilesError = "Sem conexão. Verifique sua internet."
+                        self?.profilesError = errorMsg
                         self?.renderCurrentState()
                     }
                 }

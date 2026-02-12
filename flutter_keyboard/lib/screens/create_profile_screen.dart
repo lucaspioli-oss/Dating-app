@@ -1251,6 +1251,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
     final fullContact = await FlutterContacts.getContact(contact.id,
       withProperties: true,
       withPhoto: true,
+      withThumbnail: true,
     );
     if (fullContact == null) return;
 
@@ -1262,8 +1263,10 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         entry.contactPhoneNumber = fullContact.phones.first.number;
       }
 
-      if (fullContact.photo != null && fullContact.photo!.isNotEmpty) {
-        final bytes = Uint8List.fromList(fullContact.photo!);
+      // Try full photo first, fallback to thumbnail
+      final photoBytes = fullContact.photo ?? fullContact.thumbnail;
+      if (photoBytes != null && photoBytes.isNotEmpty) {
+        final bytes = Uint8List.fromList(photoBytes);
         final base64str = base64Encode(bytes);
         entry.profileImages = [bytes];
         entry.profileBase64s = [base64str];
