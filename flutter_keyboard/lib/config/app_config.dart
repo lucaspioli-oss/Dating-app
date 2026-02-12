@@ -11,11 +11,6 @@ class AppConfig {
   static const String appName = 'Desenrola IA';
   static const String appVersion = '1.0.0';
 
-  // Subscription Prices
-  static const double monthlyPrice = 29.90;
-  static const double quarterlyPrice = 69.90;
-  static const double yearlyPrice = 199.90;
-
   // Apple In-App Purchase Product IDs
   static const String appleMonthlyProductId = 'desenrola_ai_monthly';
   static const String appleQuarterlyProductId = 'desenrola_ai_quarterly';

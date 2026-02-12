@@ -24,16 +24,9 @@ class _SubscriptionRequiredScreenState
     extends State<SubscriptionRequiredScreen> {
   int _selectedPlan = 1; // 0 = monthly, 1 = quarterly, 2 = yearly
   bool _isPurchasing = false;
+  bool _isLoadingProducts = true;
   final AppleIAPService _iapService = AppleIAPService();
   StreamSubscription<PurchaseStatus>? _purchaseSubscription;
-
-  static const double monthlyPrice = 29.90;
-  static const double quarterlyPrice = 69.90;
-  static const double yearlyPrice = 199.90;
-
-  double get monthlyPerDay => monthlyPrice / 30;
-  double get quarterlyPerDay => quarterlyPrice / 90;
-  double get yearlyPerDay => yearlyPrice / 365;
 
   @override
   void initState() {
@@ -72,7 +65,7 @@ class _SubscriptionRequiredScreenState
           break;
       }
     });
-    if (mounted) setState(() {});
+    if (mounted) setState(() => _isLoadingProducts = false);
   }
 
   @override
@@ -130,40 +123,39 @@ class _SubscriptionRequiredScreenState
               const SizedBox(height: 20),
 
               // Pricing Cards
-              Column(
-                children: [
-                  _buildPricingCard(
-                    index: 0,
-                    planName: 'Plano Mensal',
-                    pricePerDay: monthlyPerDay,
-                    totalPrice: monthlyPrice,
-                    period: '/mes',
-                    isPopular: false,
-                    productId: AppConfig.appleMonthlyProductId,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildPricingCard(
-                    index: 1,
-                    planName: 'Plano Trimestral',
-                    pricePerDay: quarterlyPerDay,
-                    totalPrice: quarterlyPrice,
-                    period: '/3 meses',
-                    isPopular: true,
-                    savingsPercent: 22,
-                    productId: AppConfig.appleQuarterlyProductId,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildPricingCard(
-                    index: 2,
-                    planName: 'Plano Anual',
-                    pricePerDay: yearlyPerDay,
-                    totalPrice: yearlyPrice,
-                    period: '/ano',
-                    isPopular: false,
-                    productId: AppConfig.appleYearlyProductId,
-                  ),
-                ],
-              ),
+              if (_isLoadingProducts)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: CircularProgressIndicator(color: Color(0xFFE91E63)),
+                )
+              else
+                Column(
+                  children: [
+                    _buildPricingCard(
+                      index: 0,
+                      planName: 'Plano Mensal',
+                      period: '/mes',
+                      isPopular: false,
+                      productId: AppConfig.appleMonthlyProductId,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildPricingCard(
+                      index: 1,
+                      planName: 'Plano Trimestral',
+                      period: '/3 meses',
+                      isPopular: true,
+                      productId: AppConfig.appleQuarterlyProductId,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildPricingCard(
+                      index: 2,
+                      planName: 'Plano Anual',
+                      period: '/ano',
+                      isPopular: false,
+                      productId: AppConfig.appleYearlyProductId,
+                    ),
+                  ],
+                ),
 
               const SizedBox(height: 20),
 
@@ -208,12 +200,9 @@ class _SubscriptionRequiredScreenState
   Widget _buildPricingCard({
     required int index,
     required String planName,
-    required double pricePerDay,
-    required double totalPrice,
     required String period,
     required bool isPopular,
     required String productId,
-    int? savingsPercent,
   }) {
     final isSelected = _selectedPlan == index;
     final iapProduct = _iapService.getProduct(productId);
@@ -272,7 +261,7 @@ class _SubscriptionRequiredScreenState
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  // Plan name with radio and savings badge
+                  // Plan name with radio
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -310,32 +299,11 @@ class _SubscriptionRequiredScreenState
                           fontSize: 16,
                         ),
                       ),
-                      if (savingsPercent != null) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF4CAF50).withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            'Economize $savingsPercent%',
-                            style: const TextStyle(
-                              color: Color(0xFF4CAF50),
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                   const SizedBox(height: 24),
 
-                  // Price from App Store
+                  // Price from App Store (StoreKit only)
                   if (displayPrice.isNotEmpty) ...[
                     Text(
                       displayPrice,
