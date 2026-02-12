@@ -72,6 +72,8 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
       );
     }
 
+    final l10n = AppLocalizations.of(context)!;
+
     if (_profile == null) {
       return Scaffold(
         backgroundColor: AppColors.backgroundDark,
@@ -79,15 +81,15 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
           backgroundColor: AppColors.backgroundDark,
           elevation: 0,
         ),
-        body: const Center(
+        body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.person_off_outlined, size: 64, color: AppColors.textSecondary),
-              SizedBox(height: 16),
+              const Icon(Icons.person_off_outlined, size: 64, color: AppColors.textSecondary),
+              const SizedBox(height: 16),
               Text(
-                'Perfil não encontrado',
-                style: TextStyle(color: AppColors.textTertiary, fontSize: 16),
+                l10n.profileNotFound,
+                style: const TextStyle(color: AppColors.textTertiary, fontSize: 16),
               ),
             ],
           ),
@@ -114,14 +116,14 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                 _confirmDeleteProfile();
               }
             },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
+            itemBuilder: (ctx) => [
+              PopupMenuItem(
                 value: 'delete',
                 child: Row(
                   children: [
-                    Icon(Icons.delete_outline, color: AppColors.error, size: 20),
-                    SizedBox(width: 10),
-                    Text('Excluir Perfil', style: TextStyle(color: AppColors.error)),
+                    const Icon(Icons.delete_outline, color: AppColors.error, size: 20),
+                    const SizedBox(width: 10),
+                    Text(l10n.deleteProfileOption, style: const TextStyle(color: AppColors.error)),
                   ],
                 ),
               ),
@@ -317,9 +319,9 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                   size: 16,
                   color: AppColors.primary,
                 ),
-                label: const Text(
-                  'Adicionar',
-                  style: TextStyle(
+                label: Text(
+                  AppLocalizations.of(context)!.addButton,
+                  style: const TextStyle(
                     color: AppColors.primary,
                     fontSize: 12,
                   ),
@@ -395,6 +397,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
   }
 
   Widget _buildAddStoryButton() {
+    final l10n = AppLocalizations.of(context)!;
     return GestureDetector(
       onTap: () => _addStory(),
       child: Container(
@@ -405,18 +408,18 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: const Color(0xFF3A3A4E)),
         ),
-        child: const Column(
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.add,
               color: AppColors.textTertiary,
               size: 24,
             ),
-            SizedBox(height: 4),
+            const SizedBox(height: 4),
             Text(
-              'Story',
-              style: TextStyle(
+              l10n.storyLabel,
+              style: const TextStyle(
                 color: AppColors.textTertiary,
                 fontSize: 10,
               ),
@@ -448,9 +451,9 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
           tilePadding: const EdgeInsets.symmetric(horizontal: 16),
           title: Row(
             children: [
-              const Text(
-                'Apps de Relacionamento',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context)!.datingAppsLabel,
+                style: const TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -560,6 +563,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
   }
 
   Widget _buildAddPlatformButton() {
+    final l10n = AppLocalizations.of(context)!;
     return GestureDetector(
       onTap: () => _showAddPlatformDialog(),
       child: Container(
@@ -572,18 +576,18 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
             style: BorderStyle.solid,
           ),
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.add,
               color: AppColors.textTertiary,
               size: 20,
             ),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             Text(
-              'Adicionar App',
-              style: TextStyle(
+              l10n.addAppButton,
+              style: const TextStyle(
                 color: AppColors.textTertiary,
               ),
             ),
@@ -594,15 +598,16 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
   }
 
   Widget _buildConversationsSection() {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'CONVERSAS',
-              style: TextStyle(
+            Text(
+              l10n.conversationsSectionLabel,
+              style: const TextStyle(
                 color: AppColors.textTertiary,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
@@ -626,7 +631,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      _conversationFilter ?? 'Todas',
+                      _conversationFilter ?? l10n.allLabel,
                       style: const TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 12,
@@ -642,10 +647,10 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                 ),
               ),
               color: AppColors.elevatedDark,
-              itemBuilder: (context) => [
-                const PopupMenuItem(
+              itemBuilder: (ctx) => [
+                PopupMenuItem(
                   value: null,
-                  child: Text('Todas', style: TextStyle(color: AppColors.textPrimary)),
+                  child: Text(l10n.allLabel, style: const TextStyle(color: AppColors.textPrimary)),
                 ),
                 ..._profile!.platforms.keys.map((platform) {
                   return PopupMenuItem(
@@ -683,25 +688,25 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                   color: AppColors.surfaceDark,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Column(
+                child: Column(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.chat_bubble_outline,
                       color: Color(0xFF666666),
                       size: 40,
                     ),
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     Text(
-                      'Comece a conversa',
-                      style: TextStyle(
+                      l10n.startConversationText,
+                      style: const TextStyle(
                         color: AppColors.textTertiary,
                         fontSize: 14,
                       ),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
-                      'Peca uma sugestao ou use o teclado',
-                      style: TextStyle(
+                      l10n.askSuggestionText,
+                      style: const TextStyle(
                         color: Color(0xFF666666),
                         fontSize: 12,
                       ),
@@ -797,7 +802,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    conv.lastMessage.isNotEmpty ? conv.lastMessage : 'Toque para ver a conversa',
+                    conv.lastMessage.isNotEmpty ? conv.lastMessage : AppLocalizations.of(context)!.tapToSeeConversation,
                     style: const TextStyle(
                       color: AppColors.textTertiary,
                       fontSize: 13,
@@ -820,7 +825,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
   }
 
   String _getPlatformDisplayName(String? platform) {
-    if (platform == null) return 'Conversa';
+    if (platform == null) return AppLocalizations.of(context)!.conversationLabel;
     try {
       final type = PlatformType.values.firstWhere(
         (e) => e.name == platform,
@@ -907,7 +912,8 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
       await _profileService.addStory(widget.profileId, story);
       await _loadProfile();
     } catch (e) {
-      AppSnackBar.error(context, 'Erro ao adicionar story: $e');
+      final l10n = AppLocalizations.of(context)!;
+      AppSnackBar.error(context, '${l10n.addStoryError} $e');
     }
   }
 
@@ -917,13 +923,13 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.elevatedDark,
-        title: const Text(
-          'Excluir Story?',
-          style: TextStyle(color: AppColors.textPrimary),
+        title: Text(
+          l10n.deleteStoryTitle,
+          style: const TextStyle(color: AppColors.textPrimary),
         ),
-        content: const Text(
-          'Esta ação não pode ser desfeita.',
-          style: TextStyle(color: AppColors.textSecondary),
+        content: Text(
+          l10n.actionCannotBeUndone,
+          style: const TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
@@ -954,12 +960,12 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.elevatedDark,
         title: Text(
-          'Remover ${type.displayName}?',
+          '${l10n.removeButton} ${type.displayName}?',
           style: const TextStyle(color: AppColors.textPrimary),
         ),
-        content: const Text(
-          'Os dados desta plataforma serão removidos.',
-          style: TextStyle(color: AppColors.textSecondary),
+        content: Text(
+          l10n.removePlatformConfirm,
+          style: const TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
@@ -973,9 +979,9 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
               await _profileService.removePlatform(widget.profileId, type);
               await _loadProfile();
             },
-            child: const Text(
-              'Remover',
-              style: TextStyle(color: AppColors.error),
+            child: Text(
+              l10n.removeButton,
+              style: const TextStyle(color: AppColors.error),
             ),
           ),
         ],
@@ -989,13 +995,13 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.elevatedDark,
-        title: const Text(
-          'Excluir Perfil?',
-          style: TextStyle(color: AppColors.textPrimary),
+        title: Text(
+          l10n.deleteProfileQuestion,
+          style: const TextStyle(color: AppColors.textPrimary),
         ),
-        content: const Text(
-          'O perfil e todas as conversas serão excluídos permanentemente.',
-          style: TextStyle(color: AppColors.textSecondary),
+        content: Text(
+          l10n.deleteProfileMessage,
+          style: const TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
@@ -1020,13 +1026,14 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
   }
 
   void _showAddPlatformDialog() {
+    final l10n = AppLocalizations.of(context)!;
     final existingPlatforms = _profile!.platforms.keys.toSet();
     final availablePlatforms = PlatformType.values
         .where((p) => p.isDatingApp && !existingPlatforms.contains(p))
         .toList();
 
     if (availablePlatforms.isEmpty) {
-      AppSnackBar.info(context, 'Todas as plataformas já foram adicionadas');
+      AppSnackBar.info(context, l10n.allPlatformsAddedMessage);
       return;
     }
 
@@ -1043,9 +1050,9 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Adicionar Plataforma',
-                style: TextStyle(
+              Text(
+                l10n.addPlatformDialogTitle,
+                style: const TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -1134,7 +1141,8 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
       await _profileService.addPlatform(widget.profileId, platformData);
       await _loadProfile();
     } catch (e) {
-      AppSnackBar.error(context, 'Erro ao adicionar plataforma: $e');
+      final l10n = AppLocalizations.of(context)!;
+      AppSnackBar.error(context, '${l10n.addPlatformError} $e');
     }
   }
 

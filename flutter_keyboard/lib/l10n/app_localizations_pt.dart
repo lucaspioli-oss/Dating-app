@@ -1043,4 +1043,200 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get editIfNeeded => 'Edite se necessário:';
+
+  @override
+  String get activateKeyboardDesc =>
+      'Para usar sugestões inteligentes direto no WhatsApp, Tinder e outros apps, você precisa ativar nosso teclado personalizado.';
+
+  @override
+  String get activateKeyboardInstruction =>
+      'Vá em:\nAjustes → Geral → Teclado → Teclados → Adicionar';
+
+  @override
+  String get fullAccessDesc =>
+      'Ao ativar, a Apple exibe um aviso de segurança padrão que pode parecer assustador — mas fique tranquilo! Esse aviso aparece para TODOS os teclados com IA. No nosso caso, o acesso completo é necessário apenas para conectar o teclado à inteligência artificial e gerar sugestões personalizadas.';
+
+  @override
+  String get fullAccessInstruction =>
+      'Selecione \"Desenrola AI\" e ative \"Permitir Acesso Completo\"';
+
+  @override
+  String get fullAccessTip =>
+      'Para proteger dados sensíveis como senhas e cartões de crédito, basta trocar para o teclado padrão do iPhone (toque no globo 🌐) antes de digitar essas informações.';
+
+  @override
+  String get switchKeyboardDesc =>
+      'Em qualquer app de mensagens, toque no ícone do globo (🌐) no canto inferior esquerdo do teclado para trocar para o Desenrola AI.';
+
+  @override
+  String get switchKeyboardInstruction =>
+      'Toque no globo 🌐 para alternar entre teclados';
+
+  @override
+  String get keyboardEnabledStatus => 'Teclado ativado!';
+
+  @override
+  String get keyboardNotEnabledStatus => 'Teclado não ativado';
+
+  @override
+  String get openSettingsButton => 'Abrir Configurações';
+
+  @override
+  String get continueWithoutKeyboard => 'Continuar sem o teclado';
+
+  @override
+  String get followStepsToActivate =>
+      'Siga o passo a passo para ativar o teclado';
+
+  @override
+  String get accountDeletedSuccess => 'Conta deletada com sucesso.';
+
+  @override
+  String get accountDeleteError => 'Erro ao deletar conta:';
+
+  @override
+  String get howToAddQuestion => 'Como você quer adicionar?';
+
+  @override
+  String get addButton => 'Adicionar';
+
+  @override
+  String get multipleLabel => '(várias)';
+
+  @override
+  String get mainPhotoLabel => 'Principal';
+
+  @override
+  String get addAnotherPlatform => 'Adicionar outra rede social';
+
+  @override
+  String get analyzeAndCreateButton => 'Analisar e Criar Perfil';
+
+  @override
+  String get importFromContacts => 'Importar da Agenda';
+
+  @override
+  String get contactAutoFill => 'Nome e telefone vem automaticamente';
+
+  @override
+  String get contactNameHint => 'Nome do contato';
+
+  @override
+  String get bioContextLabel => 'Bio / contexto (opcional)';
+
+  @override
+  String get bioContextHint => 'Ex: conheceu na balada, amigo da faculdade...';
+
+  @override
+  String get profilePhotosOptionalLabel => 'Fotos do Perfil (opcional)';
+
+  @override
+  String get contactPermissionError =>
+      'Permissão de contatos necessária para importar do WhatsApp';
+
+  @override
+  String get loadImageError => 'Erro ao carregar imagem:';
+
+  @override
+  String get loadImagesError => 'Erro ao carregar imagens:';
+
+  @override
+  String get loadStoriesError => 'Erro ao carregar stories:';
+
+  @override
+  String get addImageOrContactError =>
+      'Adicione pelo menos uma imagem de perfil ou importe um contato';
+
+  @override
+  String get userNotAuthenticated => 'Usuário não autenticado';
+
+  @override
+  String get createProfileError => 'Erro ao criar perfil:';
+
+  @override
+  String get addSocialNetworkTitle => 'Adicionar Rede Social';
+
+  @override
+  String get noValidPlatform => 'Nenhuma plataforma válida encontrada';
+
+  @override
+  String get otherLabel => 'Outro';
+
+  @override
+  String get phonePrefix => 'Telefone:';
+
+  @override
+  String get imageAnalysisError => 'Erro ao analisar imagem';
+
+  @override
+  String get noNameFallback => 'Sem nome';
+
+  @override
+  String get profileNotFound => 'Perfil não encontrado';
+
+  @override
+  String get deleteProfileOption => 'Excluir Perfil';
+
+  @override
+  String get storyLabel => 'Story';
+
+  @override
+  String get datingAppsLabel => 'Apps de Relacionamento';
+
+  @override
+  String get addAppButton => 'Adicionar App';
+
+  @override
+  String get conversationsSectionLabel => 'CONVERSAS';
+
+  @override
+  String get allLabel => 'Todas';
+
+  @override
+  String get startConversationText => 'Comece a conversa';
+
+  @override
+  String get askSuggestionText => 'Peça uma sugestão ou use o teclado';
+
+  @override
+  String get tapToSeeConversation => 'Toque para ver a conversa';
+
+  @override
+  String get deleteStoryTitle => 'Excluir Story?';
+
+  @override
+  String get actionCannotBeUndone => 'Esta ação não pode ser desfeita.';
+
+  @override
+  String get removePlatformConfirm =>
+      'Os dados desta plataforma serão removidos.';
+
+  @override
+  String get removeButton => 'Remover';
+
+  @override
+  String get deleteProfileQuestion => 'Excluir Perfil?';
+
+  @override
+  String get deleteProfileMessage =>
+      'O perfil e todas as conversas serão excluídos permanentemente.';
+
+  @override
+  String get addPlatformDialogTitle => 'Adicionar Plataforma';
+
+  @override
+  String get allPlatformsAddedMessage =>
+      'Todas as plataformas já foram adicionadas';
+
+  @override
+  String get addStoryError => 'Erro ao adicionar story:';
+
+  @override
+  String get addPlatformError => 'Erro ao adicionar plataforma:';
+
+  @override
+  String get conversationLabel => 'Conversa';
+
+  @override
+  String get passwordValidationEnter => 'Digite uma senha';
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/keyboard_service.dart';
 import '../config/app_theme.dart';
+import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
 
 class KeyboardSetupScreen extends StatefulWidget {
   final VoidCallback onComplete;
@@ -18,39 +19,30 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
   int _currentPage = 0;
   bool _isKeyboardEnabled = false;
 
-  final List<_SetupStep> _steps = [
-    _SetupStep(
-      icon: Icons.keyboard_alt_outlined,
-      title: 'Ative o Teclado Desenrola AI',
-      description:
-          'Para usar sugestões inteligentes direto no WhatsApp, Tinder e outros apps, '
-          'você precisa ativar nosso teclado personalizado.',
-      instruction: 'Vá em:\nAjustes → Geral → Teclado → Teclados → Adicionar',
-    ),
-    _SetupStep(
-      icon: Icons.security_outlined,
-      title: 'Ative o Acesso Completo',
-      description:
-          'Ao ativar, a Apple exibe um aviso de segurança padrão que pode parecer '
-          'assustador — mas fique tranquilo! Esse aviso aparece para TODOS os '
-          'teclados com IA. No nosso caso, o acesso '
-          'completo é necessário apenas para conectar o teclado à inteligência '
-          'artificial e gerar sugestões personalizadas.',
-      instruction:
-          'Selecione "Desenrola AI" e ative "Permitir Acesso Completo"',
-      tip: 'Para proteger dados sensíveis como senhas e cartões de crédito, '
-          'basta trocar para o teclado padrão do iPhone (toque no globo 🌐) '
-          'antes de digitar essas informações.',
-    ),
-    _SetupStep(
-      icon: Icons.swap_horiz,
-      title: 'Troque para o Teclado',
-      description:
-          'Em qualquer app de mensagens, toque no ícone do globo (🌐) '
-          'no canto inferior esquerdo do teclado para trocar para o Desenrola AI.',
-      instruction: 'Toque no globo 🌐 para alternar entre teclados',
-    ),
-  ];
+  List<_SetupStep> _getSteps(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return [
+      _SetupStep(
+        icon: Icons.keyboard_alt_outlined,
+        title: l10n.activateKeyboardTitle,
+        description: l10n.activateKeyboardDesc,
+        instruction: l10n.activateKeyboardInstruction,
+      ),
+      _SetupStep(
+        icon: Icons.security_outlined,
+        title: l10n.fullAccessTitle,
+        description: l10n.fullAccessDesc,
+        instruction: l10n.fullAccessInstruction,
+        tip: l10n.fullAccessTip,
+      ),
+      _SetupStep(
+        icon: Icons.swap_horiz,
+        title: l10n.switchKeyboardTitle,
+        description: l10n.switchKeyboardDesc,
+        instruction: l10n.switchKeyboardInstruction,
+      ),
+    ];
+  }
 
   @override
   void initState() {
@@ -79,6 +71,9 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final steps = _getSteps(context);
+
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -88,7 +83,7 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
               alignment: Alignment.topRight,
               child: TextButton(
                 onPressed: _completeSetup,
-                child: const Text('Pular'),
+                child: Text(l10n.skipButton),
               ),
             ),
 
@@ -100,9 +95,9 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
                   setState(() => _currentPage = index);
                   if (index == 0) _checkKeyboardStatus();
                 },
-                itemCount: _steps.length,
+                itemCount: steps.length,
                 itemBuilder: (context, index) {
-                  return _buildStepPage(_steps[index], index);
+                  return _buildStepPage(steps[index], index);
                 },
               ),
             ),
@@ -112,7 +107,7 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
               padding: const EdgeInsets.symmetric(vertical: 16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(_steps.length, (index) {
+                children: List.generate(steps.length, (index) {
                   return AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
                     margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -132,7 +127,7 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
             // Bottom buttons
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-              child: _buildBottomButtons(),
+              child: _buildBottomButtons(context, steps.length),
             ),
           ],
         ),
@@ -141,6 +136,7 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
   }
 
   Widget _buildStepPage(_SetupStep step, int index) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32),
       child: Column(
@@ -270,8 +266,8 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
                   const SizedBox(width: 8),
                   Text(
                     _isKeyboardEnabled
-                        ? 'Teclado ativado!'
-                        : 'Teclado não ativado',
+                        ? l10n.keyboardEnabledStatus
+                        : l10n.keyboardNotEnabledStatus,
                     style: TextStyle(
                       color: _isKeyboardEnabled
                           ? AppColors.success
@@ -288,13 +284,15 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
     );
   }
 
-  Widget _buildBottomButtons() {
+  Widget _buildBottomButtons(BuildContext context, int totalSteps) {
+    final l10n = AppLocalizations.of(context)!;
+
     if (_currentPage == 0) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           GradientButton(
-            text: 'Abrir Configurações',
+            text: l10n.openSettingsButton,
             icon: Icons.settings,
             onPressed: () async {
               await _keyboardService.openKeyboardSettings();
@@ -310,13 +308,13 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
                 curve: Curves.easeInOut,
               );
             },
-            child: const Text('Próximo'),
+            child: Text(l10n.nextButton),
           ),
           const SizedBox(height: 8),
           TextButton(
             onPressed: _completeSetup,
             child: Text(
-              'Continuar sem o teclado',
+              l10n.continueWithoutKeyboard,
               style: TextStyle(color: AppColors.textTertiary),
             ),
           ),
@@ -324,12 +322,12 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
       );
     }
 
-    if (_currentPage == _steps.length - 1) {
+    if (_currentPage == totalSteps - 1) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           GradientButton(
-            text: 'Começar a usar!',
+            text: l10n.startUsingButton,
             icon: Icons.rocket_launch,
             onPressed: _completeSetup,
           ),
@@ -347,7 +345,7 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
                 curve: Curves.easeInOut,
               );
             },
-            child: const Text('Voltar'),
+            child: Text(l10n.backButton),
           ),
         ),
         const SizedBox(width: 12),
@@ -359,7 +357,7 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
                 curve: Curves.easeInOut,
               );
             },
-            child: const Text('Próximo'),
+            child: Text(l10n.nextButton),
           ),
         ),
       ],

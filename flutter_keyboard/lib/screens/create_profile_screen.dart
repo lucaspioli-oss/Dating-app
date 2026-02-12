@@ -14,6 +14,7 @@ import '../models/profile_model.dart';
 import '../providers/app_state.dart';
 import '../services/agent_service.dart';
 import '../services/profile_service.dart';
+import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
 import 'profile_detail_screen.dart';
 
 enum InstagramUploadMode { none, generalScreenshot, individualPhotos }
@@ -46,6 +47,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
@@ -55,9 +57,9 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Novo Perfil',
-          style: TextStyle(
+        title: Text(
+          l10n.newProfileTitle,
+          style: const TextStyle(
             color: AppColors.textPrimary,
             fontWeight: FontWeight.bold,
             fontSize: 18,
@@ -70,6 +72,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   }
 
   Widget _buildAnalyzingState() {
+    final l10n = AppLocalizations.of(this.context)!;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -100,18 +103,18 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             ),
           ),
           const SizedBox(height: 32),
-          const Text(
-            'Analisando perfil...',
-            style: TextStyle(
+          Text(
+            l10n.analyzingProfileTitle,
+            style: const TextStyle(
               color: AppColors.textPrimary,
               fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Extraindo informações das imagens',
-            style: TextStyle(
+          Text(
+            l10n.extractingInfoMessage,
+            style: const TextStyle(
               color: AppColors.textTertiary,
               fontSize: 14,
             ),
@@ -122,23 +125,24 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   }
 
   Widget _buildForm() {
+    final l10n = AppLocalizations.of(this.context)!;
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
       children: [
         // Se não tem nenhuma plataforma, mostrar seletor
         if (_platformEntries.isEmpty) ...[
-          const Text(
-            'Selecione a rede social',
-            style: TextStyle(
+          Text(
+            l10n.selectPlatformTitle,
+            style: const TextStyle(
               color: AppColors.textPrimary,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Onde você conheceu essa pessoa?',
-            style: TextStyle(
+          Text(
+            l10n.platformQuestion,
+            style: const TextStyle(
               color: AppColors.textTertiary,
               fontSize: 13,
             ),
@@ -195,6 +199,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   }
 
   Widget _buildPlatformGrid({required Function(PlatformType) onSelect}) {
+    final l10n = AppLocalizations.of(this.context)!;
     final platforms = [
       _PlatformInfo(PlatformType.instagram, 'Instagram', 'assets/images/instagram.png', const Color(0xFFE1306C)),
       _PlatformInfo(PlatformType.tinder, 'Tinder', 'assets/images/tinder.png', AppColors.primaryCoral),
@@ -203,7 +208,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
       _PlatformInfo(PlatformType.happn, 'Happn', null, const Color(0xFFFF9500)),
       _PlatformInfo(PlatformType.umatch, 'Umatch', null, const Color(0xFF00C853)),
       _PlatformInfo(PlatformType.whatsapp, 'WhatsApp', 'assets/images/whatsapp.png', const Color(0xFF25D366)),
-      _PlatformInfo(PlatformType.outro, 'Outro', null, const Color(0xFF6B7280)),
+      _PlatformInfo(PlatformType.outro, l10n.otherLabel, null, const Color(0xFF6B7280)),
     ];
 
     // Filtrar plataformas já adicionadas
@@ -273,6 +278,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   }
 
   Widget _buildPlatformSection(int index, _PlatformEntry entry) {
+    final l10n = AppLocalizations.of(this.context)!;
     final platformInfo = _getPlatformInfo(entry.type);
 
     return Container(
@@ -336,9 +342,9 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           // Instagram: mode selector + content
           if (entry.type == PlatformType.instagram) ...[
             if (entry.instagramUploadMode == InstagramUploadMode.none) ...[
-              const Text(
-                'Como você quer adicionar?',
-                style: TextStyle(
+              Text(
+                l10n.howToAddQuestion,
+                style: const TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -361,15 +367,15 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                           children: [
                             const Text('\uD83D\uDCF8', style: TextStyle(fontSize: 28)),
                             const SizedBox(height: 8),
-                            const Text(
-                              'Print do Perfil',
-                              style: TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                            Text(
+                              l10n.profileScreenshotMode,
+                              style: const TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
                             ),
                             const SizedBox(height: 4),
-                            const Text(
-                              'Um print geral\ndo perfil dela',
+                            Text(
+                              l10n.profileScreenshotDesc,
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: AppColors.textTertiary, fontSize: 11),
+                              style: const TextStyle(color: AppColors.textTertiary, fontSize: 11),
                             ),
                           ],
                         ),
@@ -391,15 +397,15 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                           children: [
                             const Text('\uD83D\uDDBC', style: TextStyle(fontSize: 28)),
                             const SizedBox(height: 8),
-                            const Text(
-                              'Fotos Individuais',
-                              style: TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                            Text(
+                              l10n.profilePhotosMode,
+                              style: const TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
                             ),
                             const SizedBox(height: 4),
-                            const Text(
-                              'Adicione as fotos\numa por uma',
+                            Text(
+                              l10n.profilePhotosDesc,
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: AppColors.textTertiary, fontSize: 11),
+                              style: const TextStyle(color: AppColors.textTertiary, fontSize: 11),
                             ),
                           ],
                         ),
@@ -414,8 +420,8 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                 children: [
                   Text(
                     entry.instagramUploadMode == InstagramUploadMode.generalScreenshot
-                        ? '📸 Print do Perfil'
-                        : '🖼 Fotos Individuais',
+                        ? '\u{1F4F8} ${l10n.profileScreenshotMode}'
+                        : '\u{1F5BC} ${l10n.profilePhotosMode}',
                     style: const TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 14,
@@ -426,7 +432,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                   GestureDetector(
                     onTap: () => _setInstagramMode(index, InstagramUploadMode.none),
                     child: Text(
-                      'Trocar modo',
+                      l10n.changeMode,
                       style: TextStyle(
                         color: AppColors.primary,
                         fontSize: 12,
@@ -455,14 +461,14 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                         children: [
                           const Icon(Icons.screenshot_outlined, color: AppColors.textTertiary, size: 36),
                           const SizedBox(height: 12),
-                          const Text(
-                            'Adicionar print do perfil',
-                            style: TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
+                          Text(
+                            l10n.addProfileScreenshot,
+                            style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
                           ),
                           const SizedBox(height: 4),
-                          const Text(
-                            'Tire um print da página do perfil dela no Instagram',
-                            style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                          Text(
+                            l10n.screenshotInstructions,
+                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
                           ),
                         ],
                       ),
@@ -525,10 +531,10 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                         flex: 2,
                         child: Column(
                           children: [
-                            const Text(
-                              'Foto de perfil\n(recorte automático)',
+                            Text(
+                              l10n.croppedProfilePicLabel,
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: AppColors.textTertiary, fontSize: 11),
+                              style: const TextStyle(color: AppColors.textTertiary, fontSize: 11),
                             ),
                             const SizedBox(height: 8),
                             if (entry.croppedProfilePicBytes != null)
@@ -576,11 +582,11 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                   children: [
                     Icon(Icons.contacts, color: const Color(0xFF25D366), size: 32),
                     const SizedBox(height: 8),
-                    Text('Importar da Agenda',
-                      style: TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
+                    Text(l10n.importFromContacts,
+                      style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 4),
-                    Text('Nome e telefone vem automaticamente',
-                      style: TextStyle(color: AppColors.textTertiary, fontSize: 12)),
+                    Text(l10n.contactAutoFill,
+                      style: const TextStyle(color: AppColors.textTertiary, fontSize: 12)),
                   ],
                 ),
               ),
@@ -590,8 +596,8 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             TextFormField(
               controller: entry.nameController,
               decoration: InputDecoration(
-                labelText: 'Nome',
-                hintText: 'Nome do contato',
+                labelText: l10n.nameLabel,
+                hintText: l10n.contactNameHint,
                 border: const OutlineInputBorder(),
                 prefixIcon: const Icon(Icons.person_outline),
                 filled: true,
@@ -622,8 +628,8 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
               controller: entry.bioController,
               maxLines: 3,
               decoration: InputDecoration(
-                labelText: 'Bio / contexto (opcional)',
-                hintText: 'Ex: conheceu na balada, amigo da faculdade...',
+                labelText: l10n.bioContextLabel,
+                hintText: l10n.bioContextHint,
                 border: const OutlineInputBorder(),
                 alignLabelWithHint: true,
                 filled: true,
@@ -632,9 +638,9 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
               style: const TextStyle(color: AppColors.textPrimary),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Fotos do Perfil (opcional)',
-              style: TextStyle(
+            Text(
+              l10n.profilePhotosOptionalLabel,
+              style: const TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -644,18 +650,18 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             _buildProfileImagesGrid(index, entry),
           ] else ...[
             // Non-Instagram platforms: original behavior
-            const Text(
-              'Fotos do Perfil',
-              style: TextStyle(
+            Text(
+              l10n.profilePhotosTitle,
+              style: const TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Adicione as fotos do perfil dela (pode adicionar várias)',
-              style: TextStyle(
+            Text(
+              l10n.profilePhotosDescription,
+              style: const TextStyle(
                 color: AppColors.textTertiary,
                 fontSize: 12,
               ),
@@ -667,18 +673,18 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           // Stories (apenas Instagram - general screenshot mode; individual photos has stories inline)
           if (entry.type == PlatformType.instagram && entry.instagramUploadMode == InstagramUploadMode.generalScreenshot) ...[
             const SizedBox(height: 16),
-            const Text(
-              'Stories (opcional)',
-              style: TextStyle(
+            Text(
+              l10n.storiesOptionalTitle,
+              style: const TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Adicione stories para usar como contexto nas sugestões',
-              style: TextStyle(
+            Text(
+              l10n.storiesDescription,
+              style: const TextStyle(
                 color: AppColors.textTertiary,
                 fontSize: 12,
               ),
@@ -706,8 +712,8 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           if (entry.type == PlatformType.bumble) ...[
             const SizedBox(height: 16),
             _buildUploadArea(
-              title: 'Opening Move (opcional)',
-              subtitle: 'Print da pergunta que ela escolheu',
+              title: l10n.openingMoveTitle,
+              subtitle: l10n.openingMoveSubtitle,
               imageBytes: entry.openingMoveImageBytes,
               onUpload: () => _pickImage(index, isOpeningMove: true),
               onRemove: () => _removeImage(index, isOpeningMove: true),
@@ -720,6 +726,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   }
 
   Widget _buildIndividualPhotosLayout(int platformIndex, _PlatformEntry entry) {
+    final l10n = AppLocalizations.of(this.context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -728,7 +735,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           controller: entry.nameController,
           style: const TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
           decoration: InputDecoration(
-            hintText: 'Nome dela',
+            hintText: l10n.nameInputHint,
             hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 16, fontWeight: FontWeight.w600),
             filled: true,
             fillColor: AppColors.elevatedDark,
@@ -748,7 +755,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           maxLines: 3,
           minLines: 2,
           decoration: InputDecoration(
-            hintText: 'Bio / descrição do perfil',
+            hintText: l10n.bioInputHint,
             hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
             filled: true,
             fillColor: AppColors.elevatedDark,
@@ -767,18 +774,18 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         // Stories section (horizontal scroll, Instagram-style)
         Row(
           children: [
-            const Text(
-              'Stories',
-              style: TextStyle(
+            Text(
+              l10n.storiesLabel,
+              style: const TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(width: 6),
-            const Text(
-              '(opcional)',
-              style: TextStyle(color: AppColors.textTertiary, fontSize: 12),
+            Text(
+              l10n.optionalLabel,
+              style: const TextStyle(color: AppColors.textTertiary, fontSize: 12),
             ),
           ],
         ),
@@ -805,18 +812,18 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         // Photos section - grid layout
         Row(
           children: [
-            const Text(
-              'Fotos do Perfil',
-              style: TextStyle(
+            Text(
+              l10n.profilePhotosTitle,
+              style: const TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const Spacer(),
-            const Text(
-              'A 1a foto vira avatar',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+            Text(
+              l10n.firstPhotoAvatarInfo,
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
             ),
           ],
         ),
@@ -978,9 +985,9 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                   color: AppColors.primary,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text(
-                  'Principal',
-                  style: TextStyle(
+                child: Text(
+                  AppLocalizations.of(this.context)!.mainPhotoLabel,
+                  style: const TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 9,
                     fontWeight: FontWeight.bold,
@@ -1010,6 +1017,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   }
 
   Widget _buildAddProfileImageButton(int platformIndex) {
+    final l10n = AppLocalizations.of(this.context)!;
     return GestureDetector(
       onTap: () => _pickProfileImage(platformIndex),
       child: Container(
@@ -1032,17 +1040,17 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
               size: 28,
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Adicionar',
-              style: TextStyle(
+            Text(
+              l10n.addButton,
+              style: const TextStyle(
                 color: AppColors.textTertiary,
                 fontSize: 12,
               ),
             ),
             const SizedBox(height: 2),
-            const Text(
-              '(várias)',
-              style: TextStyle(
+            Text(
+              l10n.multipleLabel,
+              style: const TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 10,
               ),
@@ -1108,6 +1116,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   }
 
   Widget _buildAddStoryButton(int platformIndex) {
+    final l10n = AppLocalizations.of(this.context)!;
     return GestureDetector(
       onTap: () => _pickStory(platformIndex),
       child: Container(
@@ -1118,25 +1127,25 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: const Color(0xFF3A3A4E)),
         ),
-        child: const Column(
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.add,
               color: AppColors.textTertiary,
               size: 24,
             ),
-            SizedBox(height: 4),
+            const SizedBox(height: 4),
             Text(
-              'Stories',
-              style: TextStyle(
+              l10n.storiesLabel,
+              style: const TextStyle(
                 color: AppColors.textTertiary,
                 fontSize: 11,
               ),
             ),
             Text(
-              '(várias)',
-              style: TextStyle(
+              l10n.multipleLabel,
+              style: const TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 9,
               ),
@@ -1148,6 +1157,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   }
 
   Widget _buildAddAnotherButton() {
+    final l10n = AppLocalizations.of(this.context)!;
     // Verificar se ainda há plataformas disponíveis
     final allPlatforms = PlatformType.values;
     final addedPlatforms = _platformEntries.map((e) => e.type).toSet();
@@ -1167,18 +1177,18 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             style: BorderStyle.solid,
           ),
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.add_circle_outline,
               color: AppColors.textTertiary,
               size: 22,
             ),
-            SizedBox(width: 10),
+            const SizedBox(width: 10),
             Text(
-              'Adicionar outra rede social',
-              style: TextStyle(
+              l10n.addAnotherPlatform,
+              style: const TextStyle(
                 color: AppColors.textTertiary,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -1211,14 +1221,14 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             ),
           ],
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.auto_awesome, color: Colors.white, size: 22),
-            SizedBox(width: 12),
+            const Icon(Icons.auto_awesome, color: Colors.white, size: 22),
+            const SizedBox(width: 12),
             Text(
-              'Analisar e Criar Perfil',
-              style: TextStyle(
+              AppLocalizations.of(this.context)!.analyzeAndCreateButton,
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -1239,8 +1249,9 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
 
   Future<void> _pickWhatsAppContact(int platformIndex) async {
     if (!await FlutterContacts.requestPermission(readonly: true)) {
+      final l10n = AppLocalizations.of(this.context)!;
       setState(() {
-        _errorMessage = 'Permissão de contatos necessária para importar do WhatsApp';
+        _errorMessage = l10n.contactPermissionError;
       });
       return;
     }
@@ -1284,6 +1295,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   }
 
   void _showAddPlatformDialog() {
+    final l10n = AppLocalizations.of(this.context)!;
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surfaceDark,
@@ -1297,9 +1309,9 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Adicionar Rede Social',
-                style: TextStyle(
+              Text(
+                l10n.addSocialNetworkTitle,
+                style: const TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -1372,8 +1384,9 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         _errorMessage = null;
       });
     } catch (e) {
+      final l10n = AppLocalizations.of(this.context)!;
       setState(() {
-        _errorMessage = 'Erro ao carregar imagens: $e';
+        _errorMessage = '${l10n.loadImagesError} $e';
       });
     }
   }
@@ -1409,8 +1422,9 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         _errorMessage = null;
       });
     } catch (e) {
+      final l10n = AppLocalizations.of(this.context)!;
       setState(() {
-        _errorMessage = 'Erro ao carregar imagem: $e';
+        _errorMessage = '${l10n.loadImageError} $e';
       });
     }
   }
@@ -1450,8 +1464,9 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         _errorMessage = null;
       });
     } catch (e) {
+      final l10n = AppLocalizations.of(this.context)!;
       setState(() {
-        _errorMessage = 'Erro ao carregar stories: $e';
+        _errorMessage = '${l10n.loadStoriesError} $e';
       });
     }
   }
@@ -1596,8 +1611,9 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         });
       }
     } catch (e) {
+      final l10n = AppLocalizations.of(this.context)!;
       setState(() {
-        _errorMessage = 'Erro ao carregar imagem: $e';
+        _errorMessage = '${l10n.loadImageError} $e';
       });
     }
   }
@@ -1634,7 +1650,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
       case PlatformType.whatsapp:
         return _PlatformInfo(type, 'WhatsApp', null, const Color(0xFF25D366));
       case PlatformType.outro:
-        return _PlatformInfo(type, 'Outro', null, const Color(0xFF6B7280));
+        return _PlatformInfo(type, AppLocalizations.of(this.context)!.otherLabel, null, const Color(0xFF6B7280));
     }
   }
 
@@ -1645,9 +1661,10 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
     final hasImage = _platformEntries.any((e) => e.profileImages.isNotEmpty);
     final hasWhatsAppContact = _platformEntries.any((e) =>
       e.type == PlatformType.whatsapp && e.nameController.text.trim().isNotEmpty);
+    final l10n = AppLocalizations.of(this.context)!;
     if (!hasImage && !hasWhatsAppContact) {
       setState(() {
-        _errorMessage = 'Adicione pelo menos uma imagem de perfil ou importe um contato';
+        _errorMessage = l10n.addImageOrContactError;
       });
       return;
     }
@@ -1657,7 +1674,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
 
     if (userId == null) {
       setState(() {
-        _errorMessage = 'Usuário não autenticado';
+        _errorMessage = l10n.userNotAuthenticated;
       });
       return;
     }
@@ -1688,7 +1705,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             final platformData = PlatformData(
               type: PlatformType.whatsapp,
               bio: entry.bioController.text.trim().isNotEmpty ? entry.bioController.text.trim() : null,
-              additionalInfo: entry.contactPhoneNumber != null ? 'Telefone: ${entry.contactPhoneNumber}' : null,
+              additionalInfo: entry.contactPhoneNumber != null ? '${l10n.phonePrefix} ${entry.contactPhoneNumber}' : null,
               createdAt: DateTime.now(),
               updatedAt: DateTime.now(),
             );
@@ -1727,7 +1744,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           );
 
           if (!result.success) {
-            throw Exception(result.errorMessage ?? 'Erro ao analisar imagem');
+            throw Exception(result.errorMessage ?? l10n.imageAnalysisError);
           }
 
           // Usar o primeiro nome/face encontrado
@@ -1835,13 +1852,13 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
       }
 
       if (firstPlatform == null) {
-        throw Exception('Nenhuma plataforma válida encontrada');
+        throw Exception(l10n.noValidPlatform);
       }
 
       // Criar perfil
       final profile = await _profileService.createProfile(
         userId: userId,
-        name: profileName ?? 'Sem nome',
+        name: profileName ?? l10n.noNameFallback,
         faceDescription: faceDescription,
         faceImageBase64: faceImageBase64,
         initialPlatform: firstPlatform,
@@ -1863,7 +1880,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
     } catch (e) {
       setState(() {
         _isAnalyzing = false;
-        _errorMessage = 'Erro ao criar perfil: $e';
+        _errorMessage = '${l10n.createProfileError} $e';
       });
     }
   }

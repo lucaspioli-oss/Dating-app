@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
 import '../config/app_config.dart';
 import '../config/app_theme.dart';
 import '../services/subscription_service.dart';
@@ -45,9 +46,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Configurações'),
+        title: Text(l10n.settingsTitle),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -65,6 +67,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildKeyboardSection(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -72,7 +75,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Teclado Inteligente',
+              l10n.smartKeyboardSection,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
@@ -83,9 +86,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     : Icons.warning_amber_rounded,
                 color: _isKeyboardEnabled ? AppColors.success : AppColors.warning,
               ),
-              title: const Text('Status do Teclado'),
+              title: Text(l10n.keyboardStatusLabel),
               subtitle: Text(
-                _isKeyboardEnabled ? 'Ativado' : 'Desativado',
+                _isKeyboardEnabled ? l10n.keyboardStatusActive : l10n.keyboardStatusInactive,
               ),
               trailing: _isKeyboardEnabled
                   ? null
@@ -103,17 +106,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           },
                         );
                       },
-                      child: const Text('Ativar'),
+                      child: Text(l10n.activateButton),
                     ),
             ),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.school_outlined),
-              title: const Text('Ver guia de ativação'),
+              title: Text(l10n.viewActivationGuideTitle),
               subtitle: Text(
                 _isKeyboardEnabled
-                    ? 'Reveja os passos para configurar o teclado'
-                    : 'Siga o passo a passo para ativar o teclado',
+                    ? l10n.viewActivationGuideDesc
+                    : l10n.followStepsToActivate,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               trailing: const Icon(Icons.chevron_right),
@@ -137,9 +140,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const Divider(),
             ListTile(
               leading: const Icon(Icons.auto_awesome),
-              title: const Text('Ver tutorial do app'),
+              title: Text(l10n.viewAppTutorialTitle),
               subtitle: Text(
-                'Como usar o Desenrola AI passo a passo',
+                l10n.viewAppTutorialDesc,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               trailing: const Icon(Icons.chevron_right),
@@ -162,6 +165,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildTrainingSection(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -171,7 +175,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Row(
               children: [
                 Text(
-                  'Treinamento da IA',
+                  l10n.aiTrainingSection,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(width: 8),
@@ -181,9 +185,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     color: AppColors.warning,
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: const Text(
-                    'DEV',
-                    style: TextStyle(
+                  child: Text(
+                    l10n.devBadge,
+                    style: const TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
@@ -195,8 +199,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 16),
             ListTile(
               leading: const Icon(Icons.psychology),
-              title: const Text('Instruções de Treinamento'),
-              subtitle: const Text('Personalize como a IA responde'),
+              title: Text(l10n.trainingInstructionsTitle),
+              subtitle: Text(l10n.trainingInstructionsDesc),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
                 Navigator.of(context).push(
@@ -213,6 +217,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildAboutSection(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final user = FirebaseAuth.instance.currentUser;
 
     return Card(
@@ -222,23 +227,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Sobre',
+              l10n.aboutSection,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
             ListTile(
               leading: const Icon(Icons.person_outline),
-              title: const Text('Logado como'),
-              subtitle: Text(user?.email ?? 'Não logado'),
+              title: Text(l10n.loggedAsLabel),
+              subtitle: Text(user?.email ?? l10n.notLoggedInLabel),
             ),
             ListTile(
               leading: const Icon(Icons.info_outline),
-              title: const Text('Versão'),
+              title: Text(l10n.versionLabel),
               subtitle: Text(AppConfig.appVersion),
             ),
             ListTile(
               leading: const Icon(Icons.privacy_tip_outlined),
-              title: const Text('Política de Privacidade'),
+              title: Text(l10n.privacyPolicyLabel),
               onTap: () {
                 launchUrl(Uri.parse('https://desenrola-ia.web.app/privacy'));
               },
@@ -246,13 +251,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const Divider(),
             ListTile(
               leading: Icon(Icons.logout, color: AppColors.error),
-              title: Text('Sair da conta', style: TextStyle(color: AppColors.error)),
+              title: Text(l10n.logoutLabel, style: TextStyle(color: AppColors.error)),
               onTap: () => _showLogoutDialog(context),
             ),
             ListTile(
               leading: Icon(Icons.delete_forever, color: AppColors.error),
-              title: Text('Deletar conta', style: TextStyle(color: AppColors.error)),
-              subtitle: const Text('Remove sua conta e todos os dados permanentemente'),
+              title: Text(l10n.deleteAccountLabel, style: TextStyle(color: AppColors.error)),
+              subtitle: Text(l10n.deleteAccountDesc),
               onTap: () => _showDeleteAccountDialog(context),
             ),
           ],
@@ -262,17 +267,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showDeleteAccountDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Deletar Conta'),
-        content: const Text(
-          'Tem certeza que deseja deletar sua conta? Esta ação é permanente e todos os seus dados serão removidos. Esta ação não pode ser desfeita.',
+        title: Text(l10n.deleteAccountTitle),
+        content: Text(
+          l10n.deleteAccountConfirmation,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancelButton),
           ),
           TextButton(
             onPressed: () async {
@@ -281,16 +287,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 await KeyboardService().clearKeyboardAuth();
                 await FirebaseAuthService().deleteAccount();
                 if (mounted) {
-                  AppSnackBar.success(context, 'Conta deletada com sucesso.');
+                  AppSnackBar.success(context, l10n.accountDeletedSuccess);
                 }
               } catch (e) {
                 if (mounted) {
-                  AppSnackBar.error(context, 'Erro ao deletar conta: $e');
+                  AppSnackBar.error(context, '${l10n.accountDeleteError} $e');
                 }
               }
             },
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('Deletar Permanentemente'),
+            child: Text(l10n.deletePermanentlyButton),
           ),
         ],
       ),
@@ -298,15 +304,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showLogoutDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Sair da conta'),
-        content: const Text('Tem certeza que deseja sair?'),
+        title: Text(l10n.logoutTitle),
+        content: Text(l10n.logoutConfirmation),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancelButton),
           ),
           TextButton(
             onPressed: () async {
@@ -315,7 +322,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               await FirebaseAuth.instance.signOut();
             },
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('Sair'),
+            child: Text(l10n.logoutButton),
           ),
         ],
       ),

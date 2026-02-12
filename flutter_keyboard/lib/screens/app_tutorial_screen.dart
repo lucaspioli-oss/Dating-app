@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_theme.dart';
+import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
 
 class AppTutorialScreen extends StatefulWidget {
   final VoidCallback onComplete;
@@ -16,127 +17,115 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  final List<_TutorialPage> _pages = [
-    _TutorialPage(
-      icon: Icons.auto_awesome,
-      title: 'Bem-vindo ao Desenrola AI!',
-      subtitle: 'Seu assistente inteligente para conversas',
-      description:
-          'Vamos te mostrar como usar o app para nunca mais ficar sem '
-          'assunto nas suas conversas.',
-      steps: [],
-    ),
-    _TutorialPage(
-      icon: Icons.person_add_alt_1,
-      title: 'Crie um Perfil',
-      subtitle: 'Para cada pessoa que você conversa',
-      description:
-          'Adicione informações sobre quem você esta conversando '
-          'para receber sugestões mais personalizadas.',
-      steps: [
-        _TutorialStep(
-          number: '1',
-          text: 'Toque no botão + na tela de Contatos',
-        ),
-        _TutorialStep(
-          number: '2',
-          text: 'Escolha a plataforma (Tinder, Bumble, Instagram, WhatsApp...)',
-        ),
-        _TutorialStep(
-          number: '3',
-          text: 'Preencha o nome e as informações do perfil',
-        ),
-      ],
-    ),
-    _TutorialPage(
-      icon: Icons.chat_bubble_outline,
-      title: 'Adicione a Conversa',
-      subtitle: 'Cole ou importe suas mensagens',
-      description:
-          'Para a IA entender o contexto, você precisa adicionar '
-          'as mensagens da sua conversa.',
-      steps: [
-        _TutorialStep(
-          number: '1',
-          text: 'Abra o perfil do contato e vá em "Conversas"',
-        ),
-        _TutorialStep(
-          number: '2',
-          text: 'Tire um print da conversa ou importe do WhatsApp',
-        ),
-        _TutorialStep(
-          number: '3',
-          text: 'A IA analisa o histórico e entende o contexto',
-        ),
-      ],
-    ),
-    _TutorialPage(
-      icon: Icons.keyboard_alt_outlined,
-      title: 'Use o Teclado Inteligente',
-      subtitle: 'O segredo esta aqui!',
-      description:
-          'O teclado Desenrola AI funciona dentro de qualquer app de mensagens. '
-          'Ele e o jeito mais rapido de receber sugestões.',
-      steps: [
-        _TutorialStep(
-          number: '1',
-          text: 'Troque para o teclado Desenrola (globo 🌐)',
-        ),
-        _TutorialStep(
-          number: '2',
-          text: 'Selecione o contato certo no teclado',
-        ),
-        _TutorialStep(
-          number: '3',
-          text: 'Copie as mensagens novas que você recebeu',
-        ),
-        _TutorialStep(
-          number: '4',
-          text: 'Escolha uma sugestão e toque em "Inserir"',
-        ),
-      ],
-      tip: 'Sempre envie suas respostas pelo teclado Desenrola! '
-          'Assim a IA registra o que você enviou e melhora as '
-          'sugestões futuras.',
-    ),
-    _TutorialPage(
-      icon: Icons.format_list_numbered,
-      title: 'Várias Mensagens?',
-      subtitle: 'Cole uma por uma!',
-      description:
-          'Se a pessoa mandou várias mensagens seguidas, '
-          'use o modo de multiplas mensagens do teclado.',
-      steps: [
-        _TutorialStep(
-          number: '1',
-          text: 'No teclado, toque em "Recebeu várias mensagens?"',
-        ),
-        _TutorialStep(
-          number: '2',
-          text: 'Copie a 1ª mensagem no app e toque em "Mensagem 1" para colar',
-        ),
-        _TutorialStep(
-          number: '3',
-          text: 'Repita para cada mensagem. Use o "+" se precisar de mais campos',
-        ),
-        _TutorialStep(
-          number: '4',
-          text: 'Toque em "Gerar Respostas" para receber sugestões',
-        ),
-      ],
-      tip: 'A IA recebe todas as mensagens de uma vez e entende '
-          'o contexto completo para gerar a melhor resposta!',
-    ),
-    _TutorialPage(
-      icon: Icons.rocket_launch,
-      title: 'Tudo Pronto!',
-      subtitle: 'Comece a desenrolar',
-      description:
-          'Agora você já sabe o básico. Adicione seu primeiro contato '
-          'e comece a receber sugestões personalizadas!',
-      steps: [],
-    ),
-  ];
+  List<_TutorialPage> _getPages(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return [
+      _TutorialPage(
+        icon: Icons.auto_awesome,
+        title: l10n.welcomeTitle,
+        subtitle: l10n.welcomeSubtitle,
+        description: l10n.welcomeDescription,
+        steps: [],
+      ),
+      _TutorialPage(
+        icon: Icons.person_add_alt_1,
+        title: l10n.createProfileTitle,
+        subtitle: l10n.createProfileSubtitle,
+        description: l10n.createProfileDescription,
+        steps: [
+          _TutorialStep(
+            number: '1',
+            text: l10n.tutorialStep1,
+          ),
+          _TutorialStep(
+            number: '2',
+            text: l10n.tutorialStep2,
+          ),
+          _TutorialStep(
+            number: '3',
+            text: l10n.tutorialStep3,
+          ),
+        ],
+      ),
+      _TutorialPage(
+        icon: Icons.chat_bubble_outline,
+        title: l10n.addConversationTitle,
+        subtitle: l10n.addConversationSubtitle,
+        description: l10n.addConversationDescription,
+        steps: [
+          _TutorialStep(
+            number: '1',
+            text: l10n.addConvStep1,
+          ),
+          _TutorialStep(
+            number: '2',
+            text: l10n.addConvStep2,
+          ),
+          _TutorialStep(
+            number: '3',
+            text: l10n.addConvStep3,
+          ),
+        ],
+      ),
+      _TutorialPage(
+        icon: Icons.keyboard_alt_outlined,
+        title: l10n.useKeyboardTitle,
+        subtitle: l10n.useKeyboardSubtitle,
+        description: l10n.useKeyboardDescription,
+        steps: [
+          _TutorialStep(
+            number: '1',
+            text: l10n.keyboardStep1,
+          ),
+          _TutorialStep(
+            number: '2',
+            text: l10n.keyboardStep2,
+          ),
+          _TutorialStep(
+            number: '3',
+            text: l10n.keyboardStep3,
+          ),
+          _TutorialStep(
+            number: '4',
+            text: l10n.keyboardStep4,
+          ),
+        ],
+        tip: l10n.keyboardTip,
+      ),
+      _TutorialPage(
+        icon: Icons.format_list_numbered,
+        title: l10n.multipleMessagesTitle,
+        subtitle: l10n.multipleMessagesSubtitle,
+        description: l10n.multipleMessagesDescription,
+        steps: [
+          _TutorialStep(
+            number: '1',
+            text: l10n.multiMsgStep1,
+          ),
+          _TutorialStep(
+            number: '2',
+            text: l10n.multiMsgStep2,
+          ),
+          _TutorialStep(
+            number: '3',
+            text: l10n.multiMsgStep3,
+          ),
+          _TutorialStep(
+            number: '4',
+            text: l10n.multiMsgStep4,
+          ),
+        ],
+        tip: l10n.multiMsgTip,
+      ),
+      _TutorialPage(
+        icon: Icons.rocket_launch,
+        title: l10n.readyTitle,
+        subtitle: l10n.readySubtitle,
+        description: l10n.readyDescription,
+        steps: [],
+      ),
+    ];
+  }
 
   Future<void> _completeTutorial() async {
     final prefs = await SharedPreferences.getInstance();
@@ -152,6 +141,9 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final pages = _getPages(context);
+
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
       body: SafeArea(
@@ -164,7 +156,7 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
                 padding: const EdgeInsets.only(right: 8, top: 4),
                 child: TextButton(
                   onPressed: _completeTutorial,
-                  child: const Text('Pular'),
+                  child: Text(l10n.skipButton),
                 ),
               ),
             ),
@@ -176,9 +168,9 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
                 onPageChanged: (index) {
                   setState(() => _currentPage = index);
                 },
-                itemCount: _pages.length,
+                itemCount: pages.length,
                 itemBuilder: (context, index) {
-                  return _buildPage(_pages[index], index);
+                  return _buildPage(pages[index], index, pages.length);
                 },
               ),
             ),
@@ -188,7 +180,7 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
               padding: const EdgeInsets.symmetric(vertical: 16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(_pages.length, (index) {
+                children: List.generate(pages.length, (index) {
                   return AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
                     margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -208,7 +200,7 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
             // Bottom buttons
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-              child: _buildBottomButtons(),
+              child: _buildBottomButtons(context, pages.length),
             ),
           ],
         ),
@@ -216,7 +208,7 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
     );
   }
 
-  Widget _buildPage(_TutorialPage page, int index) {
+  Widget _buildPage(_TutorialPage page, int index, int totalPages) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 28),
       child: Column(
@@ -294,8 +286,8 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
           ],
 
           // Extra content for specific pages
-          if (index == 0) _buildWelcomeExtra(),
-          if (index == _pages.length - 1) _buildReadyExtra(),
+          if (index == 0) _buildWelcomeExtra(context),
+          if (index == totalPages - 1) _buildReadyExtra(context),
 
           const SizedBox(height: 20),
         ],
@@ -388,7 +380,8 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
     );
   }
 
-  Widget _buildWelcomeExtra() {
+  Widget _buildWelcomeExtra(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.only(top: 28),
       child: Container(
@@ -411,17 +404,17 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
           children: [
             Row(
               children: [
-                _buildFeatureChip(Icons.smart_toy, 'IA Avançada'),
+                _buildFeatureChip(Icons.smart_toy, l10n.featureAdvancedAI),
                 const SizedBox(width: 8),
-                _buildFeatureChip(Icons.speed, 'Respostas Rápidas'),
+                _buildFeatureChip(Icons.speed, l10n.featureFastResponses),
               ],
             ),
             const SizedBox(height: 8),
             Row(
               children: [
-                _buildFeatureChip(Icons.tune, 'Tons Personalizados'),
+                _buildFeatureChip(Icons.tune, l10n.featureCustomTones),
                 const SizedBox(width: 8),
-                _buildFeatureChip(Icons.apps, 'Multi-plataforma'),
+                _buildFeatureChip(Icons.apps, l10n.featureMultiPlatform),
               ],
             ),
           ],
@@ -460,7 +453,8 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
     );
   }
 
-  Widget _buildReadyExtra() {
+  Widget _buildReadyExtra(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.only(top: 24),
       child: Container(
@@ -482,8 +476,7 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Dica: você pode rever este tutorial a qualquer momento '
-                'nas Configurações do app.',
+                l10n.readyTip,
                 style: TextStyle(
                   color: AppColors.success.withOpacity(0.9),
                   fontSize: 13,
@@ -497,13 +490,14 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
     );
   }
 
-  Widget _buildBottomButtons() {
-    final isLastPage = _currentPage == _pages.length - 1;
+  Widget _buildBottomButtons(BuildContext context, int totalPages) {
+    final l10n = AppLocalizations.of(context)!;
+    final isLastPage = _currentPage == totalPages - 1;
     final isFirstPage = _currentPage == 0;
 
     if (isLastPage) {
       return GradientButton(
-        text: 'Começar a usar!',
+        text: l10n.startUsingButton,
         icon: Icons.rocket_launch,
         onPressed: _completeTutorial,
       );
@@ -511,7 +505,7 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
 
     if (isFirstPage) {
       return GradientButton(
-        text: 'Vamos lá!',
+        text: l10n.letsGoButton,
         icon: Icons.arrow_forward,
         onPressed: () {
           _pageController.nextPage(
@@ -532,7 +526,7 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
                 curve: Curves.easeInOut,
               );
             },
-            child: const Text('Voltar'),
+            child: Text(l10n.backButton),
           ),
         ),
         const SizedBox(width: 12),
@@ -544,7 +538,7 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
                 curve: Curves.easeInOut,
               );
             },
-            child: const Text('Próximo'),
+            child: Text(l10n.nextButton),
           ),
         ),
       ],

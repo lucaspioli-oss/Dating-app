@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
 import '../../config/app_theme.dart';
 import '../../services/firebase_auth_service.dart';
 
@@ -34,14 +35,16 @@ class _SignupScreenState extends State<SignupScreen> {
   Future<void> _signUp() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final l10n = AppLocalizations.of(context)!;
+
     if (!_acceptedTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Row(
+          content: Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: AppColors.textPrimary),
-              SizedBox(width: 12),
-              Text('Aceite os termos de uso'),
+              const Icon(Icons.warning_amber_rounded, color: AppColors.textPrimary),
+              const SizedBox(width: 12),
+              Text(l10n.acceptTermsError),
             ],
           ),
           backgroundColor: AppColors.warning,
@@ -62,11 +65,11 @@ class _SignupScreenState extends State<SignupScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Row(
+            content: Row(
               children: [
-                Icon(Icons.check_circle, color: AppColors.textPrimary),
-                SizedBox(width: 12),
-                Text('Conta criada com sucesso!'),
+                const Icon(Icons.check_circle, color: AppColors.textPrimary),
+                const SizedBox(width: 12),
+                Text(l10n.signupSuccess),
               ],
             ),
             backgroundColor: AppColors.success,
@@ -100,6 +103,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -120,14 +124,14 @@ class _SignupScreenState extends State<SignupScreen> {
                   children: [
                     // Header
                     Text(
-                      'Criar conta',
+                      l10n.createAccountTitle,
                       style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Comece sua jornada no Desenrola AI',
+                      l10n.signupSubtitle,
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 32),
@@ -136,17 +140,17 @@ class _SignupScreenState extends State<SignupScreen> {
                     TextFormField(
                       controller: _nameController,
                       style: const TextStyle(color: AppColors.textPrimary),
-                      decoration: const InputDecoration(
-                        labelText: 'Nome',
-                        hintText: 'Como podemos te chamar?',
-                        prefixIcon: Icon(Icons.person_outlined, color: AppColors.textTertiary),
+                      decoration: InputDecoration(
+                        labelText: l10n.nameLabel,
+                        hintText: l10n.nameHint,
+                        prefixIcon: const Icon(Icons.person_outlined, color: AppColors.textTertiary),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Digite seu nome';
+                          return l10n.nameValidationEmpty;
                         }
                         if (value.trim().length < 2) {
-                          return 'Nome muito curto';
+                          return l10n.nameValidationMinLength;
                         }
                         return null;
                       },
@@ -158,17 +162,17 @@ class _SignupScreenState extends State<SignupScreen> {
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       style: const TextStyle(color: AppColors.textPrimary),
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        hintText: 'seu@email.com',
-                        prefixIcon: Icon(Icons.email_outlined, color: AppColors.textTertiary),
+                      decoration: InputDecoration(
+                        labelText: l10n.emailLabel,
+                        hintText: l10n.emailHint,
+                        prefixIcon: const Icon(Icons.email_outlined, color: AppColors.textTertiary),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Digite seu email';
+                          return l10n.emailValidationEmpty;
                         }
                         if (!value.contains('@')) {
-                          return 'Email inválido';
+                          return l10n.emailValidationInvalid;
                         }
                         return null;
                       },
@@ -181,8 +185,8 @@ class _SignupScreenState extends State<SignupScreen> {
                       obscureText: _obscurePassword,
                       style: const TextStyle(color: AppColors.textPrimary),
                       decoration: InputDecoration(
-                        labelText: 'Senha',
-                        hintText: 'Mínimo 6 caracteres',
+                        labelText: l10n.passwordLabel,
+                        hintText: l10n.passwordHintMinChars,
                         prefixIcon: const Icon(Icons.lock_outlined, color: AppColors.textTertiary),
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -198,10 +202,10 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Digite uma senha';
+                          return l10n.passwordValidationEnter;
                         }
                         if (value.length < 6) {
-                          return 'Senha deve ter no mínimo 6 caracteres';
+                          return l10n.passwordValidationMinLength;
                         }
                         return null;
                       },
@@ -214,8 +218,8 @@ class _SignupScreenState extends State<SignupScreen> {
                       obscureText: _obscureConfirmPassword,
                       style: const TextStyle(color: AppColors.textPrimary),
                       decoration: InputDecoration(
-                        labelText: 'Confirmar Senha',
-                        hintText: 'Digite a senha novamente',
+                        labelText: l10n.confirmPasswordLabel,
+                        hintText: l10n.confirmPasswordHint,
                         prefixIcon: const Icon(Icons.lock_outlined, color: AppColors.textTertiary),
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -231,10 +235,10 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Confirme sua senha';
+                          return l10n.confirmPasswordValidationEmpty;
                         }
                         if (value != _passwordController.text) {
-                          return 'As senhas não coincidem';
+                          return l10n.passwordMismatch;
                         }
                         return null;
                       },
@@ -269,19 +273,19 @@ class _SignupScreenState extends State<SignupScreen> {
                             },
                             child: Text.rich(
                               TextSpan(
-                                text: 'Aceito os ',
+                                text: '${l10n.termsPrefix} ',
                                 style: TextStyle(color: AppColors.textSecondary),
                                 children: [
                                   TextSpan(
-                                    text: 'Termos de Uso',
+                                    text: l10n.termsLink,
                                     style: TextStyle(
                                       color: AppColors.primary,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
-                                  const TextSpan(text: ' e '),
+                                  TextSpan(text: ' ${l10n.andConjunction} '),
                                   TextSpan(
-                                    text: 'Política de Privacidade',
+                                    text: l10n.privacyPolicyLink,
                                     style: TextStyle(
                                       color: AppColors.primary,
                                       fontWeight: FontWeight.w500,
@@ -298,7 +302,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
                     // Signup button
                     GradientButton(
-                      text: 'Criar Conta',
+                      text: l10n.createAccountButton,
                       isLoading: _isLoading,
                       icon: Icons.person_add,
                       onPressed: _isLoading ? null : _signUp,
@@ -310,14 +314,14 @@ class _SignupScreenState extends State<SignupScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Já tem uma conta?',
+                          l10n.hasAccountText,
                           style: TextStyle(color: AppColors.textSecondary),
                         ),
                         TextButton(
                           onPressed: _isLoading ? null : () => Navigator.pop(context),
-                          child: const GradientText(
-                            text: 'Fazer login',
-                            style: TextStyle(
+                          child: GradientText(
+                            text: l10n.loginLink,
+                            style: const TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
                             ),

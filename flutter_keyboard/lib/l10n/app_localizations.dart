@@ -2091,6 +2091,372 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Edite se necessário:'**
   String get editIfNeeded;
+
+  /// No description provided for @activateKeyboardDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para usar sugestões inteligentes direto no WhatsApp, Tinder e outros apps, você precisa ativar nosso teclado personalizado.'**
+  String get activateKeyboardDesc;
+
+  /// No description provided for @activateKeyboardInstruction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vá em:\nAjustes → Geral → Teclado → Teclados → Adicionar'**
+  String get activateKeyboardInstruction;
+
+  /// No description provided for @fullAccessDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ao ativar, a Apple exibe um aviso de segurança padrão que pode parecer assustador — mas fique tranquilo! Esse aviso aparece para TODOS os teclados com IA. No nosso caso, o acesso completo é necessário apenas para conectar o teclado à inteligência artificial e gerar sugestões personalizadas.'**
+  String get fullAccessDesc;
+
+  /// No description provided for @fullAccessInstruction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Selecione \"Desenrola AI\" e ative \"Permitir Acesso Completo\"'**
+  String get fullAccessInstruction;
+
+  /// No description provided for @fullAccessTip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para proteger dados sensíveis como senhas e cartões de crédito, basta trocar para o teclado padrão do iPhone (toque no globo 🌐) antes de digitar essas informações.'**
+  String get fullAccessTip;
+
+  /// No description provided for @switchKeyboardDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Em qualquer app de mensagens, toque no ícone do globo (🌐) no canto inferior esquerdo do teclado para trocar para o Desenrola AI.'**
+  String get switchKeyboardDesc;
+
+  /// No description provided for @switchKeyboardInstruction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque no globo 🌐 para alternar entre teclados'**
+  String get switchKeyboardInstruction;
+
+  /// No description provided for @keyboardEnabledStatus.
+  ///
+  /// In pt, this message translates to:
+  /// **'Teclado ativado!'**
+  String get keyboardEnabledStatus;
+
+  /// No description provided for @keyboardNotEnabledStatus.
+  ///
+  /// In pt, this message translates to:
+  /// **'Teclado não ativado'**
+  String get keyboardNotEnabledStatus;
+
+  /// No description provided for @openSettingsButton.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir Configurações'**
+  String get openSettingsButton;
+
+  /// No description provided for @continueWithoutKeyboard.
+  ///
+  /// In pt, this message translates to:
+  /// **'Continuar sem o teclado'**
+  String get continueWithoutKeyboard;
+
+  /// No description provided for @followStepsToActivate.
+  ///
+  /// In pt, this message translates to:
+  /// **'Siga o passo a passo para ativar o teclado'**
+  String get followStepsToActivate;
+
+  /// No description provided for @accountDeletedSuccess.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conta deletada com sucesso.'**
+  String get accountDeletedSuccess;
+
+  /// No description provided for @accountDeleteError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao deletar conta:'**
+  String get accountDeleteError;
+
+  /// No description provided for @howToAddQuestion.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como você quer adicionar?'**
+  String get howToAddQuestion;
+
+  /// No description provided for @addButton.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar'**
+  String get addButton;
+
+  /// No description provided for @multipleLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'(várias)'**
+  String get multipleLabel;
+
+  /// No description provided for @mainPhotoLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Principal'**
+  String get mainPhotoLabel;
+
+  /// No description provided for @addAnotherPlatform.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar outra rede social'**
+  String get addAnotherPlatform;
+
+  /// No description provided for @analyzeAndCreateButton.
+  ///
+  /// In pt, this message translates to:
+  /// **'Analisar e Criar Perfil'**
+  String get analyzeAndCreateButton;
+
+  /// No description provided for @importFromContacts.
+  ///
+  /// In pt, this message translates to:
+  /// **'Importar da Agenda'**
+  String get importFromContacts;
+
+  /// No description provided for @contactAutoFill.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nome e telefone vem automaticamente'**
+  String get contactAutoFill;
+
+  /// No description provided for @contactNameHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nome do contato'**
+  String get contactNameHint;
+
+  /// No description provided for @bioContextLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Bio / contexto (opcional)'**
+  String get bioContextLabel;
+
+  /// No description provided for @bioContextHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ex: conheceu na balada, amigo da faculdade...'**
+  String get bioContextHint;
+
+  /// No description provided for @profilePhotosOptionalLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fotos do Perfil (opcional)'**
+  String get profilePhotosOptionalLabel;
+
+  /// No description provided for @contactPermissionError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Permissão de contatos necessária para importar do WhatsApp'**
+  String get contactPermissionError;
+
+  /// No description provided for @loadImageError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao carregar imagem:'**
+  String get loadImageError;
+
+  /// No description provided for @loadImagesError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao carregar imagens:'**
+  String get loadImagesError;
+
+  /// No description provided for @loadStoriesError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao carregar stories:'**
+  String get loadStoriesError;
+
+  /// No description provided for @addImageOrContactError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicione pelo menos uma imagem de perfil ou importe um contato'**
+  String get addImageOrContactError;
+
+  /// No description provided for @userNotAuthenticated.
+  ///
+  /// In pt, this message translates to:
+  /// **'Usuário não autenticado'**
+  String get userNotAuthenticated;
+
+  /// No description provided for @createProfileError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao criar perfil:'**
+  String get createProfileError;
+
+  /// No description provided for @addSocialNetworkTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar Rede Social'**
+  String get addSocialNetworkTitle;
+
+  /// No description provided for @noValidPlatform.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhuma plataforma válida encontrada'**
+  String get noValidPlatform;
+
+  /// No description provided for @otherLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Outro'**
+  String get otherLabel;
+
+  /// No description provided for @phonePrefix.
+  ///
+  /// In pt, this message translates to:
+  /// **'Telefone:'**
+  String get phonePrefix;
+
+  /// No description provided for @imageAnalysisError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao analisar imagem'**
+  String get imageAnalysisError;
+
+  /// No description provided for @noNameFallback.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem nome'**
+  String get noNameFallback;
+
+  /// No description provided for @profileNotFound.
+  ///
+  /// In pt, this message translates to:
+  /// **'Perfil não encontrado'**
+  String get profileNotFound;
+
+  /// No description provided for @deleteProfileOption.
+  ///
+  /// In pt, this message translates to:
+  /// **'Excluir Perfil'**
+  String get deleteProfileOption;
+
+  /// No description provided for @storyLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Story'**
+  String get storyLabel;
+
+  /// No description provided for @datingAppsLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Apps de Relacionamento'**
+  String get datingAppsLabel;
+
+  /// No description provided for @addAppButton.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar App'**
+  String get addAppButton;
+
+  /// No description provided for @conversationsSectionLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'CONVERSAS'**
+  String get conversationsSectionLabel;
+
+  /// No description provided for @allLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Todas'**
+  String get allLabel;
+
+  /// No description provided for @startConversationText.
+  ///
+  /// In pt, this message translates to:
+  /// **'Comece a conversa'**
+  String get startConversationText;
+
+  /// No description provided for @askSuggestionText.
+  ///
+  /// In pt, this message translates to:
+  /// **'Peça uma sugestão ou use o teclado'**
+  String get askSuggestionText;
+
+  /// No description provided for @tapToSeeConversation.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque para ver a conversa'**
+  String get tapToSeeConversation;
+
+  /// No description provided for @deleteStoryTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Excluir Story?'**
+  String get deleteStoryTitle;
+
+  /// No description provided for @actionCannotBeUndone.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esta ação não pode ser desfeita.'**
+  String get actionCannotBeUndone;
+
+  /// No description provided for @removePlatformConfirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Os dados desta plataforma serão removidos.'**
+  String get removePlatformConfirm;
+
+  /// No description provided for @removeButton.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover'**
+  String get removeButton;
+
+  /// No description provided for @deleteProfileQuestion.
+  ///
+  /// In pt, this message translates to:
+  /// **'Excluir Perfil?'**
+  String get deleteProfileQuestion;
+
+  /// No description provided for @deleteProfileMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'O perfil e todas as conversas serão excluídos permanentemente.'**
+  String get deleteProfileMessage;
+
+  /// No description provided for @addPlatformDialogTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar Plataforma'**
+  String get addPlatformDialogTitle;
+
+  /// No description provided for @allPlatformsAddedMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Todas as plataformas já foram adicionadas'**
+  String get allPlatformsAddedMessage;
+
+  /// No description provided for @addStoryError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao adicionar story:'**
+  String get addStoryError;
+
+  /// No description provided for @addPlatformError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao adicionar plataforma:'**
+  String get addPlatformError;
+
+  /// No description provided for @conversationLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conversa'**
+  String get conversationLabel;
+
+  /// No description provided for @passwordValidationEnter.
+  ///
+  /// In pt, this message translates to:
+  /// **'Digite uma senha'**
+  String get passwordValidationEnter;
 }
 
 class _AppLocalizationsDelegate
