@@ -45,7 +45,7 @@ extension KeyboardViewController {
 
     func fetchConversations(silent: Bool = false) {
         guard let token = authToken,
-              let url = URL(string: "(backendUrl)/keyboard/context") else {
+              let url = URL(string: "\(backendUrl)/keyboard/context") else {
             if !silent {
                 isLoadingProfiles = false
                 profilesError = "Token não encontrado. Abra o app para fazer login."
@@ -62,8 +62,8 @@ extension KeyboardViewController {
 
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-        request.setValue("Bearer (token)", forHTTPHeaderField: "Authorization")
-        request.timeoutInterval = 10
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 15
 
         URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             if let error = error {
@@ -126,7 +126,7 @@ extension KeyboardViewController {
                 if !silent {
                     DispatchQueue.main.async {
                         self?.isLoadingProfiles = false
-                        self?.profilesError = "Sem dados (HTTP (http.statusCode))."
+                        self?.profilesError = "Sem dados (HTTP \(http.statusCode))."
                         self?.renderCurrentState()
                     }
                 }
@@ -136,7 +136,7 @@ extension KeyboardViewController {
             // Handle non-200 status codes
             if http.statusCode != 200 {
                 if !silent {
-                    var errorMsg = "Erro do servidor (HTTP (http.statusCode))"
+                    var errorMsg = "Erro do servidor (HTTP \(http.statusCode))"
                     if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                        let msg = json["message"] as? String ?? json["error"] as? String {
                         errorMsg = msg
@@ -175,7 +175,7 @@ extension KeyboardViewController {
                     let raw = String(data: data, encoding: .utf8) ?? "?"
                     DispatchQueue.main.async {
                         self?.isLoadingProfiles = false
-                        self?.profilesError = "Formato inesperado: (raw.prefix(80))"
+                        self?.profilesError = "Formato inesperado: \(raw.prefix(80))"
                         self?.renderCurrentState()
                     }
                 }
@@ -183,7 +183,7 @@ extension KeyboardViewController {
                 if !silent {
                     DispatchQueue.main.async {
                         self?.isLoadingProfiles = false
-                        self?.profilesError = "Erro ao processar: (error.localizedDescription)"
+                        self?.profilesError = "Erro ao processar: \(error.localizedDescription)"
                         self?.renderCurrentState()
                     }
                 }
@@ -192,7 +192,7 @@ extension KeyboardViewController {
     }
 
     func analyzeText(_ text: String, tone: String, conversationId: String?, objective: String?) {
-        guard let url = URL(string: "(backendUrl)/analyze") else { return }
+        guard let url = URL(string: "\(backendUrl)/analyze") else { return }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -200,7 +200,7 @@ extension KeyboardViewController {
         request.timeoutInterval = 30
 
         if let token = authToken {
-            request.setValue("Bearer (token)", forHTTPHeaderField: "Authorization")
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
         var body: [String: Any] = ["text": text, "tone": tone]
@@ -241,12 +241,12 @@ extension KeyboardViewController {
 
     func sendMessageToServer(conversationId: String, content: String, wasAiSuggestion: Bool) {
         guard let token = authToken,
-              let url = URL(string: "(backendUrl)/keyboard/send-message") else { return }
+              let url = URL(string: "\(backendUrl)/keyboard/send-message") else { return }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer (token)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.timeoutInterval = 10
 
         let body: [String: Any] = [
