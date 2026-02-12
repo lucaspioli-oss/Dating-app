@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import '../../config/app_config.dart';
 import '../../config/app_theme.dart';
+import '../../config/app_haptics.dart';
 import '../../services/apple_iap_service.dart';
 import '../../services/firebase_auth_service.dart';
 import '../../services/subscription_service.dart';
+import '../../widgets/app_loading.dart';
 
 class SubscriptionRequiredScreen extends StatefulWidget {
   final SubscriptionStatus status;
@@ -116,7 +118,7 @@ class _SubscriptionRequiredScreenState
               if (_isLoadingProducts)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 40),
-                  child: CircularProgressIndicator(color: AppColors.primary),
+                  child: AppLoading(message: 'Carregando planos...'),
                 )
               else
                 Column(
@@ -199,7 +201,10 @@ class _SubscriptionRequiredScreenState
     final displayPrice = iapProduct?.price ?? '';
 
     return GestureDetector(
-      onTap: () => setState(() => _selectedPlan = index),
+      onTap: () {
+        AppHaptics.selection();
+        setState(() => _selectedPlan = index);
+      },
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.surfaceDark,

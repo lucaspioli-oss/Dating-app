@@ -13,6 +13,8 @@ class ProfileAvatar extends StatelessWidget {
   final double borderWidth;
   final bool showShadow;
   final Widget? badge;
+  final String? heroTag;
+  final String? semanticsLabel;
 
   const ProfileAvatar({
     super.key,
@@ -23,6 +25,8 @@ class ProfileAvatar extends StatelessWidget {
     this.borderWidth = 2.5,
     this.showShadow = true,
     this.badge,
+    this.heroTag,
+    this.semanticsLabel,
   });
 
   /// Convenience constructor that decodes a base64 string into image bytes.
@@ -35,6 +39,8 @@ class ProfileAvatar extends StatelessWidget {
     double borderWidth = 2.5,
     bool showShadow = true,
     Widget? badge,
+    String? heroTag,
+    String? semanticsLabel,
   }) {
     Uint8List? bytes;
     if (base64Image != null && base64Image.isNotEmpty) {
@@ -51,6 +57,8 @@ class ProfileAvatar extends StatelessWidget {
       borderWidth: borderWidth,
       showShadow: showShadow,
       badge: badge,
+      heroTag: heroTag,
+      semanticsLabel: semanticsLabel,
     );
   }
 
@@ -59,7 +67,7 @@ class ProfileAvatar extends StatelessWidget {
     final ringGap = size > 44 ? 2.0 : 1.5;
     final innerSize = size - borderWidth * 2 - ringGap * 2;
 
-    return Stack(
+    Widget avatar = Stack(
       clipBehavior: Clip.none,
       children: [
         Container(
@@ -102,6 +110,26 @@ class ProfileAvatar extends StatelessWidget {
           ),
       ],
     );
+
+    if (semanticsLabel != null) {
+      avatar = Semantics(
+        image: true,
+        label: semanticsLabel,
+        child: avatar,
+      );
+    }
+
+    if (heroTag != null) {
+      avatar = Hero(
+        tag: heroTag!,
+        child: Material(
+          color: Colors.transparent,
+          child: avatar,
+        ),
+      );
+    }
+
+    return avatar;
   }
 
   Widget _buildImage(double innerSize) {

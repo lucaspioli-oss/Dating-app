@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../config/app_theme.dart';
+import '../config/app_page_transitions.dart';
+import '../config/app_haptics.dart';
 import '../providers/app_state.dart';
 import '../providers/user_profile_provider.dart';
 import '../services/conversation_service.dart';
 import '../models/conversation.dart';
 import '../widgets/profile_avatar.dart';
+import '../widgets/app_loading.dart';
+import '../widgets/app_empty_state.dart';
 import 'conversation_detail_screen.dart';
 
 class ConversationsScreen extends StatefulWidget {
@@ -44,11 +48,10 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
   }
 
   void _openConversation(ConversationListItem item) {
+    AppHaptics.lightImpact();
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => ConversationDetailScreen(conversationId: item.id),
-      ),
+      FadeSlideRoute(page: ConversationDetailScreen(conversationId: item.id)),
     ).then((_) => _loadConversations()); // Recarregar ao voltar
   }
 
@@ -81,7 +84,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: AppLoading())
           : _conversations.isEmpty
               ? _buildEmptyState()
               : RefreshIndicator(
@@ -98,27 +101,10 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.chat_bubble_outline, size: 80, color: AppColors.textTertiary),
-            const SizedBox(height: 16),
-            const Text(
-              'Nenhuma conversa ainda',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Vá para "Análise" e gere um opener para começar!',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-          ],
-        ),
-      ),
+    return const AppEmptyState(
+      icon: Icons.chat_bubble_outline,
+      title: 'Nenhuma conversa ainda',
+      description: 'Vá para "Contatos" e gere uma sugestão para começar!',
     );
   }
 

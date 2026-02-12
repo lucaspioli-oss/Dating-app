@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../config/app_theme.dart';
+import '../config/app_page_transitions.dart';
+import '../config/app_haptics.dart';
 import '../models/profile_model.dart';
 import '../providers/app_state.dart';
 import '../services/profile_service.dart';
 import '../widgets/shimmer_loading.dart';
 import '../widgets/profile_avatar.dart';
+import '../widgets/animated_list_item.dart';
+import '../widgets/app_error_state.dart';
 import 'create_profile_screen.dart';
 import 'profile_detail_screen.dart';
 
@@ -143,25 +147,9 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
                   }
 
                   if (snapshot.hasError) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 48,
-                            color: AppColors.error,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Erro ao carregar contatos',
-                            style: TextStyle(
-                              color: AppColors.textTertiary,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
-                      ),
+                    return AppErrorState(
+                      message: 'Erro ao carregar contatos',
+                      onRetry: () => setState(() {}),
                     );
                   }
 
@@ -313,9 +301,12 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
       itemCount: profiles.length,
       itemBuilder: (context, index) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: _buildProfileCard(profiles[index]),
+        return AnimatedListItem(
+          index: index,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _buildProfileCard(profiles[index]),
+          ),
         );
       },
     );
@@ -349,6 +340,7 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
               base64Image: profile.faceImageBase64,
               name: profile.name,
               size: 56,
+              heroTag: 'profile_avatar_${profile.id}',
             ),
             const SizedBox(width: 14),
             // Info
@@ -411,7 +403,7 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
                             ),
                             child: Text(
                               '+${platforms.length - 4}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.textPrimary.withOpacity(0.7),
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
@@ -595,20 +587,18 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
   }
 
   void _navigateToCreateProfile() {
+    AppHaptics.mediumImpact();
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const CreateProfileScreen(),
-      ),
+      ScaleFadeRoute(page: const CreateProfileScreen()),
     );
   }
 
   void _navigateToProfileDetail(Profile profile) {
+    AppHaptics.lightImpact();
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => ProfileDetailScreen(profileId: profile.id),
-      ),
+      FadeSlideRoute(page: ProfileDetailScreen(profileId: profile.id)),
     );
   }
 }

@@ -5,12 +5,14 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../config/app_theme.dart';
+import '../config/app_haptics.dart';
 import '../providers/app_state.dart';
 import '../providers/user_profile_provider.dart';
 import '../services/conversation_service.dart';
 import '../services/agent_service.dart';
 import '../services/subscription_service.dart';
 import '../models/conversation.dart';
+import '../widgets/app_loading.dart';
 import '../widgets/profile_avatar.dart';
 
 class ConversationDetailScreen extends StatefulWidget {
@@ -76,6 +78,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
+        AppHaptics.error();
         AppSnackBar.error(context, 'Erro: $e');
       }
     }
@@ -597,6 +600,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
     } catch (e) {
       setState(() => _isGeneratingSuggestions = false);
       if (mounted) {
+        AppHaptics.error();
         AppSnackBar.error(context, 'Erro ao importar: $e');
       }
     }
@@ -733,12 +737,14 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
     } catch (e) {
       setState(() => _isGeneratingSuggestions = false);
       if (mounted) {
+        AppHaptics.error();
         AppSnackBar.error(context, 'Erro: $e');
       }
     }
   }
 
   Future<void> _sendMessage(String content, {bool wasAiSuggestion = false}) async {
+    AppHaptics.lightImpact();
     try {
       final appState = context.read<AppState>();
       final service = ConversationService(baseUrl: appState.backendUrl);
@@ -765,6 +771,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
       }
     } catch (e) {
       if (mounted) {
+        AppHaptics.error();
         AppSnackBar.error(context, 'Erro: $e');
       }
     }
@@ -772,6 +779,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
 
   void _copyToClipboard(String text) {
     Clipboard.setData(ClipboardData(text: text));
+    AppHaptics.success();
     AppSnackBar.success(context, 'Copiado!');
   }
 
@@ -789,7 +797,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
           title: const Text('Carregando...', style: TextStyle(color: AppColors.textPrimary)),
           iconTheme: const IconThemeData(color: AppColors.textPrimary),
         ),
-        body: const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        body: const AppLoading(),
       );
     }
 
@@ -1211,7 +1219,10 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
               const SizedBox(width: 8),
               // Use button
               GestureDetector(
-                onTap: () => _sendMessage(suggestion, wasAiSuggestion: true),
+                onTap: () {
+                  AppHaptics.mediumImpact();
+                  _sendMessage(suggestion, wasAiSuggestion: true);
+                },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
@@ -1280,6 +1291,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         }
       } catch (e) {
         if (mounted) {
+          AppHaptics.error();
           AppSnackBar.error(context, 'Erro: $e');
         }
       }

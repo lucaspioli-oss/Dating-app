@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../config/app_theme.dart';
+import '../config/app_page_transitions.dart';
+import '../config/app_haptics.dart';
 import '../models/profile_model.dart';
 import '../providers/app_state.dart';
 import '../services/agent_service.dart';
@@ -457,6 +459,7 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
   Widget _buildActionButton(ActionType action) {
     return GestureDetector(
       onTap: () {
+        AppHaptics.mediumImpact();
         setState(() {
           _selectedAction = action;
           if (action == ActionType.responderStory ||
@@ -1435,11 +1438,9 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (context) => ConversationDetailScreen(
-              conversationId: conversation.id,
-            ),
-          ),
+          FadeSlideRoute(page: ConversationDetailScreen(
+            conversationId: conversation.id,
+          )),
         );
       }
     } catch (e) {

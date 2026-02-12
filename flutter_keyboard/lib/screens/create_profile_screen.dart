@@ -7,6 +7,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:image/image.dart' as img;
 import '../config/app_theme.dart';
+import '../config/app_page_transitions.dart';
+import '../config/app_haptics.dart';
 import '../models/profile_model.dart';
 import '../providers/app_state.dart';
 import '../services/agent_service.dart';
@@ -1698,11 +1700,10 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
       if (!mounted) return;
 
       // Navegar para o detalhe do perfil
+      AppHaptics.mediumImpact();
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (context) => ProfileDetailScreen(profileId: profile.id),
-        ),
+        FadeSlideRoute(page: ProfileDetailScreen(profileId: profile.id)),
       );
     } catch (e) {
       setState(() {

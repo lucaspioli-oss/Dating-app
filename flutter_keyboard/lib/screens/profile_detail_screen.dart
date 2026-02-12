@@ -5,6 +5,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:image/image.dart' as img;
 import '../config/app_theme.dart';
+import '../config/app_page_transitions.dart';
+import '../config/app_haptics.dart';
 import '../models/profile_model.dart';
 import '../providers/app_state.dart';
 import '../services/agent_service.dart';
@@ -13,6 +15,8 @@ import '../services/conversation_service.dart';
 import '../models/conversation.dart';
 import '../widgets/shimmer_loading.dart';
 import '../widgets/profile_avatar.dart';
+import '../widgets/app_loading.dart';
+import '../widgets/app_empty_state.dart';
 import 'request_suggestion_screen.dart';
 import 'conversation_detail_screen.dart';
 
@@ -62,7 +66,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
           elevation: 0,
         ),
         body: const Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
+          child: AppLoading(),
         ),
       );
     }
@@ -198,6 +202,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
             name: _profile!.name,
             size: 80,
             borderWidth: 3,
+            heroTag: 'profile_avatar_${_profile!.id}',
           ),
           const SizedBox(width: 20),
           Expanded(
@@ -724,8 +729,8 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => ConversationDetailScreen(
+          FadeSlideRoute(
+            page: ConversationDetailScreen(
               conversationId: conv.id,
             ),
           ),
@@ -862,11 +867,10 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
   }
 
   void _navigateToRequestSuggestion() {
+    AppHaptics.mediumImpact();
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => RequestSuggestionScreen(profile: _profile!),
-      ),
+      ScaleFadeRoute(page: RequestSuggestionScreen(profile: _profile!)),
     );
   }
 
@@ -926,6 +930,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
           ),
           TextButton(
             onPressed: () async {
+              AppHaptics.heavyImpact();
               Navigator.pop(context);
               await _profileService.removeStory(widget.profileId, story.id);
               await _loadProfile();
@@ -960,6 +965,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
           ),
           TextButton(
             onPressed: () async {
+              AppHaptics.heavyImpact();
               Navigator.pop(context);
               await _profileService.removePlatform(widget.profileId, type);
               await _loadProfile();
@@ -994,6 +1000,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
           ),
           TextButton(
             onPressed: () async {
+              AppHaptics.heavyImpact();
               Navigator.pop(context);
               await _profileService.deleteProfile(widget.profileId);
               Navigator.pop(context);

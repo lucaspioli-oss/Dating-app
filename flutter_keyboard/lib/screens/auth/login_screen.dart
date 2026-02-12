@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../config/app_theme.dart';
+import '../../config/app_page_transitions.dart';
+import '../../config/app_haptics.dart';
 import '../../services/firebase_auth_service.dart';
 import 'signup_screen.dart';
 
@@ -103,6 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         'assets/images/logo_pricing.png',
                         height: isDesktop ? 60 : 48,
                         fit: BoxFit.contain,
+                        semanticLabel: 'Logo do Desenrola AI',
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -206,7 +209,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     SizedBox(
                       height: 52,
                       child: ElevatedButton(
-                        onPressed: _isLoading ? null : _signIn,
+                        onPressed: _isLoading ? null : () {
+                          AppHaptics.lightImpact();
+                          _signIn();
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: AppColors.textPrimary,
@@ -274,9 +280,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               : () {
                                   Navigator.push(
                                     context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const SignupScreen(),
-                                    ),
+                                    FadeSlideRoute(page: const SignupScreen()),
                                   );
                                 },
                           child: const Text(

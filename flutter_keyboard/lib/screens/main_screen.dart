@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'profiles_list_screen.dart';
 import 'profile_screen.dart';
 import '../config/app_theme.dart';
+import '../config/app_haptics.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -31,6 +32,7 @@ class _MainScreenState extends State<MainScreen> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) {
+          AppHaptics.selection();
           setState(() {
             _currentIndex = index;
           });

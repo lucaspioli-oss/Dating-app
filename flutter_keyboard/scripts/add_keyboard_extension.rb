@@ -65,11 +65,13 @@ end
 extension_group = project.main_group.new_group('FlirtKeyboardExtension', 'FlirtKeyboardExtension')
 
 # Add files to group (filenames only, group provides the directory context)
-swift_ref = extension_group.new_file('KeyboardViewController.swift')
+swift_files = Dir.glob('ios/FlirtKeyboardExtension/*.swift').map { |f| File.basename(f) }
 plist_ref = extension_group.new_file('Info.plist')
 
-# Add source file to target's compile sources
-extension_target.add_file_references([swift_ref])
+swift_refs = swift_files.map { |f| extension_group.new_file(f) }
+
+# Add source files to target's compile sources
+extension_target.add_file_references(swift_refs)
 
 # Create entitlements for keyboard extension
 entitlements_content = <<~ENTITLEMENTS

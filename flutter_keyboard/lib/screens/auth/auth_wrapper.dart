@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/firebase_auth_service.dart';
 import '../../services/subscription_service.dart';
 import '../../services/keyboard_service.dart';
+import '../../widgets/app_loading.dart';
 import 'login_screen.dart';
 import 'subscription_required_screen.dart';
 import '../main_screen.dart';
@@ -22,11 +23,7 @@ class AuthWrapper extends StatelessWidget {
       builder: (context, snapshot) {
         // Loading
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
-          );
+          return const AppLoadingScreen();
         }
 
         // Not logged in
@@ -128,11 +125,7 @@ class _SubscriptionWrapperState extends State<SubscriptionWrapper> with WidgetsB
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return const AppLoadingScreen();
     }
 
     // ONLY allow access if status is explicitly active

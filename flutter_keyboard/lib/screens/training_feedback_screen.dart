@@ -340,7 +340,7 @@ class _AddFeedbackDialogState extends State<_AddFeedbackDialog> {
                 const SizedBox(height: 24),
 
                 // Categoria
-                const Text('Categoria', style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
+                Text('Categoria', style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   value: _selectedCategory,
@@ -369,7 +369,7 @@ class _AddFeedbackDialogState extends State<_AddFeedbackDialog> {
                 const SizedBox(height: 16),
 
                 // Instrucao
-                const Text('Instrucao', style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
+                Text('Instrucao', style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _instructionController,
@@ -395,7 +395,7 @@ class _AddFeedbackDialogState extends State<_AddFeedbackDialog> {
                 const SizedBox(height: 16),
 
                 // Exemplos
-                const Text('Exemplos (um por linha, opcional)',
+                Text('Exemplos (um por linha, opcional)',
                     style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
                 const SizedBox(height: 8),
                 TextFormField(
@@ -416,7 +416,7 @@ class _AddFeedbackDialogState extends State<_AddFeedbackDialog> {
                 const SizedBox(height: 16),
 
                 // Prioridade
-                const Text('Prioridade', style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
+                Text('Prioridade', style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   value: _selectedPriority,
@@ -555,7 +555,7 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surfaceDark,
         title: const Text('Confirmar exclusao', style: TextStyle(color: AppColors.textPrimary)),
-        content: const Text(
+        content: Text(
           'Tem certeza que deseja excluir esta instrucao?',
           style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7)),
         ),
@@ -625,7 +625,7 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
               const SizedBox(height: 24),
 
               // Instrucao
-              const Text('Instrucao', style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
+              Text('Instrucao', style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _instructionController,
@@ -643,7 +643,7 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
               const SizedBox(height: 16),
 
               // Exemplos
-              const Text('Exemplos (um por linha)',
+              Text('Exemplos (um por linha)',
                   style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
               const SizedBox(height: 8),
               TextFormField(
@@ -662,7 +662,7 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
               const SizedBox(height: 16),
 
               // Prioridade
-              const Text('Prioridade', style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
+              Text('Prioridade', style: TextStyle(color: AppColors.textPrimary.withOpacity(0.7))),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 value: _selectedPriority,
@@ -727,7 +727,7 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const Text(
+                        Text(
                           'Usos',
                           style: TextStyle(color: AppColors.textPrimary.withOpacity(0.54), fontSize: 12),
                         ),
@@ -737,12 +737,12 @@ class _EditFeedbackDialogState extends State<_EditFeedbackDialog> {
                       children: [
                         Text(
                           _formatDate(widget.feedback.createdAt),
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppColors.textPrimary.withOpacity(0.7),
                             fontSize: 14,
                           ),
                         ),
-                        const Text(
+                        Text(
                           'Criado em',
                           style: TextStyle(color: AppColors.textPrimary.withOpacity(0.54), fontSize: 12),
                         ),
