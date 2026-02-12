@@ -2037,6 +2037,60 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Anual'**
   String get planYearly;
+
+  /// No description provided for @whatSheSaid.
+  ///
+  /// In pt, this message translates to:
+  /// **'O que ela disse?'**
+  String get whatSheSaid;
+
+  /// No description provided for @pasteOrTypeLastMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cole ou digite a última mensagem que ela enviou'**
+  String get pasteOrTypeLastMessage;
+
+  /// No description provided for @messageExampleHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ex: \"Haha verdade! E você, o que gosta de fazer?\"'**
+  String get messageExampleHint;
+
+  /// No description provided for @importButton.
+  ///
+  /// In pt, this message translates to:
+  /// **'Importar'**
+  String get importButton;
+
+  /// No description provided for @confirmMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Confirmar mensagem'**
+  String get confirmMessage;
+
+  /// No description provided for @typeTheMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Digite a mensagem'**
+  String get typeTheMessage;
+
+  /// No description provided for @textExtractedAutomatically.
+  ///
+  /// In pt, this message translates to:
+  /// **'Texto extraído automaticamente'**
+  String get textExtractedAutomatically;
+
+  /// No description provided for @typeManually.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível extrair. Digite manualmente.'**
+  String get typeManually;
+
+  /// No description provided for @editIfNeeded.
+  ///
+  /// In pt, this message translates to:
+  /// **'Edite se necessário:'**
+  String get editIfNeeded;
 }
 
 class _AppLocalizationsDelegate

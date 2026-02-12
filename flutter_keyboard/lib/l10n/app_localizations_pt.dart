@@ -1014,4 +1014,33 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get planYearly => 'Anual';
+
+  @override
+  String get whatSheSaid => 'O que ela disse?';
+
+  @override
+  String get pasteOrTypeLastMessage =>
+      'Cole ou digite a última mensagem que ela enviou';
+
+  @override
+  String get messageExampleHint =>
+      'Ex: \"Haha verdade! E você, o que gosta de fazer?\"';
+
+  @override
+  String get importButton => 'Importar';
+
+  @override
+  String get confirmMessage => 'Confirmar mensagem';
+
+  @override
+  String get typeTheMessage => 'Digite a mensagem';
+
+  @override
+  String get textExtractedAutomatically => 'Texto extraído automaticamente';
+
+  @override
+  String get typeManually => 'Não foi possível extrair. Digite manualmente.';
+
+  @override
+  String get editIfNeeded => 'Edite se necessário:';
 }

@@ -344,5 +344,16 @@
   "planWeekly": "Semanal",
   "planMonthly": "Mensal",
   "planQuarterly": "Trimestral",
-  "planYearly": "Anual"
+  "planYearly": "Anual",
+
+  "whatSheSaid": "O que ela disse?",
+  "pasteOrTypeLastMessage": "Cole ou digite a última mensagem que ela enviou",
+  "messageExampleHint": "Ex: \"Haha verdade! E você, o que gosta de fazer?\"",
+  "importButton": "Importar",
+  "confirmMessage": "Confirmar mensagem",
+  "typeTheMessage": "Digite a mensagem",
+  "textExtractedAutomatically": "Texto extraído automaticamente",
+  "typeManually": "Não foi possível extrair. Digite manualmente.",
+  "editIfNeeded": "Edite se necessário:",
+  "typeLastMessageSent": "Digite a última mensagem que ela enviou:"
 }
