@@ -1,5 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:http/http.dart' as http;
+import '../config/app_config.dart';
 
 class FirebaseAuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -102,11 +104,20 @@ class FirebaseAuthService {
     }
   }
 
-  // Delete account
+  // Delete account and all associated data (GDPR)
   Future<void> deleteAccount() async {
     try {
-      await currentUser?.delete();
-      // O Cloud Function onUserDeleted vai limpar os dados automaticamente
+      final user = currentUser;
+      if (user == null) throw Exception('No user logged in');
+      // Call server endpoint to delete all user data first (while we still have a valid token)
+      final token = await user.getIdToken();
+      final response = await http.delete(
+        Uri.parse('${AppConfig.backendUrl}/user/account'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (response.statusCode != 200) {
+        throw Exception('Failed to delete account data: ${response.body}');
+      }
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
     }
