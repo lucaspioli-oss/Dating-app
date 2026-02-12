@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
 
 import 'config/app_theme.dart';
 import 'providers/app_state.dart';
