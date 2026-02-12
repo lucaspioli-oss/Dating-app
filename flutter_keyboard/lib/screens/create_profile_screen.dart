@@ -748,7 +748,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           maxLines: 3,
           minLines: 2,
           decoration: InputDecoration(
-            hintText: 'Bio / descricao do perfil',
+            hintText: 'Bio / descrição do perfil',
             hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
             filled: true,
             fillColor: AppColors.elevatedDark,
@@ -1240,7 +1240,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   Future<void> _pickWhatsAppContact(int platformIndex) async {
     if (!await FlutterContacts.requestPermission(readonly: true)) {
       setState(() {
-        _errorMessage = 'Permissao de contatos necessaria para importar do WhatsApp';
+        _errorMessage = 'Permissão de contatos necessária para importar do WhatsApp';
       });
       return;
     }

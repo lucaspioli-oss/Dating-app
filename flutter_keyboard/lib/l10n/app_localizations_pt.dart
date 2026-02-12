@@ -986,7 +986,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get addFirstMatchDescription =>
-      'Crie um perfil para quem voce esta\nconversando e receba sugestoes\npersonalizadas via teclado';
+      'Crie um perfil para quem você está\nconversando e receba sugestões\npersonalizadas via teclado';
 
   @override
   String get addContactButton => 'Adicionar Contato';

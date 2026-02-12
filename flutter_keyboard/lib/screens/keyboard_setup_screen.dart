@@ -23,30 +23,30 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
       icon: Icons.keyboard_alt_outlined,
       title: 'Ative o Teclado Desenrola AI',
       description:
-          'Para usar sugestoes inteligentes direto no WhatsApp, Tinder e outros apps, '
-          'voce precisa ativar nosso teclado personalizado.',
+          'Para usar sugestões inteligentes direto no WhatsApp, Tinder e outros apps, '
+          'você precisa ativar nosso teclado personalizado.',
       instruction: 'Vá em:\nAjustes → Geral → Teclado → Teclados → Adicionar',
     ),
     _SetupStep(
       icon: Icons.security_outlined,
       title: 'Ative o Acesso Completo',
       description:
-          'Ao ativar, a Apple exibe um aviso de seguranca padrao que pode parecer '
+          'Ao ativar, a Apple exibe um aviso de segurança padrão que pode parecer '
           'assustador — mas fique tranquilo! Esse aviso aparece para TODOS os '
           'teclados com IA. No nosso caso, o acesso '
-          'completo e necessario apenas para conectar o teclado a inteligencia '
-          'artificial e gerar sugestoes personalizadas.',
+          'completo é necessário apenas para conectar o teclado à inteligência '
+          'artificial e gerar sugestões personalizadas.',
       instruction:
           'Selecione "Desenrola AI" e ative "Permitir Acesso Completo"',
-      tip: 'Para proteger dados sensiveis como senhas e cartoes de credito, '
-          'basta trocar para o teclado padrao do iPhone (toque no globo 🌐) '
-          'antes de digitar essas informacoes.',
+      tip: 'Para proteger dados sensíveis como senhas e cartões de crédito, '
+          'basta trocar para o teclado padrão do iPhone (toque no globo 🌐) '
+          'antes de digitar essas informações.',
     ),
     _SetupStep(
       icon: Icons.swap_horiz,
       title: 'Troque para o Teclado',
       description:
-          'Em qualquer app de mensagens, toque no icone do globo (🌐) '
+          'Em qualquer app de mensagens, toque no ícone do globo (🌐) '
           'no canto inferior esquerdo do teclado para trocar para o Desenrola AI.',
       instruction: 'Toque no globo 🌐 para alternar entre teclados',
     ),
@@ -271,7 +271,7 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
                   Text(
                     _isKeyboardEnabled
                         ? 'Teclado ativado!'
-                        : 'Teclado nao ativado',
+                        : 'Teclado não ativado',
                     style: TextStyle(
                       color: _isKeyboardEnabled
                           ? AppColors.success
@@ -294,7 +294,7 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           GradientButton(
-            text: 'Abrir Configuracoes',
+            text: 'Abrir Configurações',
             icon: Icons.settings,
             onPressed: () async {
               await _keyboardService.openKeyboardSettings();
@@ -310,7 +310,7 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
                 curve: Curves.easeInOut,
               );
             },
-            child: const Text('Proximo'),
+            child: const Text('Próximo'),
           ),
           const SizedBox(height: 8),
           TextButton(
@@ -329,7 +329,7 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           GradientButton(
-            text: 'Comecar a usar!',
+            text: 'Começar a usar!',
             icon: Icons.rocket_launch,
             onPressed: _completeSetup,
           ),
@@ -359,7 +359,7 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
                 curve: Curves.easeInOut,
               );
             },
-            child: const Text('Proximo'),
+            child: const Text('Próximo'),
           ),
         ),
       ],

@@ -1981,7 +1981,7 @@ abstract class AppLocalizations {
   /// No description provided for @addFirstMatchDescription.
   ///
   /// In pt, this message translates to:
-  /// **'Crie um perfil para quem voce esta\nconversando e receba sugestoes\npersonalizadas via teclado'**
+  /// **'Crie um perfil para quem você está\nconversando e receba sugestões\npersonalizadas via teclado'**
   String get addFirstMatchDescription;
 
   /// No description provided for @addContactButton.

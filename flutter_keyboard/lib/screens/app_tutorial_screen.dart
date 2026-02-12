@@ -29,14 +29,14 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
     _TutorialPage(
       icon: Icons.person_add_alt_1,
       title: 'Crie um Perfil',
-      subtitle: 'Para cada pessoa que voce conversa',
+      subtitle: 'Para cada pessoa que você conversa',
       description:
-          'Adicione informacoes sobre quem voce esta conversando '
-          'para receber sugestoes mais personalizadas.',
+          'Adicione informações sobre quem você esta conversando '
+          'para receber sugestões mais personalizadas.',
       steps: [
         _TutorialStep(
           number: '1',
-          text: 'Toque no botao + na tela de Contatos',
+          text: 'Toque no botão + na tela de Contatos',
         ),
         _TutorialStep(
           number: '2',
@@ -44,7 +44,7 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
         ),
         _TutorialStep(
           number: '3',
-          text: 'Preencha o nome e as informacoes do perfil',
+          text: 'Preencha o nome e as informações do perfil',
         ),
       ],
     ),
@@ -53,12 +53,12 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
       title: 'Adicione a Conversa',
       subtitle: 'Cole ou importe suas mensagens',
       description:
-          'Para a IA entender o contexto, voce precisa adicionar '
+          'Para a IA entender o contexto, você precisa adicionar '
           'as mensagens da sua conversa.',
       steps: [
         _TutorialStep(
           number: '1',
-          text: 'Abra o perfil do contato e va em "Conversas"',
+          text: 'Abra o perfil do contato e vá em "Conversas"',
         ),
         _TutorialStep(
           number: '2',
@@ -66,7 +66,7 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
         ),
         _TutorialStep(
           number: '3',
-          text: 'A IA analisa o historico e entende o contexto',
+          text: 'A IA analisa o histórico e entende o contexto',
         ),
       ],
     ),
@@ -76,7 +76,7 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
       subtitle: 'O segredo esta aqui!',
       description:
           'O teclado Desenrola AI funciona dentro de qualquer app de mensagens. '
-          'Ele e o jeito mais rapido de receber sugestoes.',
+          'Ele e o jeito mais rapido de receber sugestões.',
       steps: [
         _TutorialStep(
           number: '1',
@@ -88,32 +88,32 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
         ),
         _TutorialStep(
           number: '3',
-          text: 'Copie as mensagens novas que voce recebeu',
+          text: 'Copie as mensagens novas que você recebeu',
         ),
         _TutorialStep(
           number: '4',
-          text: 'Escolha uma sugestao e toque em "Inserir"',
+          text: 'Escolha uma sugestão e toque em "Inserir"',
         ),
       ],
       tip: 'Sempre envie suas respostas pelo teclado Desenrola! '
-          'Assim a IA registra o que voce enviou e melhora as '
-          'sugestoes futuras.',
+          'Assim a IA registra o que você enviou e melhora as '
+          'sugestões futuras.',
     ),
     _TutorialPage(
       icon: Icons.format_list_numbered,
-      title: 'Varias Mensagens?',
+      title: 'Várias Mensagens?',
       subtitle: 'Cole uma por uma!',
       description:
-          'Se a pessoa mandou varias mensagens seguidas, '
+          'Se a pessoa mandou várias mensagens seguidas, '
           'use o modo de multiplas mensagens do teclado.',
       steps: [
         _TutorialStep(
           number: '1',
-          text: 'No teclado, toque em "Recebeu varias mensagens?"',
+          text: 'No teclado, toque em "Recebeu várias mensagens?"',
         ),
         _TutorialStep(
           number: '2',
-          text: 'Copie a 1a mensagem no app e toque em "Mensagem 1" para colar',
+          text: 'Copie a 1ª mensagem no app e toque em "Mensagem 1" para colar',
         ),
         _TutorialStep(
           number: '3',
@@ -121,7 +121,7 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
         ),
         _TutorialStep(
           number: '4',
-          text: 'Toque em "Gerar Respostas" para receber sugestoes',
+          text: 'Toque em "Gerar Respostas" para receber sugestões',
         ),
       ],
       tip: 'A IA recebe todas as mensagens de uma vez e entende '
@@ -132,8 +132,8 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
       title: 'Tudo Pronto!',
       subtitle: 'Comece a desenrolar',
       description:
-          'Agora voce ja sabe o basico. Adicione seu primeiro contato '
-          'e comece a receber sugestoes personalizadas!',
+          'Agora você já sabe o básico. Adicione seu primeiro contato '
+          'e comece a receber sugestões personalizadas!',
       steps: [],
     ),
   ];
@@ -411,9 +411,9 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
           children: [
             Row(
               children: [
-                _buildFeatureChip(Icons.smart_toy, 'IA Avancada'),
+                _buildFeatureChip(Icons.smart_toy, 'IA Avançada'),
                 const SizedBox(width: 8),
-                _buildFeatureChip(Icons.speed, 'Respostas Rapidas'),
+                _buildFeatureChip(Icons.speed, 'Respostas Rápidas'),
               ],
             ),
             const SizedBox(height: 8),
@@ -482,8 +482,8 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Dica: voce pode rever este tutorial a qualquer momento '
-                'nas Configuracoes do app.',
+                'Dica: você pode rever este tutorial a qualquer momento '
+                'nas Configurações do app.',
                 style: TextStyle(
                   color: AppColors.success.withOpacity(0.9),
                   fontSize: 13,
@@ -503,7 +503,7 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
 
     if (isLastPage) {
       return GradientButton(
-        text: 'Comecar a usar!',
+        text: 'Começar a usar!',
         icon: Icons.rocket_launch,
         onPressed: _completeTutorial,
       );
@@ -511,7 +511,7 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
 
     if (isFirstPage) {
       return GradientButton(
-        text: 'Vamos la!',
+        text: 'Vamos lá!',
         icon: Icons.arrow_forward,
         onPressed: () {
           _pageController.nextPage(
@@ -544,7 +544,7 @@ class _AppTutorialScreenState extends State<AppTutorialScreen>
                 curve: Curves.easeInOut,
               );
             },
-            child: const Text('Proximo'),
+            child: const Text('Próximo'),
           ),
         ),
       ],

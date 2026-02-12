@@ -264,7 +264,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         _showImageWithMessageInput(bytes, extractedMessage: result.lastMessage);
       } else {
         // OCR failed, let user type manually
-        _showImageWithMessageInput(bytes, errorMessage: result.errorMessage ?? 'NÃ£o foi possÃ­vel extrair o texto');
+        _showImageWithMessageInput(bytes, errorMessage: result.errorMessage ?? 'Não foi possível extrair o texto');
       }
     } catch (e) {
       // Close loading dialog if open
@@ -674,9 +674,9 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         // Save previous message
         if (currentRole != null && currentContent != null && currentContent!.isNotEmpty) {
           // Skip system messages
-          if (!currentContent!.contains('mensagens e chamadas sÃ£o protegidas') &&
+          if (!currentContent!.contains('mensagens e chamadas são protegidas') &&
               !currentContent!.contains('criou este grupo') &&
-              currentContent != '<MÃ­dia oculta>') {
+              currentContent != '<Mídia oculta>') {
             messages.add({'role': currentRole!, 'content': currentContent!});
           }
         }
@@ -691,9 +691,9 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
 
     // Save last message
     if (currentRole != null && currentContent != null && currentContent!.isNotEmpty) {
-      if (!currentContent!.contains('mensagens e chamadas sÃ£o protegidas') &&
+      if (!currentContent!.contains('mensagens e chamadas são protegidas') &&
           !currentContent!.contains('criou este grupo') &&
-          currentContent != '<MÃ­dia oculta>') {
+          currentContent != '<Mídia oculta>') {
         messages.add({'role': currentRole!, 'content': currentContent!});
       }
     }
@@ -1291,7 +1291,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         await service.deleteConversation(widget.conversationId);
 
         if (mounted) {
-          AppSnackBar.success(context, 'Conversa excluÃ­da');
+          AppSnackBar.success(context, 'Conversa excluída');
           Navigator.pop(context);
         }
       } catch (e) {
@@ -1429,7 +1429,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
               ),
               const SizedBox(width: 8),
               const Text(
-                'Feedback das sugestÃµes',
+                'Feedback das sugestões',
                 style: TextStyle(color: AppColors.textTertiary, fontSize: 12),
               ),
             ],

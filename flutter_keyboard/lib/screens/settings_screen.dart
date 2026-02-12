@@ -47,7 +47,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Configuracoes'),
+        title: const Text('Configurações'),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -109,7 +109,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const Divider(),
             ListTile(
               leading: const Icon(Icons.school_outlined),
-              title: const Text('Ver guia de ativacao'),
+              title: const Text('Ver guia de ativação'),
               subtitle: Text(
                 _isKeyboardEnabled
                     ? 'Reveja os passos para configurar o teclado'
@@ -195,7 +195,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 16),
             ListTile(
               leading: const Icon(Icons.psychology),
-              title: const Text('Instrucoes de Treinamento'),
+              title: const Text('Instruções de Treinamento'),
               subtitle: const Text('Personalize como a IA responde'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
@@ -229,16 +229,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ListTile(
               leading: const Icon(Icons.person_outline),
               title: const Text('Logado como'),
-              subtitle: Text(user?.email ?? 'Nao logado'),
+              subtitle: Text(user?.email ?? 'Não logado'),
             ),
             ListTile(
               leading: const Icon(Icons.info_outline),
-              title: const Text('Versao'),
+              title: const Text('Versão'),
               subtitle: Text(AppConfig.appVersion),
             ),
             ListTile(
               leading: const Icon(Icons.privacy_tip_outlined),
-              title: const Text('Politica de Privacidade'),
+              title: const Text('Política de Privacidade'),
               onTap: () {
                 launchUrl(Uri.parse('https://desenrola-ia.web.app/privacy'));
               },
