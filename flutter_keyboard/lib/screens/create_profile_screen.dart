@@ -1552,16 +1552,15 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           cropX = (image.width * 0.03).round().clamp(0, image.width - cropSize);
           cropY = (image.height * 0.08).round().clamp(0, image.height - cropSize);
         } else if (isPortrait && isScreenshot) {
-            // Other dating app screenshots: face usually center-top
-            cropSize = (image.width * 0.5).round().clamp(1, maxDim);
-            cropX = ((image.width - cropSize) / 2).round().clamp(0, image.width - cropSize);
-            cropY = (image.height * 0.05).round().clamp(0, image.height - cropSize);
-          } else {
-            // Non-screenshot or landscape
-            cropSize = (image.width * 0.5).round().clamp(1, maxDim);
-            cropX = ((image.width - cropSize) / 2).round().clamp(0, image.width - cropSize);
-            cropY = (image.height * 0.08).round().clamp(0, image.height - cropSize);
-          }
+          // Other dating app screenshots: face usually center-top
+          cropSize = (image.width * 0.5).round().clamp(1, maxDim);
+          cropX = ((image.width - cropSize) / 2).round().clamp(0, image.width - cropSize);
+          cropY = (image.height * 0.05).round().clamp(0, image.height - cropSize);
+        } else {
+          // Non-screenshot or landscape
+          cropSize = (image.width * 0.5).round().clamp(1, maxDim);
+          cropX = ((image.width - cropSize) / 2).round().clamp(0, image.width - cropSize);
+          cropY = (image.height * 0.08).round().clamp(0, image.height - cropSize);
         }
       }
 

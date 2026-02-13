@@ -36,10 +36,33 @@ class AppLoading extends StatelessWidget {
   }
 }
 
-class AppLoadingScreen extends StatelessWidget {
+class AppLoadingScreen extends StatefulWidget {
   final String? message;
 
   const AppLoadingScreen({super.key, this.message});
+
+  @override
+  State<AppLoadingScreen> createState() => _AppLoadingScreenState();
+}
+
+class _AppLoadingScreenState extends State<AppLoadingScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,24 +72,39 @@ class AppLoadingScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              'assets/images/logo.png',
-              height: 48,
-              semanticLabel: 'Desenrola AI',
-            ),
-            const SizedBox(height: 24),
-            const SizedBox(
-              width: 28,
-              height: 28,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.5,
-                color: AppColors.primary,
+            SizedBox(
+              width: 100,
+              height: 100,
+              child: AnimatedBuilder(
+                animation: _controller,
+                builder: (context, child) {
+                  return Stack(
+                    children: [
+                      // Dim version (background)
+                      Opacity(
+                        opacity: 0.15,
+                        child: child!,
+                      ),
+                      // Filled version clipped from bottom to top
+                      ClipRect(
+                        clipper: _FillClipper(_controller.value),
+                        child: child,
+                      ),
+                    ],
+                  );
+                },
+                child: Image.asset(
+                  'assets/images/load_icon.png',
+                  width: 100,
+                  height: 100,
+                  semanticLabel: 'Desenrola AI',
+                ),
               ),
             ),
-            if (message != null) ...[
-              const SizedBox(height: 16),
+            if (widget.message != null) ...[
+              const SizedBox(height: 24),
               Text(
-                message!,
+                widget.message!,
                 style: const TextStyle(
                   color: AppColors.textTertiary,
                   fontSize: 14,
@@ -78,4 +116,21 @@ class AppLoadingScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Clips from bottom to top based on progress (0.0 = empty, 1.0 = full)
+class _FillClipper extends CustomClipper<Rect> {
+  final double progress;
+
+  _FillClipper(this.progress);
+
+  @override
+  Rect getClip(Size size) {
+    // Fill from bottom to top
+    final top = size.height * (1.0 - progress);
+    return Rect.fromLTRB(0, top, size.width, size.height);
+  }
+
+  @override
+  bool shouldReclip(_FillClipper oldClipper) => oldClipper.progress != progress;
 }
