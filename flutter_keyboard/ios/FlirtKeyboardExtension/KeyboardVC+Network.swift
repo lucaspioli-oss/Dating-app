@@ -314,6 +314,166 @@ extension KeyboardViewController {
         }.resume()
     }
 
+    // MARK: - Generate First Message (Start Conversation)
+
+    func generateFirstMessage() {
+        guard let conv = selectedConversation else {
+            NSLog("[KB] generateFirstMessage: no selected conversation")
+            return
+        }
+
+        let endpoint = "\(backendUrl)/keyboard/start-conversation"
+        guard let url = URL(string: endpoint) else { return }
+
+        NSLog("[KB] generateFirstMessage: convId=\(conv.conversationId ?? "nil") profileId=\(conv.profileId ?? "nil")")
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 30
+
+        if let token = authToken {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        var body: [String: Any] = [
+            "objective": currentObjective(),
+            "tone": currentTone(),
+        ]
+        if let convId = conv.conversationId { body["conversationId"] = convId }
+        if let profileId = conv.profileId { body["profileId"] = profileId }
+
+        do { request.httpBody = try JSONSerialization.data(withJSONObject: body) } catch { return }
+
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            guard let data = data, error == nil else {
+                NSLog("[KB] generateFirstMessage FAILED: \(error?.localizedDescription ?? "unknown")")
+                DispatchQueue.main.async {
+                    self?.isLoadingSuggestions = false
+                    self?.suggestions = ["Erro de conexão. Tente novamente."]
+                    self?.renderCurrentState()
+                }
+                return
+            }
+
+            let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+            NSLog("[KB] generateFirstMessage: HTTP \(statusCode)")
+
+            do {
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let analysis = json["analysis"] as? String {
+                    let parsed = self?.parseSuggestions(analysis) ?? [analysis]
+                    DispatchQueue.main.async {
+                        self?.isLoadingSuggestions = false
+                        self?.suggestions = parsed
+                        self?.renderCurrentState()
+                    }
+                } else {
+                    let raw = String(data: data, encoding: .utf8) ?? "?"
+                    NSLog("[KB] generateFirstMessage: unexpected format: \(raw.prefix(200))")
+                    DispatchQueue.main.async {
+                        self?.isLoadingSuggestions = false
+                        self?.suggestions = ["Erro ao processar resposta."]
+                        self?.renderCurrentState()
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self?.isLoadingSuggestions = false
+                    self?.suggestions = ["Erro ao processar resposta."]
+                    self?.renderCurrentState()
+                }
+            }
+        }.resume()
+    }
+
+    // MARK: - Analyze Screenshot
+
+    func analyzeScreenshot(_ imageBase64: String, mediaType: String) {
+        guard let conv = selectedConversation else {
+            NSLog("[KB] analyzeScreenshot: no selected conversation")
+            return
+        }
+
+        let endpoint = "\(backendUrl)/keyboard/analyze-screenshot"
+        guard let url = URL(string: endpoint) else { return }
+
+        NSLog("[KB] analyzeScreenshot: convId=\(conv.conversationId ?? "nil") imageSize=\(imageBase64.count) chars")
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 45
+
+        if let token = authToken {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        var body: [String: Any] = [
+            "imageBase64": imageBase64,
+            "imageMediaType": mediaType,
+            "objective": currentObjective(),
+            "tone": currentTone(),
+        ]
+        if let convId = conv.conversationId { body["conversationId"] = convId }
+
+        do { request.httpBody = try JSONSerialization.data(withJSONObject: body) } catch { return }
+
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            // Release screenshot image to free memory
+            DispatchQueue.main.async { self?.screenshotImage = nil }
+
+            guard let data = data, error == nil else {
+                NSLog("[KB] analyzeScreenshot FAILED: \(error?.localizedDescription ?? "unknown")")
+                DispatchQueue.main.async {
+                    self?.isAnalyzingScreenshot = false
+                    self?.isLoadingSuggestions = false
+                    self?.suggestions = ["Erro de conexão. Tente novamente."]
+                    self?.currentState = .suggestions
+                    self?.renderCurrentState()
+                }
+                return
+            }
+
+            let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+            NSLog("[KB] analyzeScreenshot: HTTP \(statusCode)")
+
+            do {
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let analysis = json["analysis"] as? String {
+                    let parsed = self?.parseSuggestions(analysis) ?? [analysis]
+                    DispatchQueue.main.async {
+                        self?.isAnalyzingScreenshot = false
+                        self?.isLoadingSuggestions = false
+                        self?.clipboardText = "[Screenshot analisado]"
+                        self?.suggestions = parsed
+                        self?.previousState = .awaitingClipboard
+                        self?.currentState = .suggestions
+                        self?.renderCurrentState()
+                    }
+                } else {
+                    let raw = String(data: data, encoding: .utf8) ?? "?"
+                    NSLog("[KB] analyzeScreenshot: unexpected format: \(raw.prefix(200))")
+                    DispatchQueue.main.async {
+                        self?.isAnalyzingScreenshot = false
+                        self?.isLoadingSuggestions = false
+                        self?.suggestions = ["Erro ao processar resposta."]
+                        self?.currentState = .suggestions
+                        self?.renderCurrentState()
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self?.isAnalyzingScreenshot = false
+                    self?.isLoadingSuggestions = false
+                    self?.suggestions = ["Erro ao processar resposta."]
+                    self?.currentState = .suggestions
+                    self?.renderCurrentState()
+                }
+            }
+        }.resume()
+    }
+
     // MARK: - Clipboard Polling
 
     func startClipboardPolling() {

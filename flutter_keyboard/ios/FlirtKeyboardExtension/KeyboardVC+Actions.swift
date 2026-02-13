@@ -2,7 +2,7 @@ import UIKit
 
 extension KeyboardViewController {
 
-    // MARK: - Actions
+    // MARK: - Overlay Actions
 
     @objc func objectivePillTapped() {
         if activeOverlay == .objectiveSelector { dismissOverlay(); return }
@@ -16,6 +16,10 @@ extension KeyboardViewController {
 
     @objc func objectiveFromOverlayTapped(_ sender: UIButton) {
         selectedObjectiveIndex = sender.tag - 300
+        // Persist objective + timestamp
+        sharedDefaults?.set(selectedObjectiveIndex, forKey: "kb_selectedObjective")
+        sharedDefaults?.set(Date(), forKey: "kb_objectiveSelectedAt")
+        sharedDefaults?.synchronize()
         dismissOverlay()
         renderCurrentState()
     }
@@ -40,6 +44,8 @@ extension KeyboardViewController {
         containerView.viewWithTag(7777)?.removeFromSuperview()
     }
 
+    // MARK: - Profile Selection
+
     @objc func profileTapped(_ sender: UIButton) {
         let index = sender.tag
         guard index < filteredConversations.count else { return }
@@ -50,7 +56,55 @@ extension KeyboardViewController {
         searchText = ""
         isSearchActive = false
         previousClipboard = UIPasteboard.general.string
+
+        // Check if objective was recently set (< 30 min)
+        if let _ = sharedDefaults?.integer(forKey: "kb_selectedObjective"),
+           let savedTime = sharedDefaults?.object(forKey: "kb_objectiveSelectedAt") as? Date,
+           Date().timeIntervalSince(savedTime) < 1800 {
+            // Recent objective → go straight to hub
+            currentState = .awaitingClipboard
+        } else {
+            // No recent objective → show objective selection first
+            currentState = .objectiveSelection
+        }
+        renderCurrentState()
+    }
+
+    // MARK: - Objective Selection
+
+    @objc func objectiveCardTapped(_ sender: UIButton) {
+        selectedObjectiveIndex = sender.tag - 800
+        // Persist objective + timestamp
+        sharedDefaults?.set(selectedObjectiveIndex, forKey: "kb_selectedObjective")
+        sharedDefaults?.set(Date(), forKey: "kb_objectiveSelectedAt")
+        sharedDefaults?.synchronize()
         currentState = .awaitingClipboard
+        renderCurrentState()
+    }
+
+    // MARK: - Hub Actions
+
+    @objc func startConversationTapped() {
+        previousState = .awaitingClipboard
+        currentState = .startConversation
+        isLoadingSuggestions = true
+        renderCurrentState()
+        generateFirstMessage()
+    }
+
+    @objc func hubScreenshotTapped() {
+        previousState = .awaitingClipboard
+        screenshotImage = nil
+        isAnalyzingScreenshot = false
+        currentState = .screenshotAnalysis
+        renderCurrentState()
+    }
+
+    @objc func hubMultipleTapped() {
+        multiMessages = ["", ""]
+        previousState = .awaitingClipboard
+        currentState = .multipleMessages
+        saveMultiMessageState()
         renderCurrentState()
     }
 
@@ -58,7 +112,6 @@ extension KeyboardViewController {
 
     @objc func qwertyKeyTapped(_ sender: UIButton) {
         let tag = sender.tag
-        // Tags 700-725 = letters mapped from qwerty layout
         let allKeys = "qwertyuiopasdfghjklzxcvbnm"
         let index = tag - 700
         guard index >= 0, index < allKeys.count else { return }
@@ -123,6 +176,8 @@ extension KeyboardViewController {
         displayLabel.textColor = writeOwnText.isEmpty ? Theme.textSecondary : .white
     }
 
+    // MARK: - Mode Switching
+
     @objc func quickModeTapped() {
         selectedConversation = nil
         saveSelectedConversation(nil)
@@ -131,6 +186,8 @@ extension KeyboardViewController {
         currentState = .basicMode
         renderCurrentState()
     }
+
+    // MARK: - Back Navigation
 
     @objc func backTapped() {
         stopClipboardPolling()
@@ -146,12 +203,45 @@ extension KeyboardViewController {
         renderCurrentState()
     }
 
+    @objc func backFromObjectiveTapped() {
+        selectedConversation = nil
+        saveSelectedConversation(nil)
+        filteredConversations = conversations
+        currentState = .profileSelector
+        renderCurrentState()
+    }
+
+    @objc func backFromAwaitingTapped() {
+        stopClipboardPolling()
+        selectedConversation = nil
+        saveSelectedConversation(nil)
+        filteredConversations = conversations
+        currentState = .profileSelector
+        renderCurrentState()
+    }
+
     @objc func backFromSuggestionsTapped() {
         suggestions = []
         clipboardText = nil
+        currentState = previousState ?? .awaitingClipboard
+        renderCurrentState()
+    }
+
+    @objc func backFromScreenshotTapped() {
+        screenshotImage = nil
+        isAnalyzingScreenshot = false
         currentState = .awaitingClipboard
         renderCurrentState()
     }
+
+    @objc func backFromStartConvTapped() {
+        suggestions = []
+        isLoadingSuggestions = false
+        currentState = .awaitingClipboard
+        renderCurrentState()
+    }
+
+    // MARK: - Suggestion Actions
 
     @objc func suggestionTapped(_ sender: UIButton) {
         let index = sender.tag

@@ -17,7 +17,7 @@ extension KeyboardViewController {
         backBtn.setTitle("←", for: .normal)
         backBtn.setTitleColor(Theme.textSecondary, for: .normal)
         backBtn.titleLabel?.font = UIFont.systemFont(ofSize: 16)
-        backBtn.addTarget(self, action: #selector(backToAwaitingTapped), for: .touchUpInside)
+        backBtn.addTarget(self, action: #selector(backFromMultiMessagesTapped), for: .touchUpInside)
         headerStack.addArrangedSubview(backBtn)
 
         let titleLabel = UILabel()
@@ -203,7 +203,7 @@ extension KeyboardViewController {
         return card
     }
 
-    @objc func backToAwaitingTapped() {
+    @objc func backFromMultiMessagesTapped() {
         multiMessages = ["", ""]
         clearMultiMessageState()
         currentState = .awaitingClipboard

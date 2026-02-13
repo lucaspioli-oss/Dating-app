@@ -855,6 +855,224 @@ fastify.post('/keyboard/send-message', {
     }
 });
 // ═══════════════════════════════════════════════════════════════════
+// ⌨️ KEYBOARD: START CONVERSATION (generate first message openers)
+// ═══════════════════════════════════════════════════════════════════
+fastify.post('/keyboard/start-conversation', {
+    preHandler: auth_1.verifyAuth,
+}, async (request, reply) => {
+    try {
+        const userId = request.user.uid;
+        const { conversationId, profileId, objective, tone } = request.body;
+        if (!objective || !tone) {
+            return reply.code(400).send({
+                error: 'Missing required fields',
+                message: 'objective and tone are required',
+            });
+        }
+        const admin = require('firebase-admin');
+        const db = admin.firestore();
+        // Build context from profile/conversation data
+        let matchName = '';
+        let matchBio = '';
+        let platform = 'tinder';
+        let photoDescription = '';
+        let specificDetail = '';
+        let userContext = undefined;
+        // Try to get data from conversation
+        if (conversationId) {
+            try {
+                const convDoc = await db.collection('conversations').doc(conversationId).get();
+                if (convDoc.exists && convDoc.data().userId === userId) {
+                    const data = convDoc.data();
+                    const avatar = data.avatar || {};
+                    matchName = avatar.matchName || '';
+                    matchBio = avatar.bio || '';
+                    platform = avatar.platform || 'tinder';
+                    photoDescription = avatar.photoDescriptions || '';
+                    // Check existing messages for context
+                    const messages = data.messages || [];
+                    if (messages.length > 0) {
+                        specificDetail = `Já trocaram ${messages.length} mensagens anteriormente.`;
+                    }
+                }
+            }
+            catch (err) {
+                fastify.log.warn('Failed to fetch conversation for start-conversation:', err);
+            }
+        }
+        // Fallback: try profile data
+        if (!matchName && profileId) {
+            try {
+                const profileDoc = await db.collection('profiles').doc(profileId).get();
+                if (profileDoc.exists && profileDoc.data().userId === userId) {
+                    const data = profileDoc.data();
+                    matchName = data.name || '';
+                    matchBio = data.bio || '';
+                    platform = data.platform || 'tinder';
+                    if (data.photoDescriptions && data.photoDescriptions.length > 0) {
+                        photoDescription = data.photoDescriptions.join('. ');
+                    }
+                }
+            }
+            catch (err) {
+                fastify.log.warn('Failed to fetch profile for start-conversation:', err);
+            }
+        }
+        // Get objective prompt for calibration
+        const objectiveInstruction = (0, prompts_1.getObjectivePrompt)(objective);
+        // Build enriched prompt for the agent
+        const enrichedInput = {
+            matchName: matchName || 'Match',
+            matchBio: matchBio || '',
+            platform,
+            tone,
+            photoDescription,
+            specificDetail: specificDetail
+                ? `${specificDetail}\n\n${objectiveInstruction}`
+                : objectiveInstruction,
+        };
+        const agent = new agents_1.FirstMessageAgent();
+        const result = await agent.execute(enrichedInput, userContext);
+        return reply.code(200).send({ analysis: result });
+    }
+    catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send({
+            error: 'Erro ao gerar primeira mensagem',
+            message: error instanceof Error ? error.message : 'Erro desconhecido',
+        });
+    }
+});
+// ═══════════════════════════════════════════════════════════════════
+// ⌨️ KEYBOARD: ANALYZE SCREENSHOT (extract messages from image)
+// ═══════════════════════════════════════════════════════════════════
+fastify.post('/keyboard/analyze-screenshot', {
+    preHandler: auth_1.verifyAuth,
+}, async (request, reply) => {
+    try {
+        const userId = request.user.uid;
+        const { imageBase64, imageMediaType, conversationId, objective, tone } = request.body;
+        if (!imageBase64) {
+            return reply.code(400).send({
+                error: 'Missing required fields',
+                message: 'imageBase64 is required',
+            });
+        }
+        const admin = require('firebase-admin');
+        const db = admin.firestore();
+        // Step 1: Extract messages from screenshot using ConversationImageAnalyzerAgent
+        const imageAgent = new agents_1.ConversationImageAnalyzerAgent();
+        const extractedData = await imageAgent.analyzeAndExtract({
+            imageBase64,
+            imageMediaType: imageMediaType || 'image/jpeg',
+        });
+        if (!extractedData || !extractedData.lastMessage) {
+            return reply.code(200).send({
+                analysis: 'Não foi possível extrair mensagens da imagem. Tente com um print mais nítido.',
+                extractedMessages: [],
+                mode: 'screenshot',
+            });
+        }
+        // Step 2: Build context and generate suggestions
+        let richPrompt = '';
+        let convContext = '';
+        if (conversationId) {
+            try {
+                const convDoc = await db.collection('conversations').doc(conversationId).get();
+                if (convDoc.exists && convDoc.data().userId === userId) {
+                    const data = convDoc.data();
+                    const avatar = data.avatar || {};
+                    const messages = data.messages || [];
+                    // Build history from saved messages
+                    if (messages.length > 0) {
+                        const recent = messages.slice(-15);
+                        convContext = 'Histórico salvo:\n' + recent.map(m => {
+                            const role = m.role === 'user' ? 'Você' : (avatar.matchName || 'Match');
+                            return `${role}: ${m.content}`;
+                        }).join('\n');
+                    }
+                    // Deduplicate: remove screenshot messages that already exist in history
+                    if (extractedData.conversationContext && messages.length > 0) {
+                        const existingContents = messages.map(m => m.content.toLowerCase().trim());
+                        extractedData.conversationContext = extractedData.conversationContext.filter(msg => {
+                            const normalized = msg.toLowerCase().trim();
+                            return !existingContents.some(existing => {
+                                // Fuzzy match: if 80%+ similar, consider duplicate
+                                const shorter = Math.min(existing.length, normalized.length);
+                                const longer = Math.max(existing.length, normalized.length);
+                                if (shorter === 0) return false;
+                                let matches = 0;
+                                for (let i = 0; i < shorter; i++) {
+                                    if (existing[i] === normalized[i]) matches++;
+                                }
+                                return (matches / longer) > 0.8;
+                            });
+                        });
+                    }
+                    // Save extracted messages to conversation
+                    const screenshotMessages = [];
+                    if (extractedData.conversationContext) {
+                        for (const msg of extractedData.conversationContext) {
+                            screenshotMessages.push({
+                                id: `kb_screenshot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                                role: 'match',
+                                content: msg,
+                                timestamp: new Date().toISOString(),
+                                source: 'keyboard_screenshot',
+                            });
+                        }
+                    }
+                    if (extractedData.lastMessage) {
+                        screenshotMessages.push({
+                            id: `kb_screenshot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                            role: extractedData.lastMessageSender === 'user' ? 'user' : 'match',
+                            content: extractedData.lastMessage,
+                            timestamp: new Date().toISOString(),
+                            source: 'keyboard_screenshot',
+                        });
+                    }
+                    if (screenshotMessages.length > 0) {
+                        await convDoc.ref.update({
+                            messages: admin.firestore.FieldValue.arrayUnion(...screenshotMessages),
+                            lastMessageAt: admin.firestore.Timestamp.now(),
+                        });
+                    }
+                }
+            }
+            catch (err) {
+                fastify.log.warn('Failed to process conversation context for screenshot:', err);
+            }
+        }
+        // Build screenshot context
+        let screenshotContext = '';
+        if (extractedData.conversationContext && extractedData.conversationContext.length > 0) {
+            screenshotContext = 'Mensagens do screenshot:\n' + extractedData.conversationContext.join('\n');
+        }
+        const objectiveInstruction = (0, prompts_1.getObjectivePrompt)(objective || 'automatico');
+        richPrompt = `Você está ajudando a responder mensagens de dating.
+${convContext ? convContext + '\n\n' : ''}${screenshotContext ? screenshotContext + '\n\n' : ''}A última mensagem ${extractedData.lastMessageSender === 'user' ? 'foi sua' : 'foi dela'}:
+"${extractedData.lastMessage}"
+
+${objectiveInstruction}
+
+Gere APENAS 3 sugestões de resposta numeradas (1. 2. 3.), cada uma curta (1-2 frases).
+Calibre com base no contexto da conversa e OBJETIVO definido acima.`;
+        const analysis = await (0, anthropic_1.analyzeMessage)({ text: richPrompt, tone: tone || 'automatico' });
+        return reply.code(200).send({
+            analysis,
+            extractedMessages: extractedData.conversationContext || [],
+            mode: 'screenshot',
+        });
+    }
+    catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send({
+            error: 'Erro ao analisar screenshot',
+            message: error instanceof Error ? error.message : 'Erro desconhecido',
+        });
+    }
+});
+// ═══════════════════════════════════════════════════════════════════
 // 🍎 APPLE IN-APP PURCHASE ENDPOINTS
 // ═══════════════════════════════════════════════════════════════════
 fastify.post('/apple/activate-subscription', {

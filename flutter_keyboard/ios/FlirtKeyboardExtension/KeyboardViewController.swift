@@ -6,11 +6,14 @@ class KeyboardViewController: UIInputViewController {
 
     enum KeyboardState {
         case profileSelector
+        case objectiveSelection
         case awaitingClipboard
         case suggestions
         case writeOwn
         case basicMode
         case multipleMessages
+        case screenshotAnalysis
+        case startConversation
     }
 
     enum OverlayType {
@@ -95,6 +98,9 @@ class KeyboardViewController: UIInputViewController {
     var isSearchActive: Bool = false
     var multiMessages: [String] = ["", ""]
     var clipboardTimer: Timer?
+    var previousState: KeyboardState? = nil
+    var screenshotImage: UIImage? = nil
+    var isAnalyzingScreenshot = false
 
     // Shared config
     var sharedDefaults: UserDefaults? {
@@ -124,12 +130,20 @@ class KeyboardViewController: UIInputViewController {
             // Try to restore previously selected conversation
             if let saved = restoreSavedConversation() {
                 selectedConversation = saved
-                // Restore multi-message state if user was in that mode
-                if let savedMessages = restoreMultiMessageState() {
-                    multiMessages = savedMessages
-                    currentState = .multipleMessages
+                // Restore objective if recent (< 30 min)
+                if let savedObj = sharedDefaults?.integer(forKey: "kb_selectedObjective"),
+                   let savedTime = sharedDefaults?.object(forKey: "kb_objectiveSelectedAt") as? Date,
+                   Date().timeIntervalSince(savedTime) < 1800 {
+                    selectedObjectiveIndex = savedObj
+                    // Restore multi-message state if user was in that mode
+                    if let savedMessages = restoreMultiMessageState() {
+                        multiMessages = savedMessages
+                        currentState = .multipleMessages
+                    } else {
+                        currentState = .awaitingClipboard
+                    }
                 } else {
-                    currentState = .awaitingClipboard
+                    currentState = .objectiveSelection
                 }
                 // Also fetch conversations in background so back button works
                 fetchConversations(silent: true)
@@ -142,6 +156,17 @@ class KeyboardViewController: UIInputViewController {
         }
 
         renderCurrentState()
+    }
+
+    // MARK: - Height
+
+    func heightForState(_ state: KeyboardState) -> CGFloat {
+        switch state {
+        case .profileSelector where isSearchActive: return 320
+        case .writeOwn: return 320
+        case .multipleMessages: return 320
+        default: return 300
+        }
     }
 
     // MARK: - State Rendering
@@ -160,16 +185,21 @@ class KeyboardViewController: UIInputViewController {
             containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             containerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             containerView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            containerView.heightAnchor.constraint(equalToConstant: (currentState == .profileSelector && isSearchActive || currentState == .multipleMessages) ? 260 : 220)
+            containerView.heightAnchor.constraint(equalToConstant: heightForState(currentState))
         ])
+
+        NSLog("[KB] renderCurrentState: \(currentState)")
 
         switch currentState {
         case .profileSelector: renderProfileSelector()
+        case .objectiveSelection: renderObjectiveSelection()
         case .awaitingClipboard: renderAwaitingClipboard()
         case .suggestions: renderSuggestions()
         case .writeOwn: renderWriteOwn()
         case .basicMode: renderBasicMode()
         case .multipleMessages: renderMultipleMessages()
+        case .screenshotAnalysis: renderScreenshotAnalysis()
+        case .startConversation: renderStartConversation()
         }
     }
 }
