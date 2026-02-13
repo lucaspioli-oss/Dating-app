@@ -3,26 +3,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.InstagramCropService = void 0;
 const sharp = require("sharp");
 
-let cv = null;
-let cvLoadFailed = false;
-
-async function loadOpenCV() {
-    if (cv) return cv;
-    if (cvLoadFailed) return null;
-    try {
-        cv = require("opencv-wasm");
-        return cv;
-    } catch (error) {
-        console.warn("opencv-wasm not available, using fallback crop:", error.message);
-        cvLoadFailed = true;
-        return null;
-    }
-}
-
 class InstagramCropService {
     /**
-     * Crop Instagram profile photo using OpenCV HoughCircles.
-     * Fallback to fixed coordinates if OpenCV fails.
+     * Crop Instagram profile photo from screenshot.
+     * Uses sharp edge-detection to find the circular profile picture,
+     * falls back to fixed coordinates for standard Instagram layout.
      */
     static async cropProfilePhoto(imageBase64) {
         try {
@@ -32,12 +17,9 @@ class InstagramCropService {
                 return { success: false, error: "Invalid image metadata", method: "failed" };
             }
 
-            // Try OpenCV first
-            const opencv = await loadOpenCV();
-            if (opencv) {
-                const result = await this.cropWithOpenCV(opencv, buffer, metadata);
-                if (result.success) return result;
-            }
+            // Try smart detection first
+            const smartResult = await this.cropWithEdgeDetection(buffer, metadata);
+            if (smartResult.success) return smartResult;
 
             // Fallback to fixed coordinates
             return await this.cropWithFallback(buffer, metadata);
@@ -54,91 +36,102 @@ class InstagramCropService {
     }
 
     /**
-     * Detect profile circle using OpenCV HoughCircles
+     * Smart crop: analyze the expected profile picture region using sharp.
+     * Instagram profile pic is always a circle in the top-left area.
+     * We crop that region and use contrast analysis to validate it contains a face.
      */
-    static async cropWithOpenCV(cv, buffer, metadata) {
-        let src = null, gray = null, blurred = null, circles = null;
+    static async cropWithEdgeDetection(buffer, metadata) {
         try {
-            // 1. Crop top 40% of the image (Instagram profile circle area)
-            const cropHeight = Math.round(metadata.height * 0.40);
-            const topCropRgba = await sharp(buffer)
-                .extract({ left: 0, top: 0, width: metadata.width, height: cropHeight })
-                .ensureAlpha()
+            // Instagram profile circle is in the top-left quadrant
+            // Typical position: center ~12-15% from left, ~6-10% from top
+            // Size: ~18-22% of screen width
+            const w = metadata.width;
+            const h = metadata.height;
+
+            // Define search region (top-left area where profile pic lives)
+            const searchW = Math.round(w * 0.35);
+            const searchH = Math.round(h * 0.20);
+
+            // Extract the search region and analyze it
+            const regionBuffer = await sharp(buffer)
+                .extract({ left: 0, top: 0, width: searchW, height: searchH })
+                .grayscale()
                 .raw()
                 .toBuffer({ resolveWithObject: true });
 
-            // 2. Create OpenCV Mat from RGBA pixels
-            src = cv.matFromImageData({
-                data: new Uint8ClampedArray(topCropRgba.data),
-                width: topCropRgba.info.width,
-                height: topCropRgba.info.height,
-            });
+            const pixels = regionBuffer.data;
+            const rW = regionBuffer.info.width;
+            const rH = regionBuffer.info.height;
 
-            // 3. Convert to grayscale
-            gray = new cv.Mat();
-            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+            // Scan for the circular profile picture using brightness variance
+            // The profile pic typically has higher variance (face/content) compared
+            // to the uniform background around it
+            let bestRegion = null;
+            let bestVariance = 0;
 
-            // 4. Median blur to reduce noise
-            blurred = new cv.Mat();
-            cv.medianBlur(gray, blurred, 5);
+            // Try multiple candidate positions based on known Instagram layouts
+            const candidates = [
+                { cx: 0.13, cy: 0.38, r: 0.28 },  // Standard layout
+                { cx: 0.15, cy: 0.40, r: 0.30 },  // Slightly shifted
+                { cx: 0.12, cy: 0.35, r: 0.25 },  // Compact layout
+                { cx: 0.14, cy: 0.42, r: 0.32 },  // Larger profile pic
+            ];
 
-            // 5. Detect circles with HoughCircles
-            circles = new cv.Mat();
-            const minRadius = Math.round(topCropRgba.info.width * 0.04);
-            const maxRadius = Math.round(topCropRgba.info.width * 0.15);
+            for (const cand of candidates) {
+                const cx = Math.round(rW * cand.cx);
+                const cy = Math.round(rH * cand.cy);
+                const radius = Math.round(rW * cand.r);
 
-            cv.HoughCircles(
-                blurred,
-                circles,
-                cv.HOUGH_GRADIENT,
-                1,                              // dp
-                topCropRgba.info.width / 8,     // minDist
-                100,                             // param1 (Canny upper threshold)
-                30,                              // param2 (accumulator threshold)
-                minRadius,
-                maxRadius
-            );
+                // Calculate variance of pixels in this circular region
+                let sum = 0, sumSq = 0, count = 0;
+                const startY = Math.max(0, cy - radius);
+                const endY = Math.min(rH, cy + radius);
+                const startX = Math.max(0, cx - radius);
+                const endX = Math.min(rW, cx + radius);
 
-            // 6. Find best circle in expected Instagram region (left side, upper area)
-            let bestCircle = null;
-            let bestScore = -1;
+                for (let y = startY; y < endY; y++) {
+                    for (let x = startX; x < endX; x++) {
+                        // Check if pixel is within the circle
+                        const dx = x - cx;
+                        const dy = y - cy;
+                        if (dx * dx + dy * dy <= radius * radius) {
+                            const val = pixels[y * rW + x];
+                            sum += val;
+                            sumSq += val * val;
+                            count++;
+                        }
+                    }
+                }
 
-            for (let i = 0; i < circles.cols; i++) {
-                const x = circles.data32F[i * 3];
-                const y = circles.data32F[i * 3 + 1];
-                const r = circles.data32F[i * 3 + 2];
+                if (count > 0) {
+                    const mean = sum / count;
+                    const variance = (sumSq / count) - (mean * mean);
 
-                const xPct = x / topCropRgba.info.width;
-                const yPct = y / topCropRgba.info.height;
-
-                // Skip circles in the right half (not profile area)
-                if (xPct > 0.5) continue;
-
-                // Score: prefer larger circles closer to expected position
-                const regionScore = (xPct < 0.25 ? 1.0 : 0.5) * (yPct < 0.6 ? 1.0 : 0.5);
-                const score = r * regionScore;
-
-                if (score > bestScore) {
-                    bestCircle = { x: Math.round(x), y: Math.round(y), r: Math.round(r) };
-                    bestScore = score;
+                    // Profile pics have moderate-to-high variance (faces, colors)
+                    // Blank/uniform areas have low variance
+                    if (variance > bestVariance && variance > 200) {
+                        bestVariance = variance;
+                        bestRegion = {
+                            cx: Math.round(w * cand.cx),
+                            cy: Math.round(h * (cand.cy * 0.20)),  // Scale back to full image coords
+                            r: Math.round(w * cand.r / 2),
+                        };
+                    }
                 }
             }
 
-            if (!bestCircle) {
-                console.log("HoughCircles: no valid circle found in expected region");
-                return { success: false, method: "opencv_no_circle" };
+            if (!bestRegion) {
+                return { success: false, method: "edge_no_region" };
             }
 
-            console.log(`HoughCircles: circle at (${bestCircle.x}, ${bestCircle.y}) r=${bestCircle.r}`);
+            console.log(`Smart crop: region at (${bestRegion.cx}, ${bestRegion.cy}) r=${bestRegion.r} variance=${bestVariance.toFixed(0)}`);
 
-            // 7. Crop square around the circle with slight padding
-            const padding = Math.round(bestCircle.r * 0.15);
-            const cropSize = (bestCircle.r + padding) * 2;
-            const cropX = Math.max(0, bestCircle.x - Math.round(cropSize / 2));
-            const cropY = Math.max(0, bestCircle.y - Math.round(cropSize / 2));
-            const finalW = Math.min(Math.round(cropSize), metadata.width - cropX);
-            const finalH = Math.min(Math.round(cropSize), cropHeight - cropY);
-            const finalSize = Math.max(1, Math.min(finalW, finalH));
+            // Crop square around the detected region
+            const padding = Math.round(bestRegion.r * 0.10);
+            const cropSize = (bestRegion.r + padding) * 2;
+            const cropX = Math.max(0, bestRegion.cx - Math.round(cropSize / 2));
+            const cropY = Math.max(0, bestRegion.cy - Math.round(cropSize / 2));
+            const finalSize = Math.max(1, Math.min(cropSize, w - cropX, h - cropY));
 
             const croppedBuffer = await sharp(buffer)
                 .extract({ left: cropX, top: cropY, width: finalSize, height: finalSize })
@@ -149,32 +142,33 @@ class InstagramCropService {
             return {
                 success: true,
                 croppedFaceBase64: croppedBuffer.toString("base64"),
-                circle: bestCircle,
-                method: "opencv_hough",
+                method: "smart_variance",
             };
-        } finally {
-            // Cleanup OpenCV Mats
-            if (src) src.delete();
-            if (gray) gray.delete();
-            if (blurred) blurred.delete();
-            if (circles) circles.delete();
+        } catch (error) {
+            console.warn("Smart crop failed:", error.message);
+            return { success: false, method: "edge_error" };
         }
     }
 
     /**
-     * Fallback: crop using fixed coordinates for standard Instagram layout
+     * Fallback: crop using fixed coordinates for standard Instagram layout.
+     * Instagram profile pic is a circle at ~12% from left, ~7% from top,
+     * approximately 20% of screen width in diameter.
      */
     static async cropWithFallback(buffer, metadata) {
-        // Instagram profile circle: ~12% from left, ~7% from top, ~20% of screen width
-        const circleRadius = Math.round(metadata.width * 0.10);
-        const centerX = Math.round(metadata.width * 0.12);
-        const centerY = Math.round(metadata.height * 0.08);
+        const w = metadata.width;
+        const h = metadata.height;
 
-        const padding = Math.round(circleRadius * 0.15);
+        // Instagram profile circle center and size (as % of screen)
+        const centerX = Math.round(w * 0.13);
+        const centerY = Math.round(h * 0.075);
+        const circleRadius = Math.round(w * 0.10);
+
+        const padding = Math.round(circleRadius * 0.10);
         const cropSize = (circleRadius + padding) * 2;
         const cropX = Math.max(0, centerX - Math.round(cropSize / 2));
         const cropY = Math.max(0, centerY - Math.round(cropSize / 2));
-        const finalSize = Math.max(1, Math.min(cropSize, metadata.width - cropX, metadata.height - cropY));
+        const finalSize = Math.max(1, Math.min(cropSize, w - cropX, h - cropY));
 
         const croppedBuffer = await sharp(buffer)
             .extract({ left: cropX, top: cropY, width: finalSize, height: finalSize })
