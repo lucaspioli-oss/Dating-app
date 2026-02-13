@@ -124,7 +124,13 @@ class KeyboardViewController: UIInputViewController {
             // Try to restore previously selected conversation
             if let saved = restoreSavedConversation() {
                 selectedConversation = saved
-                currentState = .awaitingClipboard
+                // Restore multi-message state if user was in that mode
+                if let savedMessages = restoreMultiMessageState() {
+                    multiMessages = savedMessages
+                    currentState = .multipleMessages
+                } else {
+                    currentState = .awaitingClipboard
+                }
                 // Also fetch conversations in background so back button works
                 fetchConversations(silent: true)
             } else {

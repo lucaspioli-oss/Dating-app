@@ -205,6 +205,7 @@ extension KeyboardViewController {
 
     @objc func backToAwaitingTapped() {
         multiMessages = ["", ""]
+        clearMultiMessageState()
         currentState = .awaitingClipboard
         renderCurrentState()
     }
@@ -214,6 +215,8 @@ extension KeyboardViewController {
         guard index >= 0 && index < multiMessages.count else { return }
         if let text = UIPasteboard.general.string, !text.isEmpty {
             multiMessages[index] = text
+            previousClipboard = text
+            saveMultiMessageState()
             renderCurrentState()
         }
     }
@@ -222,11 +225,13 @@ extension KeyboardViewController {
         let index = sender.tag - 600
         guard index >= 0 && index < multiMessages.count else { return }
         multiMessages[index] = ""
+        saveMultiMessageState()
         renderCurrentState()
     }
 
     @objc func addMultiMessageTapped() {
         multiMessages.append("")
+        saveMultiMessageState()
         renderCurrentState()
     }
 
@@ -241,6 +246,7 @@ extension KeyboardViewController {
         clipboardText = combinedText
         previousClipboard = UIPasteboard.general.string
         stopClipboardPolling()
+        clearMultiMessageState()
         suggestions = []
         isLoadingSuggestions = true
         currentState = .suggestions

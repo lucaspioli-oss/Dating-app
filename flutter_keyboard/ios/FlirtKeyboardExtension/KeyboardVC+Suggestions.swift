@@ -7,6 +7,15 @@ extension KeyboardViewController {
     func renderSuggestions() {
         guard let conv = selectedConversation else { return }
 
+        // Back button
+        let backBtn = UIButton(type: .system)
+        backBtn.setTitle("←", for: .normal)
+        backBtn.setTitleColor(Theme.textSecondary, for: .normal)
+        backBtn.titleLabel?.font = UIFont.systemFont(ofSize: 16)
+        backBtn.translatesAutoresizingMaskIntoConstraints = false
+        backBtn.addTarget(self, action: #selector(backFromSuggestionsTapped), for: .touchUpInside)
+        containerView.addSubview(backBtn)
+
         // Compact header with message preview
         let headerLabel = makeLabel("👤 \(conv.matchName)", size: 11, bold: true)
         containerView.addSubview(headerLabel)
@@ -17,8 +26,12 @@ extension KeyboardViewController {
         containerView.addSubview(clipPreview)
 
         NSLayoutConstraint.activate([
+            backBtn.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 4),
+            backBtn.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 8),
+            backBtn.widthAnchor.constraint(equalToConstant: 28),
+            backBtn.heightAnchor.constraint(equalToConstant: 24),
             headerLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 6),
-            headerLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+            headerLabel.leadingAnchor.constraint(equalTo: backBtn.trailingAnchor, constant: 2),
             clipPreview.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 6),
             clipPreview.leadingAnchor.constraint(equalTo: headerLabel.trailingAnchor, constant: 8),
             clipPreview.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),

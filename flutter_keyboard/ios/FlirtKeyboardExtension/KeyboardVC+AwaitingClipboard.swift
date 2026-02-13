@@ -111,6 +111,7 @@ extension KeyboardViewController {
         stopClipboardPolling()
         multiMessages = ["", ""]
         currentState = .multipleMessages
+        saveMultiMessageState()
         renderCurrentState()
     }
 }

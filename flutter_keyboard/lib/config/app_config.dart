@@ -12,9 +12,9 @@ class AppConfig {
   static const String appVersion = '1.0.0';
 
   // Apple In-App Purchase Product IDs
-  static const String appleMonthlyProductId = 'desenrola_ai_monthly';
-  static const String appleQuarterlyProductId = 'desenrola_ai_quarterly';
-  static const String appleYearlyProductId = 'desenrola_ai_yearly';
+  static const String appleMonthlyProductId = 'desenrola_ai_monthly_v2';
+  static const String appleQuarterlyProductId = 'desenrola_ai_quarterly_v2';
+  static const String appleYearlyProductId = 'desenrola_ai_yearly_v2';
 
   static const Set<String> appleProductIds = {
     appleMonthlyProductId,

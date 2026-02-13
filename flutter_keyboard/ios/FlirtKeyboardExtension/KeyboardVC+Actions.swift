@@ -138,10 +138,18 @@ extension KeyboardViewController {
         searchText = ""
         isSearchActive = false
         multiMessages = ["", ""]
+        clearMultiMessageState()
         selectedConversation = nil
         saveSelectedConversation(nil)
         filteredConversations = conversations
         currentState = authToken != nil ? .profileSelector : .basicMode
+        renderCurrentState()
+    }
+
+    @objc func backFromSuggestionsTapped() {
+        suggestions = []
+        clipboardText = nil
+        currentState = .awaitingClipboard
         renderCurrentState()
     }
 

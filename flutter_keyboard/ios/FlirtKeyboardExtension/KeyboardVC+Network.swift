@@ -27,6 +27,32 @@ extension KeyboardViewController {
         defaults.synchronize()
     }
 
+    // MARK: - Persist Multi-Message State
+
+    func saveMultiMessageState() {
+        guard let defaults = sharedDefaults else { return }
+        defaults.set(true, forKey: "kb_inMultiMessage")
+        if let data = try? JSONSerialization.data(withJSONObject: multiMessages) {
+            defaults.set(data, forKey: "kb_multiMessages")
+        }
+        defaults.synchronize()
+    }
+
+    func clearMultiMessageState() {
+        guard let defaults = sharedDefaults else { return }
+        defaults.removeObject(forKey: "kb_inMultiMessage")
+        defaults.removeObject(forKey: "kb_multiMessages")
+        defaults.synchronize()
+    }
+
+    func restoreMultiMessageState() -> [String]? {
+        guard let defaults = sharedDefaults,
+              defaults.bool(forKey: "kb_inMultiMessage"),
+              let data = defaults.data(forKey: "kb_multiMessages"),
+              let messages = try? JSONSerialization.jsonObject(with: data) as? [String] else { return nil }
+        return messages
+    }
+
     func restoreSavedConversation() -> ConversationContext? {
         guard let defaults = sharedDefaults,
               let name = defaults.string(forKey: "kb_selectedMatchName"),
