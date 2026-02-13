@@ -162,6 +162,8 @@ extension KeyboardViewController {
 
         if let conv = selectedConversation, let convId = conv.conversationId {
             sendMessageToServer(conversationId: convId, content: text, wasAiSuggestion: true)
+        } else {
+            NSLog("[KB] suggestionTapped: no conversation selected or missing convId — message NOT saved")
         }
 
         suggestions = []
@@ -196,6 +198,8 @@ extension KeyboardViewController {
 
         if let conv = selectedConversation, let convId = conv.conversationId {
             sendMessageToServer(conversationId: convId, content: writeOwnText, wasAiSuggestion: false)
+        } else {
+            NSLog("[KB] insertOwnTapped: no conversation selected or missing convId — message NOT saved")
         }
 
         writeOwnText = ""

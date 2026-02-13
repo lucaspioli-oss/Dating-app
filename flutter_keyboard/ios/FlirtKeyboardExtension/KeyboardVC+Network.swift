@@ -181,8 +181,10 @@ extension KeyboardViewController {
                    let arr = json["conversations"] as? [[String: Any]] {
                     let contexts = arr.compactMap { dict -> ConversationContext? in
                         guard let name = dict["matchName"] as? String else { return nil }
+                        let convId = dict["conversationId"] as? String
+                        NSLog("[KB] fetchConversations: name=\(name) convId=\(convId ?? "nil")")
                         return ConversationContext(
-                            conversationId: dict["conversationId"] as? String,
+                            conversationId: convId,
                             profileId: dict["profileId"] as? String,
                             matchName: name,
                             platform: dict["platform"] as? String ?? "tinder",
@@ -190,6 +192,7 @@ extension KeyboardViewController {
                             faceImageBase64: dict["faceImageBase64"] as? String
                         )
                     }
+                    NSLog("[KB] fetchConversations: loaded \(contexts.count) conversations")
                     DispatchQueue.main.async {
                         self?.conversations = contexts
                         self?.filteredConversations = contexts
@@ -220,6 +223,8 @@ extension KeyboardViewController {
     func analyzeText(_ text: String, tone: String, conversationId: String?, objective: String?) {
         guard let url = URL(string: "\(backendUrl)/analyze") else { return }
 
+        NSLog("[KB] analyzeText: convId=\(conversationId ?? "nil") tone=\(tone) text=\(text.prefix(40))...")
+
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -227,6 +232,8 @@ extension KeyboardViewController {
 
         if let token = authToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        } else {
+            NSLog("[KB] analyzeText: WARNING — no auth token, message won't be saved to conversation")
         }
 
         var body: [String: Any] = ["text": text, "tone": tone]
@@ -267,13 +274,16 @@ extension KeyboardViewController {
 
     func sendMessageToServer(conversationId: String, content: String, wasAiSuggestion: Bool) {
         guard let token = authToken,
-              let url = URL(string: "\(backendUrl)/keyboard/send-message") else { return }
+              let url = URL(string: "\(backendUrl)/keyboard/send-message") else {
+            NSLog("[KB] sendMessage: missing token or invalid URL")
+            return
+        }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.timeoutInterval = 10
+        request.timeoutInterval = 15
 
         let body: [String: Any] = [
             "conversationId": conversationId,
@@ -283,8 +293,25 @@ extension KeyboardViewController {
             "objective": currentObjective(),
         ]
 
-        do { request.httpBody = try JSONSerialization.data(withJSONObject: body) } catch { return }
-        URLSession.shared.dataTask(with: request) { _, _, _ in }.resume()
+        do { request.httpBody = try JSONSerialization.data(withJSONObject: body) } catch {
+            NSLog("[KB] sendMessage: JSON serialization failed: \(error)")
+            return
+        }
+
+        NSLog("[KB] sendMessage: sending to convId=\(conversationId) content=\(content.prefix(40))...")
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                NSLog("[KB] sendMessage FAILED: \(error.localizedDescription)")
+                return
+            }
+            let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+            let body = data.flatMap { String(data: $0, encoding: .utf8) } ?? "no body"
+            if statusCode == 200 {
+                NSLog("[KB] sendMessage OK (200)")
+            } else {
+                NSLog("[KB] sendMessage ERROR: HTTP \(statusCode) — \(body)")
+            }
+        }.resume()
     }
 
     // MARK: - Clipboard Polling
