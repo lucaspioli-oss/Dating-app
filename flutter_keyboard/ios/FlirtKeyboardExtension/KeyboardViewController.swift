@@ -87,6 +87,7 @@ class KeyboardViewController: UIInputViewController {
     var clipboardText: String?
     var suggestions: [String] = []
     var previousClipboard: String?
+    var consumedClipboard: String?
     var isLoadingProfiles = true
     var profilesError: String?
     var searchText: String = ""
@@ -130,9 +131,10 @@ class KeyboardViewController: UIInputViewController {
             // Try to restore previously selected conversation
             if let saved = restoreSavedConversation() {
                 selectedConversation = saved
-                // Restore objective if recent (< 30 min)
-                if let savedObj = sharedDefaults?.integer(forKey: "kb_selectedObjective"),
-                   let savedTime = sharedDefaults?.object(forKey: "kb_objectiveSelectedAt") as? Date,
+                // Restore objective per profile if recent (< 30 min)
+                let objKey = objectiveKey(for: saved)
+                if let savedObj = sharedDefaults?.integer(forKey: objKey),
+                   let savedTime = sharedDefaults?.object(forKey: "\(objKey)_at") as? Date,
                    Date().timeIntervalSince(savedTime) < 1800 {
                     selectedObjectiveIndex = savedObj
                     // Restore multi-message state if user was in that mode
@@ -149,7 +151,13 @@ class KeyboardViewController: UIInputViewController {
                 fetchConversations(silent: true)
             } else {
                 currentState = .profileSelector
-                fetchConversations()
+                // Load cached profiles for instant display
+                if let cached = loadCachedConversations(), !cached.isEmpty {
+                    conversations = cached
+                    filteredConversations = cached
+                    isLoadingProfiles = false
+                }
+                fetchConversations(silent: !conversations.isEmpty)
             }
         } else {
             currentState = .basicMode
@@ -162,10 +170,10 @@ class KeyboardViewController: UIInputViewController {
 
     func heightForState(_ state: KeyboardState) -> CGFloat {
         switch state {
-        case .profileSelector where isSearchActive: return 320
-        case .writeOwn: return 320
-        case .multipleMessages: return 320
-        default: return 300
+        case .profileSelector where isSearchActive: return 350
+        case .writeOwn: return 350
+        case .multipleMessages: return 350
+        default: return 320
         }
     }
 

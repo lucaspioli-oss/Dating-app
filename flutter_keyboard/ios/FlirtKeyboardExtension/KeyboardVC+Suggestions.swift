@@ -179,9 +179,7 @@ extension KeyboardViewController {
             tonePill.trailingAnchor.constraint(lessThanOrEqualTo: bottomBar.trailingAnchor),
         ])
 
-        UIView.animate(withDuration: 0.6, delay: 0, options: [.repeat, .autoreverse, .curveEaseInOut], animations: {
-            writeCursor.alpha = 0
-        })
+        startCursorBlink(writeCursor)
     }
 
     func makeSuggestionCard(index: Int, text: String, isBasicMode: Bool = false) -> UIView {
@@ -201,6 +199,19 @@ extension KeyboardViewController {
         textLabel.translatesAutoresizingMaskIntoConstraints = false
         card.addSubview(textLabel)
 
+        // Edit button (only in pro mode)
+        var editBtn: UIButton? = nil
+        if !isBasicMode {
+            let btn = UIButton(type: .system)
+            btn.setImage(UIImage(systemName: "pencil.circle.fill"), for: .normal)
+            btn.tintColor = Theme.orange
+            btn.translatesAutoresizingMaskIntoConstraints = false
+            btn.tag = 200 + index
+            btn.addTarget(self, action: #selector(editSuggestionTapped(_:)), for: .touchUpInside)
+            card.addSubview(btn)
+            editBtn = btn
+        }
+
         // Send/select button
         let sendBtn = UIButton(type: .system)
         sendBtn.setImage(UIImage(systemName: "arrow.up.circle.fill"), for: .normal)
@@ -217,10 +228,12 @@ extension KeyboardViewController {
         tapBtn.addTarget(self, action: isBasicMode ? #selector(basicSuggestionTapped(_:)) : #selector(suggestionTapped(_:)), for: .touchUpInside)
         card.insertSubview(tapBtn, at: 0)
 
+        let textTrailingAnchor = editBtn?.leadingAnchor ?? sendBtn.leadingAnchor
+
         NSLayoutConstraint.activate([
             textLabel.topAnchor.constraint(equalTo: card.topAnchor, constant: 10),
             textLabel.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 12),
-            textLabel.trailingAnchor.constraint(equalTo: sendBtn.leadingAnchor, constant: -8),
+            textLabel.trailingAnchor.constraint(equalTo: textTrailingAnchor, constant: -6),
             textLabel.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -10),
             sendBtn.centerYAnchor.constraint(equalTo: card.centerYAnchor),
             sendBtn.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -10),
@@ -228,9 +241,18 @@ extension KeyboardViewController {
             sendBtn.heightAnchor.constraint(equalToConstant: 30),
             tapBtn.topAnchor.constraint(equalTo: card.topAnchor),
             tapBtn.leadingAnchor.constraint(equalTo: card.leadingAnchor),
-            tapBtn.trailingAnchor.constraint(equalTo: sendBtn.leadingAnchor),
+            tapBtn.trailingAnchor.constraint(equalTo: textTrailingAnchor),
             tapBtn.bottomAnchor.constraint(equalTo: card.bottomAnchor),
         ])
+
+        if let editBtn = editBtn {
+            NSLayoutConstraint.activate([
+                editBtn.centerYAnchor.constraint(equalTo: card.centerYAnchor),
+                editBtn.trailingAnchor.constraint(equalTo: sendBtn.leadingAnchor, constant: -4),
+                editBtn.widthAnchor.constraint(equalToConstant: 28),
+                editBtn.heightAnchor.constraint(equalToConstant: 28),
+            ])
+        }
 
         return card
     }

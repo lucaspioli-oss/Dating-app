@@ -7,6 +7,15 @@ extension KeyboardViewController {
     func currentTone() -> String { return availableTones[selectedToneIndex] }
     func currentObjective() -> String { return availableObjectives[selectedObjectiveIndex].id }
 
+    // MARK: - Objective Per Profile Keys
+
+    func objectiveKey(for conv: ConversationContext) -> String {
+        let name = conv.matchName.lowercased()
+            .folding(options: .diacriticInsensitive, locale: .current)
+            .replacingOccurrences(of: " ", with: "_")
+        return "kb_obj_\(name)_\(conv.platform)"
+    }
+
     // MARK: - Persist Selected Conversation
 
     func saveSelectedConversation(_ conv: ConversationContext?) {
@@ -25,6 +34,44 @@ extension KeyboardViewController {
             defaults.removeObject(forKey: "kb_selectedLastMsg")
         }
         defaults.synchronize()
+    }
+
+    // MARK: - Profile Cache
+
+    func cacheConversations(_ conversations: [ConversationContext]) {
+        guard let defaults = sharedDefaults else { return }
+        let jsonArray: [[String: Any?]] = conversations.map { conv in
+            return [
+                "conversationId": conv.conversationId,
+                "profileId": conv.profileId,
+                "matchName": conv.matchName,
+                "platform": conv.platform,
+                "lastMessage": conv.lastMessage,
+            ]
+        }
+        if let data = try? JSONSerialization.data(withJSONObject: jsonArray) {
+            defaults.set(data, forKey: "kb_cachedProfiles")
+            defaults.synchronize()
+        }
+    }
+
+    func loadCachedConversations() -> [ConversationContext]? {
+        guard let defaults = sharedDefaults,
+              let data = defaults.data(forKey: "kb_cachedProfiles"),
+              let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+            return nil
+        }
+        return arr.compactMap { dict -> ConversationContext? in
+            guard let name = dict["matchName"] as? String else { return nil }
+            return ConversationContext(
+                conversationId: dict["conversationId"] as? String,
+                profileId: dict["profileId"] as? String,
+                matchName: name,
+                platform: dict["platform"] as? String ?? "tinder",
+                lastMessage: dict["lastMessage"] as? String,
+                faceImageBase64: nil
+            )
+        }
     }
 
     // MARK: - Persist Multi-Message State
@@ -194,11 +241,16 @@ extension KeyboardViewController {
                     }
                     NSLog("[KB] fetchConversations: loaded \(contexts.count) conversations")
                     DispatchQueue.main.async {
+                        let oldNames = self?.conversations.map { $0.matchName } ?? []
                         self?.conversations = contexts
                         self?.filteredConversations = contexts
                         self?.isLoadingProfiles = false
                         self?.profilesError = nil
-                        if !silent { self?.renderCurrentState() }
+                        self?.cacheConversations(contexts)
+                        let newNames = contexts.map { $0.matchName }
+                        if !silent || oldNames != newNames {
+                            self?.renderCurrentState()
+                        }
                     }
                 } else if !silent {
                     let raw = String(data: data, encoding: .utf8) ?? "?"
@@ -272,10 +324,11 @@ extension KeyboardViewController {
         }.resume()
     }
 
-    func sendMessageToServer(conversationId: String, content: String, wasAiSuggestion: Bool) {
+    func sendMessageToServer(conversationId: String?, profileId: String?, content: String, wasAiSuggestion: Bool) {
         guard let token = authToken,
+              (conversationId != nil || profileId != nil),
               let url = URL(string: "\(backendUrl)/keyboard/send-message") else {
-            NSLog("[KB] sendMessage: missing token or invalid URL")
+            NSLog("[KB] sendMessage: missing token or no id")
             return
         }
 
@@ -285,13 +338,14 @@ extension KeyboardViewController {
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.timeoutInterval = 15
 
-        let body: [String: Any] = [
-            "conversationId": conversationId,
+        var body: [String: Any] = [
             "content": content,
             "wasAiSuggestion": wasAiSuggestion,
             "tone": currentTone(),
             "objective": currentObjective(),
         ]
+        if let convId = conversationId { body["conversationId"] = convId }
+        if let pid = profileId { body["profileId"] = pid }
 
         do { request.httpBody = try JSONSerialization.data(withJSONObject: body) } catch {
             NSLog("[KB] sendMessage: JSON serialization failed: \(error)")
@@ -491,11 +545,13 @@ extension KeyboardViewController {
     func checkClipboard() {
         guard let current = UIPasteboard.general.string,
               !current.isEmpty,
-              current != previousClipboard else { return }
+              current != previousClipboard,
+              current != consumedClipboard else { return }
 
         stopClipboardPolling()
         clipboardText = current
         previousClipboard = current
+        consumedClipboard = current
         suggestions = []
         isLoadingSuggestions = true
         currentState = .suggestions

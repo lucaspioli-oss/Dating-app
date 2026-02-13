@@ -287,6 +287,7 @@ class AgentService {
           facePosition: extractedData['facePosition'] is Map
               ? Map<String, dynamic>.from(extractedData['facePosition'])
               : null,
+          serverCroppedFaceBase64: data['croppedFaceBase64'] as String?,
         );
       } else {
         return ProfileImageResponse.error(
@@ -481,6 +482,7 @@ class ProfileImageResponse {
   final String? additionalInfo;
   final String? faceDescription;    // Descrição facial para identificação
   final Map<String, dynamic>? facePosition; // {centerX, centerY, size} em % (0-100)
+  final String? serverCroppedFaceBase64; // Server-side cropped face (OpenCV)
   final String? errorMessage;
 
   ProfileImageResponse._({
@@ -496,6 +498,7 @@ class ProfileImageResponse {
     this.additionalInfo,
     this.faceDescription,
     this.facePosition,
+    this.serverCroppedFaceBase64,
     this.errorMessage,
   });
 
@@ -511,6 +514,7 @@ class ProfileImageResponse {
     String? additionalInfo,
     String? faceDescription,
     Map<String, dynamic>? facePosition,
+    String? serverCroppedFaceBase64,
   }) {
     return ProfileImageResponse._(
       success: true,
@@ -525,6 +529,7 @@ class ProfileImageResponse {
       additionalInfo: additionalInfo,
       faceDescription: faceDescription,
       facePosition: facePosition,
+      serverCroppedFaceBase64: serverCroppedFaceBase64,
     );
   }
 

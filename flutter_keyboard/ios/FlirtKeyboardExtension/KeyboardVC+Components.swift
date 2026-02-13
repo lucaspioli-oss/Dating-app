@@ -398,6 +398,13 @@ extension KeyboardViewController {
         return container
     }
 
+    func startCursorBlink(_ cursor: UIView) {
+        UIView.animateKeyframes(withDuration: 1.0, delay: 0, options: [.repeat]) {
+            UIView.addKeyframe(withRelativeStartTime: 0.0, relativeDuration: 0.01) { cursor.alpha = 1 }
+            UIView.addKeyframe(withRelativeStartTime: 0.5, relativeDuration: 0.01) { cursor.alpha = 0 }
+        }
+    }
+
     func makeKeyboardSwitchButton() -> UIButton {
         let btn = UIButton(type: .system)
         btn.setTitle("🌐", for: .normal)

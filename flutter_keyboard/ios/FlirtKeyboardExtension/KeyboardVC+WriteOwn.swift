@@ -58,8 +58,6 @@ extension KeyboardViewController {
             cursor.heightAnchor.constraint(equalToConstant: 18),
         ])
 
-        UIView.animate(withDuration: 0.6, delay: 0, options: [.repeat, .autoreverse, .curveEaseInOut], animations: {
-            cursor.alpha = 0
-        })
+        startCursorBlink(cursor)
     }
 }

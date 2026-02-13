@@ -48,9 +48,7 @@ extension KeyboardViewController {
                 cursor.heightAnchor.constraint(equalToConstant: 16),
             ])
 
-            UIView.animate(withDuration: 0.6, delay: 0, options: [.repeat, .autoreverse, .curveEaseInOut], animations: {
-                cursor.alpha = 0
-            })
+            startCursorBlink(cursor)
 
             let qwertyView = makeQWERTYKeyboard(forSearch: true)
             containerView.addSubview(qwertyView)
@@ -126,7 +124,7 @@ extension KeyboardViewController {
                 scrollView.topAnchor.constraint(equalTo: searchContainer.bottomAnchor, constant: 8),
                 scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
                 scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
-                scrollView.heightAnchor.constraint(equalToConstant: 80),
+                scrollView.heightAnchor.constraint(equalToConstant: 90),
             ])
 
             let stackView = UIStackView()

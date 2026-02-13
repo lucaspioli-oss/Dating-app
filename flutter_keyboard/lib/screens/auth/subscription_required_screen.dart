@@ -29,6 +29,7 @@ class _SubscriptionRequiredScreenState
   int _selectedPlan = 1; // 0 = monthly, 1 = quarterly, 2 = yearly
   bool _isPurchasing = false;
   bool _isLoadingProducts = true;
+  bool _productsLoadFailed = false;
   final AppleIAPService _iapService = AppleIAPService();
   StreamSubscription<PurchaseStatus>? _purchaseSubscription;
 
@@ -61,7 +62,31 @@ class _SubscriptionRequiredScreenState
           break;
       }
     });
-    if (mounted) setState(() => _isLoadingProducts = false);
+    if (!mounted) return;
+    if (_iapService.products.isNotEmpty) {
+      setState(() {
+        _isLoadingProducts = false;
+        _productsLoadFailed = false;
+      });
+    } else {
+      setState(() {
+        _isLoadingProducts = false;
+        _productsLoadFailed = true;
+      });
+    }
+  }
+
+  Future<void> _retryLoadProducts() async {
+    setState(() {
+      _isLoadingProducts = true;
+      _productsLoadFailed = false;
+    });
+    await _iapService.reloadProducts();
+    if (!mounted) return;
+    setState(() {
+      _isLoadingProducts = false;
+      _productsLoadFailed = _iapService.products.isEmpty;
+    });
   }
 
   @override
@@ -87,7 +112,17 @@ class _SubscriptionRequiredScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 24),
+              // Back arrow (only if can pop)
+              if (Navigator.canPop(context))
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+              if (!Navigator.canPop(context))
+                const SizedBox(height: 24),
               const Text(
                 'Desenrola AI',
                 textAlign: TextAlign.center,
@@ -123,6 +158,31 @@ class _SubscriptionRequiredScreenState
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 40),
                   child: AppLoading(message: 'Carregando planos...'),
+                )
+              else if (_productsLoadFailed)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 40),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Não foi possível carregar os planos.',
+                        style: TextStyle(color: AppColors.textTertiary, fontSize: 14),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        onPressed: _retryLoadProducts,
+                        icon: const Icon(Icons.refresh, size: 18),
+                        label: const Text('Tentar novamente'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: AppColors.textPrimary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 )
               else
                 Column(
@@ -360,12 +420,20 @@ class _SubscriptionRequiredScreenState
                       ),
                     ),
                   ] else ...[
+                    const SizedBox(
+                      height: 32,
+                      width: 32,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.textTertiary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
                     Text(
-                      planName,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                      'Carregando preço...',
+                      style: TextStyle(
+                        color: AppColors.textTertiary,
+                        fontSize: 12,
                       ),
                     ),
                   ],

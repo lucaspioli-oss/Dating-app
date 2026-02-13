@@ -12,6 +12,7 @@ const conversation_manager_1 = require("./services/conversation-manager");
 const prompts_1 = require("./prompts");
 const stripe_1 = require("./services/stripe");
 const auth_1 = require("./middleware/auth");
+const instagram_crop_service_1 = require("./services/instagram-crop-service");
 const fastify = (0, fastify_1.default)({
     logger: true,
 });
@@ -395,8 +396,25 @@ fastify.post('/analyze-profile-image', async (request, reply) => {
             imageMediaType: imageMediaType || 'image/jpeg',
             platform,
         });
+        // For Instagram: server-side crop using OpenCV HoughCircles
+        let croppedFaceBase64 = null;
+        if (platform && platform.toLowerCase() === 'instagram') {
+            try {
+                const cropResult = await instagram_crop_service_1.InstagramCropService.cropProfilePhoto(imageBase64);
+                if (cropResult.success && cropResult.croppedFaceBase64) {
+                    croppedFaceBase64 = cropResult.croppedFaceBase64;
+                    console.log(`Instagram face crop: method=${cropResult.method}` +
+                        (cropResult.circle ? ` circle=(${cropResult.circle.x},${cropResult.circle.y}) r=${cropResult.circle.r}` : ''));
+                }
+            } catch (cropError) {
+                console.warn('Instagram crop failed, client will use fallback:', cropError.message);
+            }
+        }
         // Analysis completed successfully
-        return reply.code(200).send({ extractedData: result });
+        return reply.code(200).send({
+            extractedData: result,
+            ...(croppedFaceBase64 ? { croppedFaceBase64 } : {}),
+        });
     }
     catch (error) {
         console.error('❌ Erro ao analisar imagem:', error);
@@ -790,17 +808,68 @@ fastify.post('/keyboard/send-message', {
 }, async (request, reply) => {
     try {
         const userId = request.user.uid;
-        const { conversationId, content, wasAiSuggestion, tone, objective } = request.body;
-        if (!conversationId || !content) {
+        const { conversationId, profileId, content, wasAiSuggestion, tone, objective } = request.body;
+        if (!content) {
             return reply.code(400).send({
                 error: 'Missing required fields',
-                message: 'conversationId and content are required',
+                message: 'content is required',
+            });
+        }
+        if (!conversationId && !profileId) {
+            return reply.code(400).send({
+                error: 'Missing required fields',
+                message: 'conversationId or profileId is required',
             });
         }
         const admin = require('firebase-admin');
         const db = admin.firestore();
+        let activeConversationId = conversationId;
+        // Auto-create conversation if only profileId provided
+        if (!activeConversationId && profileId) {
+            // Check for existing active conversation first
+            const existingConv = await db.collection('conversations')
+                .where('userId', '==', userId)
+                .where('profileId', '==', profileId)
+                .where('status', '==', 'active')
+                .limit(1)
+                .get();
+            if (!existingConv.empty) {
+                activeConversationId = existingConv.docs[0].id;
+            } else {
+                // Create new conversation from profile
+                const profileDoc = await db.collection('profiles').doc(profileId).get();
+                if (!profileDoc.exists || profileDoc.data().userId !== userId) {
+                    return reply.code(404).send({ error: 'Perfil não encontrado' });
+                }
+                const profileData = profileDoc.data();
+                const platforms = profileData.platforms || {};
+                const firstPlatformKey = Object.keys(platforms)[0];
+                const platformData = firstPlatformKey ? platforms[firstPlatformKey] : {};
+                const platform = platformData.type || firstPlatformKey || 'tinder';
+                const newConvRef = db.collection('conversations').doc();
+                await newConvRef.set({
+                    userId,
+                    profileId,
+                    status: 'active',
+                    avatar: {
+                        matchName: profileData.name || 'Desconhecida',
+                        platform,
+                        bio: platformData.bio || '',
+                        photoDescriptions: platformData.photoDescriptions || [],
+                        age: platformData.age || null,
+                        analytics: { totalMessages: 0, aiSuggestionsUsed: 0, customMessagesUsed: 0 },
+                    },
+                    messages: [],
+                    currentTone: tone || 'casual',
+                    createdAt: admin.firestore.Timestamp.now(),
+                    lastMessageAt: admin.firestore.Timestamp.now(),
+                });
+                activeConversationId = newConvRef.id;
+                fastify.log.info(`Auto-created conversation ${activeConversationId} for profile ${profileId}`);
+            }
+        }
         // Verify conversation belongs to user
-        const convRef = db.collection('conversations').doc(conversationId);
+        const convRef = db.collection('conversations').doc(activeConversationId);
         const convDoc = await convRef.get();
         if (!convDoc.exists || convDoc.data().userId !== userId) {
             return reply.code(404).send({ error: 'Conversa não encontrada' });

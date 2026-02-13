@@ -66,7 +66,7 @@ extension KeyboardViewController {
 
         let columnGap: CGFloat = 8
         let rowGap: CGFloat = 8
-        let cardHeight: CGFloat = 56
+        let cardHeight: CGFloat = 62
         let rowCount = Int(ceil(Double(availableObjectives.count) / 2.0))
 
         // Calculate total content height
@@ -119,44 +119,48 @@ extension KeyboardViewController {
                 ])
             }
 
-            // ── Card inner content: emoji | title + description ──
+            // ── Card inner content: centered emoji+title / description ──
 
             let emojiLabel = UILabel()
             emojiLabel.text = objective.emoji
             emojiLabel.font = UIFont.systemFont(ofSize: 18)
-            emojiLabel.translatesAutoresizingMaskIntoConstraints = false
             emojiLabel.isUserInteractionEnabled = false
-            card.addSubview(emojiLabel)
 
             let titleLabel = UILabel()
             titleLabel.text = objective.title
             titleLabel.textColor = .white
             titleLabel.font = UIFont.boldSystemFont(ofSize: 12)
-            titleLabel.translatesAutoresizingMaskIntoConstraints = false
+            titleLabel.textAlignment = .center
             titleLabel.isUserInteractionEnabled = false
-            card.addSubview(titleLabel)
+
+            let topRow = UIStackView(arrangedSubviews: [emojiLabel, titleLabel])
+            topRow.axis = .horizontal
+            topRow.spacing = 4
+            topRow.alignment = .center
+            topRow.isUserInteractionEnabled = false
 
             let descLabel = UILabel()
             descLabel.text = objective.description
             descLabel.textColor = Theme.textSecondary
             descLabel.font = UIFont.systemFont(ofSize: 10)
+            descLabel.textAlignment = .center
             descLabel.numberOfLines = 2
             descLabel.lineBreakMode = .byTruncatingTail
-            descLabel.translatesAutoresizingMaskIntoConstraints = false
             descLabel.isUserInteractionEnabled = false
-            card.addSubview(descLabel)
+
+            let outerStack = UIStackView(arrangedSubviews: [topRow, descLabel])
+            outerStack.axis = .vertical
+            outerStack.spacing = 2
+            outerStack.alignment = .center
+            outerStack.translatesAutoresizingMaskIntoConstraints = false
+            outerStack.isUserInteractionEnabled = false
+            card.addSubview(outerStack)
 
             NSLayoutConstraint.activate([
-                emojiLabel.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 8),
-                emojiLabel.centerYAnchor.constraint(equalTo: card.centerYAnchor),
-
-                titleLabel.leadingAnchor.constraint(equalTo: emojiLabel.trailingAnchor, constant: 6),
-                titleLabel.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -6),
-                titleLabel.topAnchor.constraint(equalTo: card.topAnchor, constant: 10),
-
-                descLabel.leadingAnchor.constraint(equalTo: emojiLabel.trailingAnchor, constant: 6),
-                descLabel.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -6),
-                descLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 2),
+                outerStack.centerXAnchor.constraint(equalTo: card.centerXAnchor),
+                outerStack.centerYAnchor.constraint(equalTo: card.centerYAnchor),
+                outerStack.leadingAnchor.constraint(greaterThanOrEqualTo: card.leadingAnchor, constant: 4),
+                outerStack.trailingAnchor.constraint(lessThanOrEqualTo: card.trailingAnchor, constant: -4),
             ])
         }
     }

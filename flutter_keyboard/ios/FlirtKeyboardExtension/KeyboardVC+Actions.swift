@@ -16,7 +16,12 @@ extension KeyboardViewController {
 
     @objc func objectiveFromOverlayTapped(_ sender: UIButton) {
         selectedObjectiveIndex = sender.tag - 300
-        // Persist objective + timestamp
+        // Persist objective per profile + global fallback
+        if let conv = selectedConversation {
+            let key = objectiveKey(for: conv)
+            sharedDefaults?.set(selectedObjectiveIndex, forKey: key)
+            sharedDefaults?.set(Date(), forKey: "\(key)_at")
+        }
         sharedDefaults?.set(selectedObjectiveIndex, forKey: "kb_selectedObjective")
         sharedDefaults?.set(Date(), forKey: "kb_objectiveSelectedAt")
         sharedDefaults?.synchronize()
@@ -55,16 +60,15 @@ extension KeyboardViewController {
         suggestions = []
         searchText = ""
         isSearchActive = false
-        previousClipboard = UIPasteboard.general.string
-
-        // Check if objective was recently set (< 30 min)
-        if let _ = sharedDefaults?.integer(forKey: "kb_selectedObjective"),
-           let savedTime = sharedDefaults?.object(forKey: "kb_objectiveSelectedAt") as? Date,
+        // Check if objective was recently set for this profile (< 30 min)
+        let conv = filteredConversations[index]
+        let objKey = objectiveKey(for: conv)
+        if let savedObj = sharedDefaults?.integer(forKey: objKey),
+           let savedTime = sharedDefaults?.object(forKey: "\(objKey)_at") as? Date,
            Date().timeIntervalSince(savedTime) < 1800 {
-            // Recent objective → go straight to hub
+            selectedObjectiveIndex = savedObj
             currentState = .awaitingClipboard
         } else {
-            // No recent objective → show objective selection first
             currentState = .objectiveSelection
         }
         renderCurrentState()
@@ -74,7 +78,12 @@ extension KeyboardViewController {
 
     @objc func objectiveCardTapped(_ sender: UIButton) {
         selectedObjectiveIndex = sender.tag - 800
-        // Persist objective + timestamp
+        // Persist objective per profile + global fallback
+        if let conv = selectedConversation {
+            let key = objectiveKey(for: conv)
+            sharedDefaults?.set(selectedObjectiveIndex, forKey: key)
+            sharedDefaults?.set(Date(), forKey: "\(key)_at")
+        }
         sharedDefaults?.set(selectedObjectiveIndex, forKey: "kb_selectedObjective")
         sharedDefaults?.set(Date(), forKey: "kb_objectiveSelectedAt")
         sharedDefaults?.synchronize()
@@ -250,14 +259,12 @@ extension KeyboardViewController {
         UIPasteboard.general.string = text
         textDocumentProxy.insertText(text)
 
-        if let conv = selectedConversation, let convId = conv.conversationId {
-            sendMessageToServer(conversationId: convId, content: text, wasAiSuggestion: true)
-        } else {
-            NSLog("[KB] suggestionTapped: no conversation selected or missing convId — message NOT saved")
+        if let conv = selectedConversation {
+            sendMessageToServer(conversationId: conv.conversationId, profileId: conv.profileId, content: text, wasAiSuggestion: true)
         }
 
         suggestions = []
-        previousClipboard = UIPasteboard.general.string
+        consumedClipboard = UIPasteboard.general.string
         currentState = .awaitingClipboard
         renderCurrentState()
     }
@@ -268,6 +275,15 @@ extension KeyboardViewController {
         let text = suggestions[index]
         UIPasteboard.general.string = text
         textDocumentProxy.insertText(text)
+    }
+
+    @objc func editSuggestionTapped(_ sender: UIButton) {
+        let index = sender.tag - 200
+        guard index >= 0, index < suggestions.count else { return }
+        writeOwnText = suggestions[index]
+        isShiftActive = false
+        currentState = .writeOwn
+        renderCurrentState()
     }
 
     @objc func writeOwnTapped() {
@@ -286,15 +302,13 @@ extension KeyboardViewController {
         guard !writeOwnText.isEmpty else { return }
         textDocumentProxy.insertText(writeOwnText)
 
-        if let conv = selectedConversation, let convId = conv.conversationId {
-            sendMessageToServer(conversationId: convId, content: writeOwnText, wasAiSuggestion: false)
-        } else {
-            NSLog("[KB] insertOwnTapped: no conversation selected or missing convId — message NOT saved")
+        if let conv = selectedConversation {
+            sendMessageToServer(conversationId: conv.conversationId, profileId: conv.profileId, content: writeOwnText, wasAiSuggestion: false)
         }
 
         writeOwnText = ""
         suggestions = []
-        previousClipboard = UIPasteboard.general.string
+        consumedClipboard = UIPasteboard.general.string
         currentState = .awaitingClipboard
         renderCurrentState()
     }

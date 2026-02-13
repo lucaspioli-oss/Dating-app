@@ -191,7 +191,7 @@ extension KeyboardViewController {
             pillsStack.heightAnchor.constraint(equalToConstant: 28),
 
             // Paste box
-            pasteBox.topAnchor.constraint(equalTo: pillsStack.bottomAnchor, constant: 10),
+            pasteBox.topAnchor.constraint(equalTo: pillsStack.bottomAnchor, constant: 14),
             pasteBox.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
             pasteBox.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
             pasteBox.heightAnchor.constraint(equalToConstant: 48),
@@ -209,17 +209,17 @@ extension KeyboardViewController {
             hintLabel.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
 
             // Links
-            linksStack.topAnchor.constraint(equalTo: hintLabel.bottomAnchor, constant: 6),
+            linksStack.topAnchor.constraint(equalTo: hintLabel.bottomAnchor, constant: 10),
             linksStack.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
             linksStack.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
 
             // Divider
-            dividerStack.topAnchor.constraint(equalTo: linksStack.bottomAnchor, constant: 8),
+            dividerStack.topAnchor.constraint(equalTo: linksStack.bottomAnchor, constant: 10),
             dividerStack.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 24),
             dividerStack.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -24),
 
             // Start button
-            startContainer.topAnchor.constraint(equalTo: dividerStack.bottomAnchor, constant: 8),
+            startContainer.topAnchor.constraint(equalTo: dividerStack.bottomAnchor, constant: 10),
             startContainer.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
             startContainer.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
             startContainer.heightAnchor.constraint(equalToConstant: 44),
@@ -239,9 +239,10 @@ extension KeyboardViewController {
     }
 
     @objc func pasteBoxTapped() {
-        if let text = UIPasteboard.general.string, !text.isEmpty {
+        if let text = UIPasteboard.general.string, !text.isEmpty, text != consumedClipboard {
             clipboardText = text
             previousClipboard = text
+            consumedClipboard = text
             stopClipboardPolling()
             suggestions = []
             isLoadingSuggestions = true
