@@ -1509,18 +1509,34 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         final isPortrait = image.height > image.width * 1.3;
         final isInstagramScreenshot = platform == 'instagram' && isScreenshot && isPortrait;
 
-        if (isInstagramScreenshot) {
-          // Instagram: always use heuristic — CIDetector picks up faces from
-          // grid photos instead of the small profile circle, giving wrong crops.
-          // Profile circle: ~18% of width, centered at ~13% X, ~13% Y
-          cropSize = (image.width * 0.20).round().clamp(1, maxDim);
-          cropX = (image.width * 0.03).round().clamp(0, image.width - cropSize);
-          cropY = (image.height * 0.08).round().clamp(0, image.height - cropSize);
-        } else {
-          // Priority 2: Native CIDetector face detection (iOS)
-          final faceRect = await _detectFaceNative(bytes, image.width, image.height);
+        // Priority 2: Native CIDetector face detection (iOS)
+        final faceRect = await _detectFaceNative(bytes, image.width, image.height);
 
-          if (faceRect != null) {
+        if (faceRect != null) {
+          if (isInstagramScreenshot) {
+            // Instagram: only accept face if it's in the profile circle region
+            // (top-left: X < 35% of width, Y < 25% of height)
+            final inProfileRegion =
+                faceRect.center.dx < image.width * 0.35 &&
+                faceRect.center.dy < image.height * 0.25;
+
+            if (inProfileRegion) {
+              // Face found in avatar area — crop centered on it
+              final paddingFactor = 0.6;
+              final padW = (faceRect.width * paddingFactor).round();
+              final padH = (faceRect.height * paddingFactor).round();
+              final faceW = faceRect.width.round() + padW * 2;
+              final faceH = faceRect.height.round() + padH * 2;
+              cropSize = max(faceW, faceH).clamp(1, maxDim);
+              cropX = (faceRect.center.dx - cropSize / 2).round().clamp(0, image.width - cropSize);
+              cropY = (faceRect.center.dy - cropSize / 2).round().clamp(0, image.height - cropSize);
+            } else {
+              // Face is from grid photos — use heuristic for avatar position
+              cropSize = (image.width * 0.20).round().clamp(1, maxDim);
+              cropX = (image.width * 0.03).round().clamp(0, image.width - cropSize);
+              cropY = (image.height * 0.08).round().clamp(0, image.height - cropSize);
+            }
+          } else {
             final paddingFactor = 0.45;
             final padW = (faceRect.width * paddingFactor).round();
             final padH = (faceRect.height * paddingFactor).round();
@@ -1529,7 +1545,13 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             cropSize = max(faceW, faceH).clamp(1, maxDim);
             cropX = (faceRect.center.dx - cropSize / 2).round().clamp(0, image.width - cropSize);
             cropY = (faceRect.center.dy - cropSize / 2).round().clamp(0, image.height - cropSize);
-          } else if (isPortrait && isScreenshot) {
+          }
+        } else if (isInstagramScreenshot) {
+          // No face detected — use heuristic for Instagram avatar position
+          cropSize = (image.width * 0.20).round().clamp(1, maxDim);
+          cropX = (image.width * 0.03).round().clamp(0, image.width - cropSize);
+          cropY = (image.height * 0.08).round().clamp(0, image.height - cropSize);
+        } else if (isPortrait && isScreenshot) {
             // Other dating app screenshots: face usually center-top
             cropSize = (image.width * 0.5).round().clamp(1, maxDim);
             cropX = ((image.width - cropSize) / 2).round().clamp(0, image.width - cropSize);
