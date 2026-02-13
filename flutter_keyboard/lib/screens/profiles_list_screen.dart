@@ -487,6 +487,10 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
         return 'assets/images/bumble.png';
       case PlatformType.hinge:
         return 'assets/images/hinge.png';
+      case PlatformType.umatch:
+        return 'assets/images/umatch.png';
+      case PlatformType.whatsapp:
+        return 'assets/images/whatsapp.png';
       default:
         return null;
     }
@@ -524,6 +528,10 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
         return 'Ha';
       case PlatformType.innerCircle:
         return 'IC';
+      case PlatformType.umatch:
+        return 'U';
+      case PlatformType.whatsapp:
+        return 'W';
       default:
         return '?';
     }
@@ -561,6 +569,18 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         );
+      case PlatformType.umatch:
+        return const LinearGradient(
+          colors: [Color(0xFFE8344E), Color(0xFFD42040)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+      case PlatformType.whatsapp:
+        return const LinearGradient(
+          colors: [Color(0xFF25D366), Color(0xFF128C7E)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
       default:
         return const LinearGradient(
           colors: [Color(0xFF6B7280), Color(0xFF4B5563)],
@@ -582,6 +602,10 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
         return const Color(0xFF8B5CF6);
       case PlatformType.happn:
         return const Color(0xFFFF9500);
+      case PlatformType.umatch:
+        return const Color(0xFFE8344E);
+      case PlatformType.whatsapp:
+        return const Color(0xFF25D366);
       default:
         return const Color(0xFF6B7280);
     }

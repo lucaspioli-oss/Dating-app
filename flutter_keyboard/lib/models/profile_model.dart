@@ -50,7 +50,7 @@ enum PlatformType {
       case PlatformType.innerCircle:
         return '⭐';
       case PlatformType.umatch:
-        return '💚';
+        return '❤️';
       case PlatformType.whatsapp:
         return '💬';
       case PlatformType.outro:
