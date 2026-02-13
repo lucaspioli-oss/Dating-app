@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../config/app_config.dart';
 import '../../config/app_theme.dart';
 import '../../config/app_haptics.dart';
@@ -38,6 +40,8 @@ class _SubscriptionRequiredScreenState
 
   Future<void> _initIAP() async {
     await _iapService.initialize();
+    // If products didn't load on init, try again
+    await _iapService.reloadProducts();
     _purchaseSubscription = _iapService.purchaseStatusStream.listen((status) {
       if (!mounted) return;
       switch (status) {
@@ -164,6 +168,44 @@ class _SubscriptionRequiredScreenState
                 child: Text(
                   'Restaurar compras',
                   style: TextStyle(color: AppColors.textTertiary, fontSize: 13),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Legal text (Apple requirement)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text.rich(
+                  TextSpan(
+                    style: TextStyle(
+                      color: AppColors.textTertiary.withOpacity(0.6),
+                      fontSize: 11,
+                      height: 1.4,
+                    ),
+                    children: [
+                      const TextSpan(
+                        text: 'A assinatura é renovada automaticamente até ser cancelada. '
+                            'Cancele a qualquer momento nas Configurações da App Store. '
+                            'O pagamento será cobrado na sua conta Apple ID ao confirmar a compra. ',
+                      ),
+                      TextSpan(
+                        text: 'Termos de Uso',
+                        style: const TextStyle(decoration: TextDecoration.underline),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () => launchUrl(Uri.parse('https://desenrola-ia.web.app/terms')),
+                      ),
+                      const TextSpan(text: ' e '),
+                      TextSpan(
+                        text: 'Política de Privacidade',
+                        style: const TextStyle(decoration: TextDecoration.underline),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () => launchUrl(Uri.parse('https://desenrola-ia.web.app/privacy')),
+                      ),
+                      const TextSpan(text: '.'),
+                    ],
+                  ),
+                  textAlign: TextAlign.center,
                 ),
               ),
 

@@ -25,7 +25,6 @@ class AppleIAPService {
 
   Future<void> initialize() async {
     if (_isInitialized) return;
-    _isInitialized = true;
 
     try {
       _isAvailable = await _iap.isAvailable();
@@ -49,22 +48,53 @@ class AppleIAPService {
     );
 
     await _loadProducts();
+    _isInitialized = true;
+  }
+
+  /// Reload products (e.g. after a failed initial load or when screen opens)
+  Future<void> reloadProducts() async {
+    if (_products.isNotEmpty) return;
+    debugPrint('IAP: Reloading products...');
+    await _loadProducts();
   }
 
   Future<void> _loadProducts() async {
-    final response = await _iap.queryProductDetails(AppConfig.appleProductIds);
+    const maxRetries = 3;
+    for (var attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        debugPrint('IAP: Loading products (attempt $attempt/$maxRetries)...');
+        final response = await _iap.queryProductDetails(AppConfig.appleProductIds);
 
-    if (response.error != null) {
-      debugPrint('IAP: Error loading products: ${response.error}');
-      return;
+        if (response.error != null) {
+          debugPrint('IAP: Error loading products: ${response.error}');
+          if (attempt < maxRetries) {
+            await Future.delayed(Duration(seconds: attempt * 2));
+            continue;
+          }
+          return;
+        }
+
+        if (response.notFoundIDs.isNotEmpty) {
+          debugPrint('IAP: Products not found: ${response.notFoundIDs}');
+        }
+
+        _products = response.productDetails;
+        debugPrint('IAP: Loaded ${_products.length} products: ${_products.map((p) => '${p.id}=${p.price}').join(', ')}');
+
+        if (_products.isNotEmpty) return;
+
+        // Products empty — retry
+        debugPrint('IAP: No products returned, will retry...');
+        if (attempt < maxRetries) {
+          await Future.delayed(Duration(seconds: attempt * 2));
+        }
+      } catch (e) {
+        debugPrint('IAP: Exception loading products: $e');
+        if (attempt < maxRetries) {
+          await Future.delayed(Duration(seconds: attempt * 2));
+        }
+      }
     }
-
-    if (response.notFoundIDs.isNotEmpty) {
-      debugPrint('IAP: Products not found: ${response.notFoundIDs}');
-    }
-
-    _products = response.productDetails;
-    debugPrint('IAP: Loaded ${_products.length} products');
   }
 
   Future<bool> buySubscription(String productId) async {
