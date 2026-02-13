@@ -39,14 +39,15 @@ void main() {
   });
 
   group('AppLoadingScreen', () {
-    testWidgets('renders with scaffold and spinner', (tester) async {
+    testWidgets('renders with scaffold and animated logo', (tester) async {
       await tester.pumpWidget(MaterialApp(
         theme: AppTheme.darkTheme,
         home: const AppLoadingScreen(),
       ));
 
       expect(find.byType(Scaffold), findsOneWidget);
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(ClipRect), findsOneWidget);
+      expect(find.byType(Image), findsNWidgets(2)); // dim + filled
     });
 
     testWidgets('shows message when provided', (tester) async {
