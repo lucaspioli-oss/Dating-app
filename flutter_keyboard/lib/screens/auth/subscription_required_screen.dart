@@ -29,7 +29,6 @@ class _SubscriptionRequiredScreenState
   int _selectedPlan = 1; // 0 = monthly, 1 = quarterly, 2 = yearly
   bool _isPurchasing = false;
   bool _isLoadingProducts = true;
-  bool _productsLoadFailed = false;
   final AppleIAPService _iapService = AppleIAPService();
   StreamSubscription<PurchaseStatus>? _purchaseSubscription;
 
@@ -63,30 +62,7 @@ class _SubscriptionRequiredScreenState
       }
     });
     if (!mounted) return;
-    if (_iapService.products.isNotEmpty) {
-      setState(() {
-        _isLoadingProducts = false;
-        _productsLoadFailed = false;
-      });
-    } else {
-      setState(() {
-        _isLoadingProducts = false;
-        _productsLoadFailed = true;
-      });
-    }
-  }
-
-  Future<void> _retryLoadProducts() async {
-    setState(() {
-      _isLoadingProducts = true;
-      _productsLoadFailed = false;
-    });
-    await _iapService.reloadProducts();
-    if (!mounted) return;
-    setState(() {
-      _isLoadingProducts = false;
-      _productsLoadFailed = _iapService.products.isEmpty;
-    });
+    setState(() => _isLoadingProducts = false);
   }
 
   @override
@@ -159,31 +135,6 @@ class _SubscriptionRequiredScreenState
                   padding: EdgeInsets.symmetric(vertical: 40),
                   child: AppLoading(message: 'Carregando planos...'),
                 )
-              else if (_productsLoadFailed)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 40),
-                  child: Column(
-                    children: [
-                      Text(
-                        'Não foi possível carregar os planos.',
-                        style: TextStyle(color: AppColors.textTertiary, fontSize: 14),
-                      ),
-                      const SizedBox(height: 12),
-                      ElevatedButton.icon(
-                        onPressed: _retryLoadProducts,
-                        icon: const Icon(Icons.refresh, size: 18),
-                        label: const Text('Tentar novamente'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: AppColors.textPrimary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
               else
                 Column(
                   children: [
@@ -191,6 +142,7 @@ class _SubscriptionRequiredScreenState
                       index: 0,
                       planName: 'Plano Mensal',
                       period: '/mes',
+                      days: 30,
                       isPopular: false,
                       productId: AppConfig.appleMonthlyProductId,
                     ),
@@ -199,16 +151,20 @@ class _SubscriptionRequiredScreenState
                       index: 1,
                       planName: 'Plano Trimestral',
                       period: '/3 meses',
+                      days: 90,
                       isPopular: true,
                       productId: AppConfig.appleQuarterlyProductId,
+                      monthlyProductId: AppConfig.appleMonthlyProductId,
                     ),
                     const SizedBox(height: 16),
                     _buildPricingCard(
                       index: 2,
                       planName: 'Plano Anual',
                       period: '/ano',
+                      days: 365,
                       isPopular: false,
                       productId: AppConfig.appleYearlyProductId,
+                      monthlyProductId: AppConfig.appleMonthlyProductId,
                     ),
                   ],
                 ),
@@ -295,12 +251,34 @@ class _SubscriptionRequiredScreenState
     required int index,
     required String planName,
     required String period,
+    required int days,
     required bool isPopular,
     required String productId,
+    String? monthlyProductId,
   }) {
     final isSelected = _selectedPlan == index;
     final iapProduct = _iapService.getProduct(productId);
     final displayPrice = iapProduct?.price ?? '';
+    final rawPrice = iapProduct?.rawPrice ?? 0;
+    final currencySymbol = iapProduct?.currencySymbol ?? 'R\$';
+
+    // Calculate per-day price
+    final perDayPrice = days > 0 && rawPrice > 0
+        ? (rawPrice / days)
+        : 0.0;
+    final perDayFormatted = perDayPrice > 0
+        ? '${currencySymbol} ${perDayPrice.toStringAsFixed(2).replaceAll('.', ',')}'
+        : '';
+
+    // Calculate savings vs monthly
+    int savingsPercent = 0;
+    if (monthlyProductId != null) {
+      final monthlyProduct = _iapService.getProduct(monthlyProductId);
+      if (monthlyProduct != null && monthlyProduct.rawPrice > 0 && rawPrice > 0) {
+        final monthlyTotal = monthlyProduct.rawPrice * (days / 30);
+        savingsPercent = ((1 - rawPrice / monthlyTotal) * 100).round();
+      }
+    }
 
     return GestureDetector(
       onTap: () {
@@ -358,7 +336,7 @@ class _SubscriptionRequiredScreenState
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  // Plan name with radio
+                  // Plan name with radio + savings badge
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -396,29 +374,54 @@ class _SubscriptionRequiredScreenState
                           fontSize: 16,
                         ),
                       ),
+                      if (savingsPercent > 0) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2E7D32).withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(0xFF4CAF50).withOpacity(0.4),
+                            ),
+                          ),
+                          child: Text(
+                            'Economize $savingsPercent%',
+                            style: const TextStyle(
+                              color: Color(0xFF81C784),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
-                  // Price from App Store (StoreKit only)
+                  // Price display
                   if (displayPrice.isNotEmpty) ...[
+                    // Main price: StoreKit price + period (large)
                     Text(
-                      displayPrice,
+                      '$displayPrice$period',
                       style: const TextStyle(
                         color: AppColors.textPrimary,
-                        fontSize: 32,
+                        fontSize: 28,
                         fontWeight: FontWeight.bold,
                         height: 1,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      period,
-                      style: TextStyle(
-                        color: AppColors.textTertiary,
-                        fontSize: 14,
+                    // Per-day equivalent (small)
+                    if (perDayFormatted.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'equivale a $perDayFormatted por dia',
+                        style: TextStyle(
+                          color: AppColors.textTertiary,
+                          fontSize: 13,
+                        ),
                       ),
-                    ),
+                    ],
                   ] else ...[
                     const SizedBox(
                       height: 32,
@@ -437,7 +440,7 @@ class _SubscriptionRequiredScreenState
                       ),
                     ),
                   ],
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
                   // Subscribe button
                   SizedBox(
