@@ -899,10 +899,10 @@ fastify.post('/keyboard/send-message', {
         });
         // Update profile's lastActivityAt for sorting in profiles list
         const convData = convDoc.data();
-        const profileId = convData.profileId;
-        if (profileId) {
+        const convProfileId = convData.profileId;
+        if (convProfileId) {
             try {
-                await db.collection('profiles').doc(profileId).update({
+                await db.collection('profiles').doc(convProfileId).update({
                     lastActivityAt: admin.firestore.Timestamp.now(),
                     lastMessagePreview: content.substring(0, 80),
                     updatedAt: admin.firestore.Timestamp.now(),
