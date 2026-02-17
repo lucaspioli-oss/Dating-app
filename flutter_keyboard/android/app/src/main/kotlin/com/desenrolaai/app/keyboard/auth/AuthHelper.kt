@@ -66,4 +66,22 @@ class AuthHelper(private val context: Context) {
             .putString(KEY_DEFAULT_TONE, tone)
             .apply()
     }
+
+    // Objective per profile
+    fun getObjective(profileKey: String): Int {
+        return prefs.getInt("kb_obj_$profileKey", 0)
+    }
+
+    fun setObjective(profileKey: String, index: Int) {
+        prefs.edit().putInt("kb_obj_$profileKey", index).apply()
+    }
+
+    // Profile caching (stores JSON string, without faceImageBase64)
+    fun getCachedProfiles(): String? {
+        return prefs.getString("kb_cachedProfiles", null)
+    }
+
+    fun setCachedProfiles(json: String) {
+        prefs.edit().putString("kb_cachedProfiles", json).apply()
+    }
 }

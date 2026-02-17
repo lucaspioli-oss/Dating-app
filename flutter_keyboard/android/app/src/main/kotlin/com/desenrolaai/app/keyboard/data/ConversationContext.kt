@@ -6,5 +6,6 @@ data class ConversationContext(
     val matchName: String,
     val platform: String,
     val lastMessage: String?,
-    val faceImageBase64: String?
+    val faceImageBase64: String?,
+    val hasMessages: Boolean = true
 )

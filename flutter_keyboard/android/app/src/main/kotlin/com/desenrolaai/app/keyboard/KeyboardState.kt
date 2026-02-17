@@ -5,7 +5,9 @@ enum class KeyboardState {
     AWAITING_CLIPBOARD,
     SUGGESTIONS,
     WRITE_OWN,
-    BASIC_MODE
+    BASIC_MODE,
+    SCREENSHOT_ANALYSIS,
+    START_CONVERSATION
 }
 
 enum class OverlayType {

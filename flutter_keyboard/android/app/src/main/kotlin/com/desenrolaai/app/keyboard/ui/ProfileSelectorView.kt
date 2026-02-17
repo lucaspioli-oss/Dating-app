@@ -71,39 +71,54 @@ class ProfileSelectorView(
         searchContainer.addView(searchLabel)
         root.addView(searchContainer)
 
-        // Mini A-Z keyboard
-        val keyboardScroll = HorizontalScrollView(context).apply {
-            isHorizontalScrollBarEnabled = false
+        // QWERTY keyboard
+        val qwertyContainer = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                (28 * density).toInt()
+                LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                setMargins((8 * density).toInt(), (2 * density).toInt(), (8 * density).toInt(), (2 * density).toInt())
+                setMargins((4 * density).toInt(), (2 * density).toInt(), (4 * density).toInt(), (2 * density).toInt())
             }
         }
-        val keyRow = LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
 
-        // A-Z buttons
-        for (c in 'A'..'Z') {
-            val btn = makeMiniKeyButton(c.toString()) {
-                onSearchChanged(searchText + c.lowercaseChar())
+        val rows = listOf(
+            "QWERTYUIOP",
+            "ASDFGHJKL",
+            "ZXCVBNM"
+        )
+
+        for (row in rows) {
+            val rowLayout = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    (26 * density).toInt()
+                )
             }
-            keyRow.addView(btn)
-        }
-        // Backspace
-        keyRow.addView(makeMiniKeyButton("⌫") {
-            if (searchText.isNotEmpty()) onSearchChanged(searchText.dropLast(1))
-        })
-        // Clear
-        keyRow.addView(makeMiniKeyButton("✕") {
-            onSearchChanged("")
-        })
 
-        keyboardScroll.addView(keyRow)
-        root.addView(keyboardScroll)
+            for (c in row) {
+                val btn = makeMiniKeyButton(c.toString()) {
+                    onSearchChanged(searchText + c.lowercaseChar())
+                }
+                rowLayout.addView(btn)
+            }
+
+            // Add backspace and clear to last row
+            if (row == "ZXCVBNM") {
+                rowLayout.addView(makeMiniKeyButton("⌫") {
+                    if (searchText.isNotEmpty()) onSearchChanged(searchText.dropLast(1))
+                })
+                rowLayout.addView(makeMiniKeyButton("✕") {
+                    onSearchChanged("")
+                })
+            }
+
+            qwertyContainer.addView(rowLayout)
+        }
+
+        root.addView(qwertyContainer)
 
         // Profile list or loading/error
         if (isLoading) {
@@ -143,7 +158,7 @@ class ProfileSelectorView(
             val profileScroll = HorizontalScrollView(context).apply {
                 isHorizontalScrollBarEnabled = false
                 layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, (70 * density).toInt()
+                    LinearLayout.LayoutParams.MATCH_PARENT, (90 * density).toInt()
                 ).apply {
                     setMargins((8 * density).toInt(), (2 * density).toInt(), (8 * density).toInt(), 0)
                 }

@@ -23,7 +23,9 @@ class AwaitingClipboardView(
     private val onPaste: () -> Unit,
     private val onObjectiveTap: () -> Unit,
     private val onToneTap: () -> Unit,
-    private val onSwitchKeyboard: () -> Unit
+    private val onSwitchKeyboard: () -> Unit,
+    private val onScreenshot: () -> Unit,
+    private val onStartConversation: () -> Unit
 ) {
     private val density = context.resources.displayMetrics.density
 
@@ -49,7 +51,7 @@ class AwaitingClipboardView(
         val pillsRow = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding((12 * density).toInt(), (4 * density).toInt(), (12 * density).toInt(), (4 * density).toInt())
+            setPadding((12 * density).toInt(), (8 * density).toInt(), (12 * density).toInt(), (8 * density).toInt())
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -77,7 +79,7 @@ class AwaitingClipboardView(
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, (48 * density).toInt()
             ).apply {
-                setMargins((16 * density).toInt(), (8 * density).toInt(), (16 * density).toInt(), (4 * density).toInt())
+                setMargins((16 * density).toInt(), (12 * density).toInt(), (16 * density).toInt(), (8 * density).toInt())
             }
             setOnClickListener { onPaste() }
         }
@@ -118,10 +120,51 @@ class AwaitingClipboardView(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                topMargin = (4 * density).toInt()
+                topMargin = (8 * density).toInt()
             }
         }
         root.addView(hint)
+
+        // Divider
+        val divider = android.view.View(context).apply {
+            setBackgroundColor(Theme.withAlpha(Theme.textSecondary, 0.2f))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, (1 * density).toInt()
+            ).apply {
+                setMargins((16 * density).toInt(), (8 * density).toInt(), (16 * density).toInt(), (8 * density).toInt())
+            }
+        }
+        root.addView(divider)
+
+        // Links row
+        val linksRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+
+        val screenshotLink = TextView(context).apply {
+            text = "\uD83D\uDCF8 Analisar Screenshot"
+            setTextColor(Theme.rose)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setPadding((12 * density).toInt(), (6 * density).toInt(), (12 * density).toInt(), (6 * density).toInt())
+            setOnClickListener { onScreenshot() }
+        }
+        linksRow.addView(screenshotLink)
+
+        val startConvLink = TextView(context).apply {
+            text = "\uD83D\uDE80 Iniciar Conversa"
+            setTextColor(Theme.rose)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setPadding((12 * density).toInt(), (6 * density).toInt(), (12 * density).toInt(), (6 * density).toInt())
+            setOnClickListener { onStartConversation() }
+        }
+        linksRow.addView(startConvLink)
+
+        root.addView(linksRow)
 
         container.addView(root)
     }

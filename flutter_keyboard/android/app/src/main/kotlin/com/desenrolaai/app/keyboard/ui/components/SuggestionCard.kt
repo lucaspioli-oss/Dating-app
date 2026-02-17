@@ -14,6 +14,7 @@ object SuggestionCard {
     fun create(
         context: Context,
         text: String,
+        onEdit: (() -> Unit)? = null,
         onClick: () -> Unit
     ): LinearLayout {
         val density = context.resources.displayMetrics.density
@@ -53,6 +54,21 @@ object SuggestionCard {
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         }
         card.addView(textView)
+
+        // Edit button (pencil icon)
+        if (onEdit != null) {
+            val editBtn = TextView(context).apply {
+                this.text = "\u270F"
+                setTextColor(Theme.orange)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(
+                    (32 * density).toInt(), (36 * density).toInt()
+                )
+                setOnClickListener { onEdit() }
+            }
+            card.addView(editBtn)
+        }
 
         // Send button (arrow icon as text)
         val sendBtn = TextView(context).apply {

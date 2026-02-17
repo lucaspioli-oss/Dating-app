@@ -198,7 +198,7 @@ object OverlayViews {
             background = bg
             setPadding((10 * density).toInt(), (6 * density).toInt(), (10 * density).toInt(), (6 * density).toInt())
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, (40 * density).toInt()
+                LinearLayout.LayoutParams.MATCH_PARENT, (62 * density).toInt()
             ).apply {
                 bottomMargin = (3 * density).toInt()
             }
@@ -208,24 +208,28 @@ object OverlayViews {
             addView(TextView(context).apply {
                 text = obj.emoji
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+                gravity = Gravity.CENTER
                 setPadding(0, 0, (8 * density).toInt(), 0)
             })
 
-            // Title + description column
+            // Title + description column (centered)
             val textCol = LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                gravity = Gravity.CENTER_VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
             }
             textCol.addView(TextView(context).apply {
                 text = obj.title
                 setTextColor(0xFFFFFFFF.toInt())
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
                 typeface = Typeface.DEFAULT_BOLD
+                gravity = Gravity.CENTER
             })
             textCol.addView(TextView(context).apply {
                 text = obj.description
                 setTextColor(Theme.textSecondary)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
+                gravity = Gravity.CENTER
             })
             addView(textCol)
 

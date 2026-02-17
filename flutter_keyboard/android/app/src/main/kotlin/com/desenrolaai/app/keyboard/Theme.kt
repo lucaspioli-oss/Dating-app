@@ -1,6 +1,9 @@
 package com.desenrolaai.app.keyboard
 
 import android.graphics.Color
+import android.os.Handler
+import android.os.Looper
+import android.view.View
 
 object Theme {
     val bg = Color.parseColor("#120E16")
@@ -26,5 +29,16 @@ object Theme {
     fun withAlpha(color: Int, alpha: Float): Int {
         val a = (alpha * 255).toInt().coerceIn(0, 255)
         return (color and 0x00FFFFFF) or (a shl 24)
+    }
+
+    fun startCursorBlink(view: View) {
+        val handler = Handler(Looper.getMainLooper())
+        val blink = object : Runnable {
+            override fun run() {
+                view.alpha = if (view.alpha == 1f) 0f else 1f
+                handler.postDelayed(this, 530)
+            }
+        }
+        handler.post(blink)
     }
 }

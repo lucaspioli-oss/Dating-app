@@ -56,7 +56,8 @@ class KeyboardApiClient {
                         matchName = obj.optString("matchName", "?"),
                         platform = obj.optString("platform", ""),
                         lastMessage = obj.optString("lastMessage", null),
-                        faceImageBase64 = obj.optString("faceImageBase64", null)
+                        faceImageBase64 = obj.optString("faceImageBase64", null),
+                        hasMessages = obj.optBoolean("hasMessages", true)
                     )
                 )
             }
@@ -125,7 +126,8 @@ class KeyboardApiClient {
         content: String,
         wasAiSuggestion: Boolean,
         tone: String,
-        objective: String
+        objective: String,
+        profileId: String? = null
     ) {
         val jsonBody = JSONObject().apply {
             put("conversationId", conversationId)
@@ -133,6 +135,7 @@ class KeyboardApiClient {
             put("wasAiSuggestion", wasAiSuggestion)
             put("tone", tone)
             put("objective", objective)
+            if (!profileId.isNullOrEmpty()) put("profileId", profileId)
         }
 
         val request = Request.Builder()
@@ -151,5 +154,91 @@ class KeyboardApiClient {
                 response.close()
             }
         })
+    }
+
+    /**
+     * POST /keyboard/analyze-screenshot - analyze a screenshot image
+     */
+    suspend fun analyzeScreenshot(
+        backendUrl: String,
+        token: String,
+        imageBase64: String,
+        conversationId: String?,
+        mediaType: String = "image/jpeg"
+    ): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val jsonBody = JSONObject().apply {
+                put("image", imageBase64)
+                put("mediaType", mediaType)
+                if (!conversationId.isNullOrEmpty()) put("conversationId", conversationId)
+            }
+
+            val request = Request.Builder()
+                .url("$backendUrl/keyboard/analyze-screenshot")
+                .addHeader("Content-Type", "application/json")
+                .addHeader("Authorization", "Bearer $token")
+                .post(jsonBody.toString().toRequestBody(jsonMediaType))
+                .build()
+
+            val response = client.newCall(request).execute()
+            val body = response.body?.string() ?: ""
+
+            if (!response.isSuccessful) {
+                return@withContext Result.failure(Exception("HTTP ${response.code}: $body"))
+            }
+
+            val json = JSONObject(body)
+            val analysis = json.optString("analysis", "")
+            if (analysis.isEmpty()) {
+                return@withContext Result.failure(Exception("Empty analysis"))
+            }
+            Result.success(analysis)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * POST /keyboard/start-conversation - generate opening messages
+     */
+    suspend fun startConversation(
+        backendUrl: String,
+        token: String,
+        conversationId: String?,
+        profileId: String?,
+        objective: String,
+        tone: String
+    ): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val jsonBody = JSONObject().apply {
+                if (!conversationId.isNullOrEmpty()) put("conversationId", conversationId)
+                if (!profileId.isNullOrEmpty()) put("profileId", profileId)
+                put("objective", objective)
+                put("tone", tone)
+            }
+
+            val request = Request.Builder()
+                .url("$backendUrl/keyboard/start-conversation")
+                .addHeader("Content-Type", "application/json")
+                .addHeader("Authorization", "Bearer $token")
+                .post(jsonBody.toString().toRequestBody(jsonMediaType))
+                .build()
+
+            val response = client.newCall(request).execute()
+            val body = response.body?.string() ?: ""
+
+            if (!response.isSuccessful) {
+                return@withContext Result.failure(Exception("HTTP ${response.code}: $body"))
+            }
+
+            val json = JSONObject(body)
+            val analysis = json.optString("analysis", "")
+            if (analysis.isEmpty()) {
+                return@withContext Result.failure(Exception("Empty analysis"))
+            }
+            Result.success(analysis)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 }

@@ -26,7 +26,8 @@ class SuggestionsView(
     private val onRegenerate: () -> Unit,
     private val onObjectiveTap: () -> Unit,
     private val onToneTap: () -> Unit,
-    private val onBack: () -> Unit
+    private val onBack: () -> Unit,
+    private val onEditSuggestion: ((String) -> Unit)? = null
 ) {
     private val density = context.resources.displayMetrics.density
 
@@ -107,7 +108,9 @@ class SuggestionsView(
             }
 
             for (suggestion in suggestions) {
-                val card = SuggestionCard.create(context, suggestion) {
+                val card = SuggestionCard.create(context, suggestion, onEdit = if (onEditSuggestion != null) {
+                    { onEditSuggestion(suggestion) }
+                } else null) {
                     onSuggestionTap(suggestion)
                 }
                 cardColumn.addView(card)

@@ -18,7 +18,8 @@ class WriteOwnView(
     private val conversation: ConversationContext?,
     private val clipboardText: String?,
     private val onBack: () -> Unit,
-    private val onInsert: (String) -> Unit
+    private val onInsert: (String) -> Unit,
+    private val initialText: String = ""
 ) {
     private val density = context.resources.displayMetrics.density
 
@@ -87,6 +88,8 @@ class WriteOwnView(
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_AUTO_CORRECT
             imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI
             maxLines = 3
+            setText(initialText)
+            setSelection(initialText.length)
             isFocusable = true
             isFocusableInTouchMode = true
             layoutParams = LinearLayout.LayoutParams(
