@@ -12,6 +12,7 @@ const conversation_manager_1 = require("./services/conversation-manager");
 const prompts_1 = require("./prompts");
 const stripe_1 = require("./services/stripe");
 const auth_1 = require("./middleware/auth");
+const { verifyRequestSignature } = require("./middleware/auth");
 const instagram_crop_service_1 = require("./services/instagram-crop-service");
 const fastify = (0, fastify_1.default)({
     logger: true,
@@ -25,7 +26,7 @@ fastify.register(cors_1.default, {
 });
 // Rate limiting
 fastify.register(require('@fastify/rate-limit'), {
-    max: 30,
+    max: 15,
     timeWindow: '1 minute',
     keyGenerator: (request) => {
         return request.user?.uid || request.ip;
@@ -723,7 +724,7 @@ fastify.post('/webhook/stripe', async (request, reply) => {
 // ═══════════════════════════════════════════════════════════════════
 // Get keyboard context - returns profiles with photos and linked conversations
 fastify.get('/keyboard/context', {
-    preHandler: auth_1.verifyAuth,
+    preHandler: [verifyRequestSignature, auth_1.verifyAuth],
 }, async (request, reply) => {
     try {
         const userId = request.user.uid;
@@ -804,7 +805,7 @@ fastify.get('/keyboard/context', {
 });
 // Save message sent via keyboard extension
 fastify.post('/keyboard/send-message', {
-    preHandler: auth_1.verifyAuth,
+    preHandler: [verifyRequestSignature, auth_1.verifyAuth],
 }, async (request, reply) => {
     try {
         const userId = request.user.uid;
@@ -927,7 +928,7 @@ fastify.post('/keyboard/send-message', {
 // ⌨️ KEYBOARD: START CONVERSATION (generate first message openers)
 // ═══════════════════════════════════════════════════════════════════
 fastify.post('/keyboard/start-conversation', {
-    preHandler: auth_1.verifyAuth,
+    preHandler: [verifyRequestSignature, auth_1.verifyAuth],
 }, async (request, reply) => {
     try {
         const userId = request.user.uid;
@@ -1016,7 +1017,7 @@ fastify.post('/keyboard/start-conversation', {
 // ⌨️ KEYBOARD: ANALYZE SCREENSHOT (extract messages from image)
 // ═══════════════════════════════════════════════════════════════════
 fastify.post('/keyboard/analyze-screenshot', {
-    preHandler: auth_1.verifyAuth,
+    preHandler: [verifyRequestSignature, auth_1.verifyAuth],
 }, async (request, reply) => {
     try {
         const userId = request.user.uid;

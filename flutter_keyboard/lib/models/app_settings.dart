@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 
 class AppSettings extends ChangeNotifier {
   String _selectedTone = 'engraçado';
-  String _backendUrl = 'http://localhost:3000';
+  String _backendUrl = 'https://dating-app-production-ac43.up.railway.app';
 
   String get selectedTone => _selectedTone;
   String get backendUrl => _backendUrl;

@@ -21,6 +21,7 @@ import com.desenrolaai.app.keyboard.ui.*
 import kotlinx.coroutines.*
 import org.json.JSONArray
 import org.json.JSONObject
+import android.view.WindowManager
 import java.io.ByteArrayOutputStream
 
 class DesenrolaKeyboardService : InputMethodService(), CoroutineScope {
@@ -60,6 +61,17 @@ class DesenrolaKeyboardService : InputMethodService(), CoroutineScope {
         apiClient = KeyboardApiClient()
         authHelper = AuthHelper(applicationContext)
 
+        // Security: verify APK signature (anti-tampering)
+        if (!SecurityHelper.verifySignature(applicationContext)) {
+            authHelper.clearAuth()
+        }
+
+        // Security: FLAG_SECURE prevents screenshots of keyboard
+        window?.window?.setFlags(
+            WindowManager.LayoutParams.FLAG_SECURE,
+            WindowManager.LayoutParams.FLAG_SECURE
+        )
+
         val density = resources.displayMetrics.density
         containerView = FrameLayout(this).apply {
             layoutParams = FrameLayout.LayoutParams(
@@ -67,6 +79,20 @@ class DesenrolaKeyboardService : InputMethodService(), CoroutineScope {
                 (320 * density).toInt()
             )
             setBackgroundColor(Theme.bg)
+        }
+
+        // Security: block on rooted/emulator/debuggable environments
+        if (!SecurityHelper.isSecureEnvironment(applicationContext)) {
+            containerView!!.removeAllViews()
+            val warningText = android.widget.TextView(this).apply {
+                text = "Ambiente inseguro detectado.\nO teclado não funciona em dispositivos modificados."
+                setTextColor(0xFFFF5252.toInt())
+                textSize = 14f
+                gravity = android.view.Gravity.CENTER
+                setPadding(32, 32, 32, 32)
+            }
+            containerView!!.addView(warningText)
+            return containerView!!
         }
 
         if (authHelper.isAuthenticated) {

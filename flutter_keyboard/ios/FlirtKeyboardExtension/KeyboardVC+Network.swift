@@ -138,7 +138,12 @@ extension KeyboardViewController {
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.timeoutInterval = 15
 
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+        let signed = RequestSigner.shared.sign(body: "")
+        request.setValue(signed.signature, forHTTPHeaderField: "X-Signature")
+        request.setValue(signed.timestamp, forHTTPHeaderField: "X-Timestamp")
+        request.setValue(signed.nonce, forHTTPHeaderField: "X-Nonce")
+
+        PinnedURLSession.shared.session.dataTask(with: request) { [weak self] data, response, error in
             if let error = error {
                 if !silent {
                     let nsError = error as NSError
@@ -229,7 +234,9 @@ extension KeyboardViewController {
                     let contexts = arr.compactMap { dict -> ConversationContext? in
                         guard let name = dict["matchName"] as? String else { return nil }
                         let convId = dict["conversationId"] as? String
+                        #if DEBUG
                         NSLog("[KB] fetchConversations: name=\(name) convId=\(convId ?? "nil")")
+                        #endif
                         return ConversationContext(
                             conversationId: convId,
                             profileId: dict["profileId"] as? String,
@@ -239,7 +246,9 @@ extension KeyboardViewController {
                             faceImageBase64: dict["faceImageBase64"] as? String
                         )
                     }
+                    #if DEBUG
                     NSLog("[KB] fetchConversations: loaded \(contexts.count) conversations")
+                    #endif
                     DispatchQueue.main.async {
                         let oldNames = self?.conversations.map { $0.matchName } ?? []
                         self?.conversations = contexts
@@ -275,7 +284,9 @@ extension KeyboardViewController {
     func analyzeText(_ text: String, tone: String, conversationId: String?, objective: String?) {
         guard let url = URL(string: "\(backendUrl)/analyze") else { return }
 
+        #if DEBUG
         NSLog("[KB] analyzeText: convId=\(conversationId ?? "nil") tone=\(tone) text=\(text.prefix(40))...")
+        #endif
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -285,7 +296,9 @@ extension KeyboardViewController {
         if let token = authToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         } else {
+            #if DEBUG
             NSLog("[KB] analyzeText: WARNING — no auth token, message won't be saved to conversation")
+            #endif
         }
 
         var body: [String: Any] = ["text": text, "tone": tone]
@@ -294,7 +307,13 @@ extension KeyboardViewController {
 
         do { request.httpBody = try JSONSerialization.data(withJSONObject: body) } catch { return }
 
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+        let bodyString = String(data: request.httpBody ?? Data(), encoding: .utf8) ?? ""
+        let signedAnalyze = RequestSigner.shared.sign(body: bodyString)
+        request.setValue(signedAnalyze.signature, forHTTPHeaderField: "X-Signature")
+        request.setValue(signedAnalyze.timestamp, forHTTPHeaderField: "X-Timestamp")
+        request.setValue(signedAnalyze.nonce, forHTTPHeaderField: "X-Nonce")
+
+        PinnedURLSession.shared.session.dataTask(with: request) { [weak self] data, response, error in
             guard let data = data, error == nil else {
                 DispatchQueue.main.async {
                     self?.isLoadingSuggestions = false
@@ -328,7 +347,9 @@ extension KeyboardViewController {
         guard let token = authToken,
               (conversationId != nil || profileId != nil),
               let url = URL(string: "\(backendUrl)/keyboard/send-message") else {
+            #if DEBUG
             NSLog("[KB] sendMessage: missing token or no id")
+            #endif
             return
         }
 
@@ -348,23 +369,38 @@ extension KeyboardViewController {
         if let pid = profileId { body["profileId"] = pid }
 
         do { request.httpBody = try JSONSerialization.data(withJSONObject: body) } catch {
+            #if DEBUG
             NSLog("[KB] sendMessage: JSON serialization failed: \(error)")
+            #endif
             return
         }
 
+        #if DEBUG
         NSLog("[KB] sendMessage: sending to convId=\(conversationId) content=\(content.prefix(40))...")
-        URLSession.shared.dataTask(with: request) { data, response, error in
+        #endif
+
+        let bodyStringSend = String(data: request.httpBody ?? Data(), encoding: .utf8) ?? ""
+        let signedSend = RequestSigner.shared.sign(body: bodyStringSend)
+        request.setValue(signedSend.signature, forHTTPHeaderField: "X-Signature")
+        request.setValue(signedSend.timestamp, forHTTPHeaderField: "X-Timestamp")
+        request.setValue(signedSend.nonce, forHTTPHeaderField: "X-Nonce")
+
+        PinnedURLSession.shared.session.dataTask(with: request) { data, response, error in
             if let error = error {
+                #if DEBUG
                 NSLog("[KB] sendMessage FAILED: \(error.localizedDescription)")
+                #endif
                 return
             }
             let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
             let body = data.flatMap { String(data: $0, encoding: .utf8) } ?? "no body"
+            #if DEBUG
             if statusCode == 200 {
                 NSLog("[KB] sendMessage OK (200)")
             } else {
                 NSLog("[KB] sendMessage ERROR: HTTP \(statusCode) — \(body)")
             }
+            #endif
         }.resume()
     }
 
@@ -372,14 +408,18 @@ extension KeyboardViewController {
 
     func generateFirstMessage() {
         guard let conv = selectedConversation else {
+            #if DEBUG
             NSLog("[KB] generateFirstMessage: no selected conversation")
+            #endif
             return
         }
 
         let endpoint = "\(backendUrl)/keyboard/start-conversation"
         guard let url = URL(string: endpoint) else { return }
 
+        #if DEBUG
         NSLog("[KB] generateFirstMessage: convId=\(conv.conversationId ?? "nil") profileId=\(conv.profileId ?? "nil")")
+        #endif
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -399,9 +439,17 @@ extension KeyboardViewController {
 
         do { request.httpBody = try JSONSerialization.data(withJSONObject: body) } catch { return }
 
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+        let bodyStringFirst = String(data: request.httpBody ?? Data(), encoding: .utf8) ?? ""
+        let signedFirst = RequestSigner.shared.sign(body: bodyStringFirst)
+        request.setValue(signedFirst.signature, forHTTPHeaderField: "X-Signature")
+        request.setValue(signedFirst.timestamp, forHTTPHeaderField: "X-Timestamp")
+        request.setValue(signedFirst.nonce, forHTTPHeaderField: "X-Nonce")
+
+        PinnedURLSession.shared.session.dataTask(with: request) { [weak self] data, response, error in
             guard let data = data, error == nil else {
+                #if DEBUG
                 NSLog("[KB] generateFirstMessage FAILED: \(error?.localizedDescription ?? "unknown")")
+                #endif
                 DispatchQueue.main.async {
                     self?.isLoadingSuggestions = false
                     self?.suggestions = ["Erro de conexão. Tente novamente."]
@@ -411,7 +459,9 @@ extension KeyboardViewController {
             }
 
             let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+            #if DEBUG
             NSLog("[KB] generateFirstMessage: HTTP \(statusCode)")
+            #endif
 
             do {
                 if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -424,7 +474,9 @@ extension KeyboardViewController {
                     }
                 } else {
                     let raw = String(data: data, encoding: .utf8) ?? "?"
+                    #if DEBUG
                     NSLog("[KB] generateFirstMessage: unexpected format: \(raw.prefix(200))")
+                    #endif
                     DispatchQueue.main.async {
                         self?.isLoadingSuggestions = false
                         self?.suggestions = ["Erro ao processar resposta."]
@@ -445,14 +497,18 @@ extension KeyboardViewController {
 
     func analyzeScreenshot(_ imageBase64: String, mediaType: String) {
         guard let conv = selectedConversation else {
+            #if DEBUG
             NSLog("[KB] analyzeScreenshot: no selected conversation")
+            #endif
             return
         }
 
         let endpoint = "\(backendUrl)/keyboard/analyze-screenshot"
         guard let url = URL(string: endpoint) else { return }
 
+        #if DEBUG
         NSLog("[KB] analyzeScreenshot: convId=\(conv.conversationId ?? "nil") imageSize=\(imageBase64.count) chars")
+        #endif
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -473,12 +529,20 @@ extension KeyboardViewController {
 
         do { request.httpBody = try JSONSerialization.data(withJSONObject: body) } catch { return }
 
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+        let bodyStringScreenshot = String(data: request.httpBody ?? Data(), encoding: .utf8) ?? ""
+        let signedScreenshot = RequestSigner.shared.sign(body: bodyStringScreenshot)
+        request.setValue(signedScreenshot.signature, forHTTPHeaderField: "X-Signature")
+        request.setValue(signedScreenshot.timestamp, forHTTPHeaderField: "X-Timestamp")
+        request.setValue(signedScreenshot.nonce, forHTTPHeaderField: "X-Nonce")
+
+        PinnedURLSession.shared.session.dataTask(with: request) { [weak self] data, response, error in
             // Release screenshot image to free memory
             DispatchQueue.main.async { self?.screenshotImage = nil }
 
             guard let data = data, error == nil else {
+                #if DEBUG
                 NSLog("[KB] analyzeScreenshot FAILED: \(error?.localizedDescription ?? "unknown")")
+                #endif
                 DispatchQueue.main.async {
                     self?.isAnalyzingScreenshot = false
                     self?.isLoadingSuggestions = false
@@ -490,7 +554,9 @@ extension KeyboardViewController {
             }
 
             let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+            #if DEBUG
             NSLog("[KB] analyzeScreenshot: HTTP \(statusCode)")
+            #endif
 
             do {
                 if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -507,7 +573,9 @@ extension KeyboardViewController {
                     }
                 } else {
                     let raw = String(data: data, encoding: .utf8) ?? "?"
+                    #if DEBUG
                     NSLog("[KB] analyzeScreenshot: unexpected format: \(raw.prefix(200))")
+                    #endif
                     DispatchQueue.main.async {
                         self?.isAnalyzingScreenshot = false
                         self?.isLoadingSuggestions = false

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +8,7 @@ import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
 
 import 'services/analytics_service.dart';
 import 'config/app_theme.dart';
+import 'config/http_overrides.dart';
 import 'providers/app_state.dart';
 import 'providers/user_profile_provider.dart';
 import 'services/keyboard_service.dart';
@@ -14,6 +17,7 @@ import 'screens/auth/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  HttpOverrides.global = AppHttpOverrides();
 
   await Firebase.initializeApp(
     options: const FirebaseOptions(

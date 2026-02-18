@@ -7,6 +7,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import com.desenrolaai.app.keyboard.crypto.RequestSigner
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
@@ -16,6 +17,11 @@ class KeyboardApiClient {
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(10, TimeUnit.SECONDS)
+        .certificatePinner(
+            okhttp3.CertificatePinner.Builder()
+                .add("dating-app-production-ac43.up.railway.app", "sha256/u6dScLDuE2TrAks7ct4HDBekXo9byFES6oApqW/pAjQ=")
+                .build()
+        )
         .build()
 
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
@@ -32,6 +38,12 @@ class KeyboardApiClient {
                 .url("$backendUrl/keyboard/context")
                 .addHeader("Authorization", "Bearer $token")
                 .get()
+                .apply {
+                    val signed = RequestSigner.sign("")
+                    addHeader("X-Signature", signed.signature)
+                    addHeader("X-Timestamp", signed.timestamp)
+                    addHeader("X-Nonce", signed.nonce)
+                }
                 .build()
 
             val response = client.newCall(request).execute()
@@ -96,6 +108,13 @@ class KeyboardApiClient {
                 requestBuilder.addHeader("Authorization", "Bearer $token")
             }
 
+            requestBuilder.apply {
+                val signed = RequestSigner.sign(jsonBody.toString())
+                addHeader("X-Signature", signed.signature)
+                addHeader("X-Timestamp", signed.timestamp)
+                addHeader("X-Nonce", signed.nonce)
+            }
+
             val response = client.newCall(requestBuilder.build()).execute()
             val body = response.body?.string() ?: ""
 
@@ -143,6 +162,12 @@ class KeyboardApiClient {
             .addHeader("Content-Type", "application/json")
             .addHeader("Authorization", "Bearer $token")
             .post(jsonBody.toString().toRequestBody(jsonMediaType))
+            .apply {
+                val signed = RequestSigner.sign(jsonBody.toString())
+                addHeader("X-Signature", signed.signature)
+                addHeader("X-Timestamp", signed.timestamp)
+                addHeader("X-Nonce", signed.nonce)
+            }
             .build()
 
         // Fire-and-forget using OkHttp async
@@ -178,6 +203,12 @@ class KeyboardApiClient {
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Authorization", "Bearer $token")
                 .post(jsonBody.toString().toRequestBody(jsonMediaType))
+                .apply {
+                    val signed = RequestSigner.sign(jsonBody.toString())
+                    addHeader("X-Signature", signed.signature)
+                    addHeader("X-Timestamp", signed.timestamp)
+                    addHeader("X-Nonce", signed.nonce)
+                }
                 .build()
 
             val response = client.newCall(request).execute()
@@ -222,6 +253,12 @@ class KeyboardApiClient {
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Authorization", "Bearer $token")
                 .post(jsonBody.toString().toRequestBody(jsonMediaType))
+                .apply {
+                    val signed = RequestSigner.sign(jsonBody.toString())
+                    addHeader("X-Signature", signed.signature)
+                    addHeader("X-Timestamp", signed.timestamp)
+                    addHeader("X-Nonce", signed.nonce)
+                }
                 .build()
 
             val response = client.newCall(request).execute()
