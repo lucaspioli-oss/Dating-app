@@ -36,6 +36,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.verifyAuth = verifyAuth;
 exports.verifyAuthOnly = verifyAuthOnly;
 exports.optionalAuth = optionalAuth;
+exports.verifyRequestSignature = verifyRequestSignature;
+const crypto = require("crypto");
 const admin = __importStar(require("firebase-admin"));
 // Initialize Firebase Admin (only if not already initialized)
 if (!admin.apps.length) {
@@ -203,5 +205,117 @@ async function optionalAuth(request, reply) {
     }
     catch (error) {
         // Invalid token, continue without user
+    }
+}
+// ═══════════════════════════════════════════════════════════════════
+// Ed25519 Request Signature Validation
+// ═══════════════════════════════════════════════════════════════════
+const ED25519_PUBLIC_KEY_BASE64 = process.env.ED25519_PUBLIC_KEY || '5r0J9lIrdi8yLSsCz+WO3K+pek0nvdtXv/NjkNsF28Q=';
+// Build the SPKI-wrapped Ed25519 public key once at module load
+const ed25519PublicKeyDer = Buffer.concat([
+    Buffer.from('302a300506032b6570032100', 'hex'), // SPKI header for Ed25519
+    Buffer.from(ED25519_PUBLIC_KEY_BASE64, 'base64'),
+]);
+const ed25519PublicKey = crypto.createPublicKey({
+    key: ed25519PublicKeyDer,
+    format: 'der',
+    type: 'spki',
+});
+// Nonce replay protection: in-memory Set with TTL cleanup
+const usedNonces = new Map(); // nonce -> expiry timestamp (ms)
+const NONCE_TTL_MS = 60 * 1000; // 60 seconds TTL for nonces
+const TIMESTAMP_TOLERANCE_S = 30; // 30 seconds tolerance for timestamps
+// Clean up expired nonces every 60 seconds
+setInterval(() => {
+    const now = Date.now();
+    for (const [nonce, expiry] of usedNonces) {
+        if (now > expiry) {
+            usedNonces.delete(nonce);
+        }
+    }
+}, NONCE_TTL_MS);
+/**
+ * Middleware to verify Ed25519 request signatures.
+ *
+ * Expects headers:
+ *   X-Signature  - base64-encoded Ed25519 signature
+ *   X-Timestamp  - Unix timestamp (seconds) when the request was signed
+ *   X-Nonce      - unique random string to prevent replay attacks
+ *
+ * The signed message format is:  timestamp|nonce|sha256hex(requestBody)
+ */
+async function verifyRequestSignature(request, reply) {
+    try {
+        const signature = request.headers['x-signature'];
+        const timestamp = request.headers['x-timestamp'];
+        const nonce = request.headers['x-nonce'];
+        // 1. Check required headers are present
+        if (!signature || !timestamp || !nonce) {
+            reply.code(401).send({
+                error: 'Signature Required',
+                message: 'Missing X-Signature, X-Timestamp, or X-Nonce header',
+            });
+            return;
+        }
+        // 2. Validate timestamp is within tolerance
+        const requestTimestamp = parseInt(timestamp, 10);
+        if (isNaN(requestTimestamp)) {
+            reply.code(401).send({
+                error: 'Invalid Timestamp',
+                message: 'X-Timestamp must be a valid Unix timestamp in seconds',
+            });
+            return;
+        }
+        const serverTimestamp = Math.floor(Date.now() / 1000);
+        const timeDiff = Math.abs(serverTimestamp - requestTimestamp);
+        if (timeDiff > TIMESTAMP_TOLERANCE_S) {
+            reply.code(401).send({
+                error: 'Timestamp Expired',
+                message: `Request timestamp is ${timeDiff}s from server time (max ${TIMESTAMP_TOLERANCE_S}s)`,
+            });
+            return;
+        }
+        // 3. Check nonce hasn't been used before (replay protection)
+        if (usedNonces.has(nonce)) {
+            reply.code(401).send({
+                error: 'Nonce Reused',
+                message: 'This nonce has already been used',
+            });
+            return;
+        }
+        // Record nonce with expiry
+        usedNonces.set(nonce, Date.now() + NONCE_TTL_MS);
+        // 4. Reconstruct the signed message: timestamp|nonce|sha256hex(body)
+        // Use rawBody if available (from the content type parser), otherwise stringify body
+        let bodyString = '';
+        if (request.rawBody) {
+            bodyString = request.rawBody.toString();
+        } else if (request.body) {
+            bodyString = JSON.stringify(request.body);
+        }
+        const bodyHash = crypto.createHash('sha256').update(bodyString).digest('hex');
+        const message = `${timestamp}|${nonce}|${bodyHash}`;
+        // 5. Verify Ed25519 signature
+        const isValid = crypto.verify(
+            null,
+            Buffer.from(message),
+            ed25519PublicKey,
+            Buffer.from(signature, 'base64')
+        );
+        if (!isValid) {
+            reply.code(401).send({
+                error: 'Invalid Signature',
+                message: 'Ed25519 signature verification failed',
+            });
+            return;
+        }
+        // Signature is valid, proceed
+    }
+    catch (error) {
+        console.error('Signature verification error:', error.message || error);
+        reply.code(401).send({
+            error: 'Signature Verification Failed',
+            message: error.message || 'Could not verify request signature',
+        });
     }
 }

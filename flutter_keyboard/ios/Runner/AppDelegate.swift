@@ -61,6 +61,10 @@ import CoreImage
             if let args = call.arguments as? [String: Any],
                let authToken = args["authToken"] as? String,
                let userId = args["userId"] as? String {
+                // Primary: save to Keychain (secure)
+                KeychainHelper.shared.save(authToken, forKey: "authToken")
+                KeychainHelper.shared.save(userId, forKey: "userId")
+                // Fallback: also save to UserDefaults for legacy compatibility
                 saveToSharedDefaults(key: "authToken", value: authToken)
                 saveToSharedDefaults(key: "userId", value: userId)
                 result(nil)
@@ -71,6 +75,10 @@ import CoreImage
             }
 
         case "clearKeyboardAuth":
+            // Clear from Keychain (primary secure storage)
+            KeychainHelper.shared.delete(forKey: "authToken")
+            KeychainHelper.shared.delete(forKey: "userId")
+            // Clear from UserDefaults (legacy fallback)
             if let sharedDefaults = UserDefaults(suiteName: "group.com.desenrolaai.app.shared") {
                 sharedDefaults.removeObject(forKey: "authToken")
                 sharedDefaults.removeObject(forKey: "userId")

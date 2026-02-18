@@ -113,11 +113,29 @@ class KeyboardViewController: UIInputViewController {
     }
 
     var authToken: String? {
-        return sharedDefaults?.string(forKey: "authToken")
+        // Primary: read from Keychain (secure)
+        if let token = KeychainHelper.shared.read(forKey: "authToken") {
+            return token
+        }
+        // Fallback: read from UserDefaults (legacy) and migrate to Keychain
+        if let token = sharedDefaults?.string(forKey: "authToken") {
+            KeychainHelper.shared.save(token, forKey: "authToken")
+            return token
+        }
+        return nil
     }
 
     var userId: String? {
-        return sharedDefaults?.string(forKey: "userId")
+        // Primary: read from Keychain (secure)
+        if let uid = KeychainHelper.shared.read(forKey: "userId") {
+            return uid
+        }
+        // Fallback: read from UserDefaults (legacy) and migrate to Keychain
+        if let uid = sharedDefaults?.string(forKey: "userId") {
+            KeychainHelper.shared.save(uid, forKey: "userId")
+            return uid
+        }
+        return nil
     }
 
     // MARK: - Lifecycle
@@ -126,6 +144,14 @@ class KeyboardViewController: UIInputViewController {
         super.viewDidLoad()
         view.backgroundColor = Theme.bg
         previousClipboard = UIPasteboard.general.string
+
+        // Security check: refuse to operate on compromised devices
+        if !SecurityHelper.isSecureEnvironment() {
+            NSLog("[KB] Security check FAILED — compromised environment detected")
+            currentState = .basicMode
+            renderCurrentState()
+            return
+        }
 
         if authToken != nil {
             // Try to restore previously selected conversation
@@ -196,7 +222,9 @@ class KeyboardViewController: UIInputViewController {
             containerView.heightAnchor.constraint(equalToConstant: heightForState(currentState))
         ])
 
+        #if DEBUG
         NSLog("[KB] renderCurrentState: \(currentState)")
+        #endif
 
         switch currentState {
         case .profileSelector: renderProfileSelector()
