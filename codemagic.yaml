@@ -13,7 +13,7 @@ workflows:
 
       groups:
         - codemagic  # Deve conter CERTIFICATE_PRIVATE_KEY
-        - ios_secrets  # Deve conter KEY_FRAGMENTS_SWIFT
+        - ios_secrets  # Deve conter KEY_FRAGMENTS_SWIFT_B64
 
       vars:
         BUNDLE_ID: "com.desenrolaai.app"
@@ -68,7 +68,7 @@ workflows:
 
       - name: Write KeyFragments.swift from secret
         script: |
-          echo "$KEY_FRAGMENTS_SWIFT" > ios/FlirtKeyboardExtension/KeyFragments.swift
+          echo "$KEY_FRAGMENTS_SWIFT_B64" | base64 --decode > ios/FlirtKeyboardExtension/KeyFragments.swift
           echo "KeyFragments.swift written ($(wc -c < ios/FlirtKeyboardExtension/KeyFragments.swift) bytes)"
 
       - name: Get Flutter packages
