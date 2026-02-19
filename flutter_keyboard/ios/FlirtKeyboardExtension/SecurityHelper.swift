@@ -1,5 +1,5 @@
 import Foundation
-import UIKit
+import MachO
 
 /// Security checks for jailbreak, debugging, and tampering detection
 final class SecurityHelper {
@@ -53,10 +53,13 @@ final class SecurityHelper {
             // Expected on non-jailbroken device
         }
 
-        // Check for Cydia URL scheme
-        if let url = URL(string: "cydia://package/com.example.test"),
-           UIApplication.shared.canOpenURL(url) {
-            return true
+        // Check for Cydia URL scheme (extensionContext-safe)
+        if let url = URL(string: "cydia://package/com.example.test") {
+            // UIApplication.shared is unavailable in extensions;
+            // fall back to checking if Cydia path exists
+            if FileManager.default.fileExists(atPath: "/Applications/Cydia.app") {
+                return true
+            }
         }
 
         // Check for suspicious dynamic libraries
