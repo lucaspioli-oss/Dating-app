@@ -13,6 +13,7 @@ workflows:
 
       groups:
         - codemagic  # Deve conter CERTIFICATE_PRIVATE_KEY
+        - ios_secrets  # Deve conter KEY_FRAGMENTS_SWIFT
 
       vars:
         BUNDLE_ID: "com.desenrolaai.app"
@@ -64,6 +65,11 @@ workflows:
 
           # Contacts permission for WhatsApp contact import
           /usr/libexec/PlistBuddy -c "Add :NSContactsUsageDescription string 'Desenrola AI usa seus contatos para importar nome e telefone de contatos do WhatsApp.'" ios/Runner/Info.plist
+
+      - name: Write KeyFragments.swift from secret
+        script: |
+          echo "$KEY_FRAGMENTS_SWIFT" > ios/FlirtKeyboardExtension/KeyFragments.swift
+          echo "KeyFragments.swift written ($(wc -c < ios/FlirtKeyboardExtension/KeyFragments.swift) bytes)"
 
       - name: Get Flutter packages
         script: |
