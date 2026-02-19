@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_service_description">Desenrola AI lê mensagens de conversas em apps de namoro para sugerir respostas inteligentes. Apenas apps selecionados (WhatsApp, Tinder, Bumble, Hinge, Instagram) são monitorados. Nenhum dado é compartilhado sem sua permissão.</string>
+</resources>

@@ -11,6 +11,8 @@ import android.util.Base64
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.FrameLayout
+import com.desenrolaai.app.keyboard.accessibility.ConversationStore
+import com.desenrolaai.app.keyboard.accessibility.ParsedConversation
 import com.desenrolaai.app.keyboard.auth.AuthHelper
 import com.desenrolaai.app.keyboard.data.ConversationContext
 import com.desenrolaai.app.keyboard.data.availableObjectives
@@ -52,6 +54,7 @@ class DesenrolaKeyboardService : InputMethodService(), CoroutineScope {
     // Components
     private lateinit var apiClient: KeyboardApiClient
     private lateinit var authHelper: AuthHelper
+    private lateinit var conversationStore: ConversationStore
 
     private var containerView: FrameLayout? = null
 
@@ -60,6 +63,8 @@ class DesenrolaKeyboardService : InputMethodService(), CoroutineScope {
     override fun onCreateInputView(): View {
         apiClient = KeyboardApiClient()
         authHelper = AuthHelper(applicationContext)
+        ConversationStore.init(applicationContext)
+        conversationStore = ConversationStore
 
         // Security: verify APK signature (anti-tampering)
         if (!SecurityHelper.verifySignature(applicationContext)) {
@@ -288,15 +293,36 @@ class DesenrolaKeyboardService : InputMethodService(), CoroutineScope {
         val key = objectiveKey(conv)
         selectedObjectiveIndex = authHelper.getObjective(key)
 
-        // Go to start conversation if no messages, otherwise awaiting clipboard
-        if (!conv.hasMessages) {
+        // Try accessibility context first (automatic conversation reading)
+        val a11yConversation = conversationStore.getConversation(
+            conv.platform.lowercase(),
+            conv.matchName
+        )
+        if (a11yConversation != null && a11yConversation.messages.isNotEmpty()) {
+            // We have accessibility data — skip clipboard, go directly to suggestions
+            clipboardText = formatA11yMessagesAsContext(a11yConversation)
+            suggestions = emptyList()
+            isLoadingSuggestions = true
+            currentState = KeyboardState.SUGGESTIONS
+            renderCurrentState()
+            analyzeCurrentText()
+        } else if (!conv.hasMessages) {
+            // No messages at all — start conversation
             currentState = KeyboardState.START_CONVERSATION
             isLoadingSuggestions = true
             renderCurrentState()
             startConversationRequest()
         } else {
+            // Fallback to clipboard paste flow
             currentState = KeyboardState.AWAITING_CLIPBOARD
             renderCurrentState()
+        }
+    }
+
+    private fun formatA11yMessagesAsContext(conversation: ParsedConversation): String {
+        return conversation.messages.joinToString("\n") { msg ->
+            val prefix = if (msg.isFromUser) "Eu:" else "${conversation.contactName}:"
+            "$prefix ${msg.text}"
         }
     }
 

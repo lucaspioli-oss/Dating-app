@@ -5,6 +5,8 @@ import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import android.accessibilityservice.AccessibilityServiceInfo
+import android.view.accessibility.AccessibilityManager
 import com.desenrolaai.app.keyboard.auth.AuthHelper
 
 class MainActivity : FlutterActivity() {
@@ -66,6 +68,15 @@ class MainActivity : FlutterActivity() {
                         result.success(null)
                     }
 
+                    "isAccessibilityServiceEnabled" -> {
+                        result.success(isAccessibilityServiceEnabled())
+                    }
+
+                    "openAccessibilitySettings" -> {
+                        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                        result.success(null)
+                    }
+
                     else -> result.notImplemented()
                 }
             }
@@ -77,5 +88,14 @@ class MainActivity : FlutterActivity() {
             Settings.Secure.ENABLED_INPUT_METHODS
         ) ?: return false
         return enabledMethods.contains("com.desenrolaai.app")
+    }
+
+    private fun isAccessibilityServiceEnabled(): Boolean {
+        val am = getSystemService(ACCESSIBILITY_SERVICE) as? AccessibilityManager ?: return false
+        val enabledServices = am.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
+        return enabledServices.any {
+            it.resolveInfo.serviceInfo.packageName == packageName &&
+            it.resolveInfo.serviceInfo.name.contains("DesenrolaAccessibilityService")
+        }
     }
 }

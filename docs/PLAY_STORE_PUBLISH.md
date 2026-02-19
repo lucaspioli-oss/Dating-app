@@ -1,100 +1,49 @@
 # Publicar Desenrola AI na Google Play Store
 
-## Etapa 1 — Criar conta no Google Play Console
+## Passo 1: Gerar o AAB de Release
 
-1. Acesse https://play.google.com/console
-2. Pague a taxa unica de **$25 USD**
-3. Complete a verificacao de identidade (pode levar 1-2 dias)
-4. Na pergunta sobre experiencia, use o texto abaixo:
+### 1.1 Keystore (JA FEITO)
+Arquivo: `flutter_keyboard/android/upload-keystore.jks`
+Config: `flutter_keyboard/android/key.properties`
 
-### Texto para "Experiencia com Play Console e Android"
-
-> Sou desenvolvedor mobile com experiencia em Flutter e desenvolvimento nativo Android (Kotlin).
-> Desenvolvi o Desenrola AI, um aplicativo de assistente inteligente para mensagens que inclui
-> um teclado customizado (IME - Input Method Editor) para Android e iOS. O app utiliza Firebase
-> (Auth, Firestore), integracao com APIs de IA, e compras in-app. A versao iOS ja esta publicada
-> na App Store via TestFlight/App Store Connect, com builds automatizados pelo Codemagic CI/CD.
-> Agora estou expandindo a distribuicao para Android via Google Play Store. Tenho experiencia com
-> o ecossistema Android incluindo configuracao de signing, build com Gradle, e gerenciamento de
-> dependencias nativas (OkHttp, Kotlin Coroutines).
-
----
-
-## Etapa 2 — Gerar Keystore de Release
-
-No terminal, rode:
-
-```bash
-keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
-```
-
-Ele vai pedir:
-- **Senha do keystore** — guarde bem, nao tem como recuperar
-- **Senha da key** — pode ser a mesma
-- Nome, organizacao, etc.
-
-IMPORTANTE: Mova o arquivo para um local seguro fora do repositorio git.
-O .gitignore ja bloqueia *.jks e *.keystore.
-
----
-
-## Etapa 3 — Criar key.properties
-
-Crie o arquivo `flutter_keyboard/android/key.properties` com:
-
-```properties
-storePassword=SUA_SENHA_AQUI
-keyPassword=SUA_SENHA_AQUI
-keyAlias=upload
-storeFile=CAMINHO_ABSOLUTO/upload-keystore.jks
-```
-
-IMPORTANTE: Este arquivo NAO deve ser commitado no git.
-Adicione ao .gitignore se necessario: `**/key.properties`
-
----
-
-## Etapa 4 — Configurar signing no build.gradle.kts
-
-O arquivo `flutter_keyboard/android/app/build.gradle.kts` ja deve estar configurado
-para ler o key.properties e usar a keystore de release (ja feito pelo Claude).
-
-Verifique que o bloco `signingConfigs` e `buildTypes` estao corretos.
-
----
-
-## Etapa 5 — Gerar o App Bundle
-
+### 1.2 Gerar App Bundle
 ```bash
 cd flutter_keyboard
 flutter build appbundle --release
 ```
-
-O .aab sera gerado em:
-`build/app/outputs/bundle/release/app-release.aab`
+Arquivo gerado em: `build/app/outputs/bundle/release/app-release.aab`
 
 ---
 
-## Etapa 6 — Criar o app no Google Play Console
+## Passo 2: Acessar o Google Play Console
 
-1. No Play Console, clique em "Criar app"
-2. Preencha:
-   - Nome: **Desenrola AI**
-   - Idioma padrao: **Portugues (Brasil)**
-   - Tipo: **App**
-   - Gratuito ou pago: conforme seu modelo
-3. Aceite as declaracoes
+1. Ir em https://play.google.com/console
+2. Login com conta Google verificada
+3. Clicar em **"Criar app"**
 
 ---
 
-## Etapa 7 — Configurar a ficha da loja
+## Passo 3: Criar o App
 
-### Textos obrigatorios
+- **Nome do app**: Desenrola AI
+- **Idioma padrao**: Portugues (Brasil)
+- **App ou jogo**: App
+- **Gratuito ou pago**: Gratuito (com compras no app)
+- Aceitar as declaracoes
 
-**Descricao curta (max 80 chars):**
-> Assistente IA para mensagens de dating. Respostas inteligentes no teclado.
+---
 
-**Descricao completa (max 4000 chars):**
+## Passo 4: Ficha da Loja (Dashboard > Ficha da loja principal)
+
+- **Descricao curta** (80 chars): "Teclado AI para dating — gera respostas perfeitas direto no chat"
+- **Descricao completa**: Usar a descricao de marketing do app (ver abaixo)
+- **Icone do app**: 512x512 PNG sem transparencia
+- **Grafico de recursos**: 1024x500 PNG (banner)
+- **Screenshots**: Minimo 2 (recomendado 4-6), tamanho minimo 320px
+- **Categoria**: Social / Comunicacao
+- **Email de contato**: Seu email
+
+### Descricao completa sugerida:
 > Desenrola AI e o seu assistente inteligente para conversas em apps de dating.
 > Com o teclado integrado, voce recebe sugestoes de respostas personalizadas
 > diretamente enquanto conversa no Tinder, Bumble, Happn ou qualquer app.
@@ -110,12 +59,10 @@ O .aab sera gerado em:
 > - Multiplos perfis de conversa
 > - Escolha de tom (casual, romantico, ousado, engracado)
 > - Objetivos personalizaveis (primeiro encontro, manter interesse, etc.)
+> - Analise de screenshots de conversas
+> - Geracao de aberturas de conversa
 > - Modo rapido sem perfil
 > - Escreva sua propria resposta com assistencia IA
->
-> O Desenrola AI analisa o contexto da conversa e gera respostas naturais
-> e personalizadas, ajudando voce a manter conversas interessantes e
-> aumentar suas chances de match.
 
 ### Assets graficos obrigatorios
 
@@ -124,88 +71,111 @@ O .aab sera gerado em:
 | Icone do app | 512x512 px | PNG 32-bit, sem transparencia |
 | Feature graphic | 1024x500 px | PNG ou JPG |
 | Screenshots celular | min 2, 320-3840 px | PNG ou JPG |
-| Screenshots tablet | min 2 (se compativel) | PNG ou JPG |
-
-### Dicas para screenshots
-- Use um celular real ou emulador com resolucao alta
-- Mostre: tela de perfis, teclado com sugestoes, modo busca, escrever resposta
-- Adicione textos explicativos sobre cada tela
 
 ---
 
-## Etapa 8 — Classificacao de conteudo
+## Passo 5: Classificacao de Conteudo (Dashboard > Classificacao de conteudo)
 
-1. Va em "Politica do app" > "Classificacao de conteudo"
-2. Preencha o questionario do IARC
-3. Respostas provaveis para o Desenrola AI:
+1. Clicar "Iniciar questionario"
+2. Preencher email de contato
+3. Selecionar categoria: Utilidade / Comunicacao
+4. Respostas:
    - Violencia: Nao
-   - Sexualidade: Nao (e assistente de mensagens, nao conteudo explicito)
+   - Sexualidade: Nao
    - Linguagem: Possivelmente suave
    - Substancias: Nao
-   - Interacao entre usuarios: Nao (o app nao tem chat proprio)
-4. Resultado esperado: **Livre** ou **12+**
+   - Interacao entre usuarios: Nao
+5. Resultado esperado: **Livre** ou **12+**
 
 ---
 
-## Etapa 9 — Declaracoes obrigatorias
+## Passo 6: Preco e Distribuicao
 
-### Politica de privacidade
-- OBRIGATORIO: URL de uma politica de privacidade valida
-- Deve cobrir: dados coletados, uso de IA, Firebase, dados de teclado
-- Pode usar geradores como Termly, Iubenda, ou escrever manualmente
+- Gratuito
+- Selecionar paises (Brasil, ou todos)
+- Sem anuncios
+- Declaracoes de conformidade (LGPD)
 
-### Seguranca dos dados
-Preencha o formulario declarando:
-- **Dados coletados**: Email, nome, mensagens (para analise IA)
-- **Dados compartilhados**: Mensagens enviadas ao backend para processamento IA
-- **Criptografia**: Sim (HTTPS)
-- **Exclusao de dados**: Oferecer opcao de exclusao de conta
+---
 
-### Permissoes sensveis
-O app usa INPUT_METHOD_SERVICE — o Google pode pedir justificativa:
+## Passo 7: Politica de Privacidade
+
+- URL: `https://desenrola-ia.web.app/privacy`
+
+---
+
+## Passo 8: Seguranca dos Dados (Dashboard > Seguranca dos dados)
+
+Declarar:
+- **Dados coletados**: Email, nome, fotos de perfil (de apps de dating)
+- **Dados compartilhados**: Textos enviados para AI (Anthropic Claude)
+- **Criptografia**: Sim (HTTPS/TLS)
+- **Exclusao de dados**: Usuario pode solicitar
+
+---
+
+## Passo 9: Permissoes Especiais — Teclado (IME)
+
+**IMPORTANTE**: O app usa `BIND_INPUT_METHOD` (teclado customizado).
+
+1. Ir em **Politica > Permissoes do app**
+2. Declarar uso de IME (Input Method Editor)
+3. Justificativa:
 > O Desenrola AI oferece um teclado customizado (IME) que permite ao usuario
 > receber sugestoes de resposta com IA diretamente enquanto conversa em
 > qualquer app de mensagens. O servico de input method e essencial para a
 > funcionalidade principal do app.
+4. Google pode pedir video demonstrativo
 
 ---
 
-## Etapa 10 — Upload e publicacao
+## Passo 10: Criar Release (Dashboard > Producao)
 
-1. Va em **Producao** > **Criar nova release**
-2. Faca upload do `.aab` gerado na Etapa 5
-3. Preencha as notas da versao:
-   > Lancamento inicial do Desenrola AI para Android.
-   > Teclado inteligente com sugestoes de resposta por IA para apps de dating.
-4. Revise e envie para analise
-
-Prazo de revisao: **1-3 dias** (primeira vez pode levar mais).
+1. Ir em **Producao > Criar nova versao**
+2. Configurar **App Signing by Google Play** (aceitar, e obrigatorio)
+3. Upload do `.aab` gerado no Passo 1
+4. Notas da versao:
+```
+Primeira versao do Desenrola AI para Android.
+- Teclado AI integrado para apps de dating
+- Sugestoes inteligentes de resposta
+- Analise de screenshots
+- Geracao de aberturas de conversa
+```
+5. Clicar **"Revisar versao"** > **"Iniciar distribuicao para producao"**
 
 ---
 
-## Etapa 11 (Opcional) — Automatizar via Codemagic
+## Passo 11: Assinaturas (Monetizacao > Produtos > Assinaturas)
 
-Apos o primeiro upload manual, podemos adicionar um workflow Android no codemagic.yaml:
+1. Criar grupo: "Desenrola AI Premium"
+2. Criar 3 planos:
+   - **Mensal**: ID `desenrola_monthly`
+   - **Trimestral**: ID `desenrola_quarterly`
+   - **Anual**: ID `desenrola_yearly`
+3. Product IDs devem bater com `AppConfig`
 
-1. Crie uma **Service Account** no Google Cloud Console
-2. Ative a **Google Play Developer API**
-3. Adicione a Service Account como usuario no Play Console
-4. Configure o JSON key no Codemagic
-5. Adicione o workflow Android no codemagic.yaml
+---
+
+## Passo 12: Aguardar Revisao
+
+- Primeira revisao: **1-3 dias** (pode ser ate 7)
+- Apps com teclado customizado podem ter revisao mais rigorosa
+- Se rejeitado, Google informa o motivo para correcao
 
 ---
 
 ## Checklist Final
 
-- [ ] Conta no Google Play Console criada e verificada
-- [ ] Keystore de release gerada
-- [ ] key.properties configurado
-- [ ] build.gradle.kts com signing de release
+- [x] Keystore de release gerada
+- [x] key.properties configurado
+- [x] build.gradle.kts com signing de release
 - [ ] App bundle gerado com sucesso
 - [ ] App criado no Play Console
 - [ ] Ficha da loja preenchida (textos + imagens)
 - [ ] Classificacao de conteudo preenchida
-- [ ] Politica de privacidade publicada
+- [x] Politica de privacidade publicada
 - [ ] Declaracao de seguranca dos dados preenchida
 - [ ] Justificativa de permissao INPUT_METHOD enviada
+- [ ] Assinaturas criadas
 - [ ] Release enviada para revisao

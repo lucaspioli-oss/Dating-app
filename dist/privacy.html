@@ -34,10 +34,10 @@
 <body>
   <div class="container">
     <h1>Politica de Privacidade</h1>
-    <p class="subtitle">Ultima atualizacao: 6 de fevereiro de 2026 &middot; Versao 1.0</p>
+    <p class="subtitle">Ultima atualizacao: 11 de fevereiro de 2026 &middot; Versao 1.1</p>
 
     <div class="highlight-box">
-      <p><strong>Resumo:</strong> O Desenrola AI e um assistente de inteligencia artificial para conversas em plataformas de relacionamento. Coletamos seu nome, e-mail e o conteudo que voce envia (textos e imagens) para fornecer analises e sugestoes. Seus dados sao processados pela Anthropic (IA), armazenados no Firebase (Google) e pagamentos sao gerenciados pelo Stripe. Nao vendemos seus dados.</p>
+      <p><strong>Resumo:</strong> O Desenrola AI e um assistente de inteligencia artificial para conversas em plataformas de relacionamento. Coletamos seu nome, e-mail, o conteudo que voce envia (textos, imagens e capturas de tela) e dados da area de transferencia (clipboard) acessados pelo teclado personalizado para fornecer analises e sugestoes. Seus dados sao processados pelo modelo Claude da Anthropic (IA), armazenados no Firebase (Google) e pagamentos sao gerenciados pela Apple (In-App Purchase). Nao vendemos seus dados.</p>
     </div>
 
     <div class="toc">
@@ -81,6 +81,8 @@
       <tr><td>Dados de cadastro</td><td>Nome, endereco de e-mail</td><td>Criacao e gestao da conta</td></tr>
       <tr><td>Conteudo de perfis</td><td>Fotos, biografias, nomes e informacoes de perfis de terceiros que voce envia para analise</td><td>Analise por IA e geracao de sugestoes</td></tr>
       <tr><td>Mensagens e conversas</td><td>Textos de conversas que voce insere ou cola no app</td><td>Geracao de sugestoes de resposta</td></tr>
+      <tr><td>Capturas de tela (screenshots)</td><td>Screenshots de perfis de plataformas de relacionamento (Tinder, Bumble, Hinge, Instagram e similares)</td><td>Analise de perfil por IA, extracao de informacoes textuais, recorte de foto de perfil</td></tr>
+      <tr><td>Dados da area de transferencia (clipboard)</td><td>Textos copiados de aplicativos de relacionamento e colados no teclado personalizado</td><td>Deteccao de contexto de conversa para geracao de sugestoes pelo teclado</td></tr>
       <tr><td>Dados de perfil pessoal</td><td>Idade, genero, interesses, estilo de humor, objetivo de relacionamento</td><td>Personalizacao das sugestoes da IA</td></tr>
     </table>
 
@@ -92,9 +94,22 @@
       <tr><td>Dados de autenticacao</td><td>Token de sessao, ID de usuario</td><td>Seguranca e autenticacao</td></tr>
     </table>
 
-    <h3>2.3 Dados que NAO coletamos</h3>
+    <h3>2.3 Teclado Personalizado (Custom Keyboard Extension)</h3>
+    <div class="warning-box">
+      <p><strong>Acesso Completo (Full Access):</strong> O Desenrola AI inclui um teclado personalizado para iOS que requer "Acesso Completo" (Full Access) para funcionar. Isso e necessario para que o teclado possa se comunicar com nossos servidores e gerar sugestoes de mensagens em tempo real.</p>
+    </div>
+    <p>Ao ativar o Acesso Completo do teclado, o seguinte ocorre:</p>
     <ul>
-      <li>Dados de cartao de credito (processados diretamente pelo Stripe)</li>
+      <li><strong>Acesso a area de transferencia (clipboard):</strong> O teclado le o conteudo da area de transferencia para detectar textos de conversas copiados de aplicativos de relacionamento. O texto e enviado ao nosso servidor para gerar sugestoes contextuais. O teclado <strong>nao monitora continuamente</strong> o clipboard; a leitura ocorre apenas quando voce interage com a funcionalidade de colar no teclado.</li>
+      <li><strong>Comunicacao com servidor:</strong> O teclado envia dados (textos colados, perfil selecionado, objetivo da conversa) ao nosso servidor via conexao HTTPS criptografada para processamento pela IA.</li>
+      <li><strong>Dados que o teclado NAO acessa:</strong> O teclado <strong>nao registra, armazena ou transmite</strong> o que voce digita em outros aplicativos (keylogging). O teclado nao acessa senhas, dados bancarios, mensagens de outros apps ou qualquer conteudo digitado fora da funcionalidade de sugestoes do Desenrola AI.</li>
+      <li><strong>Armazenamento local:</strong> O teclado armazena localmente apenas dados de configuracao (perfis selecionados, preferencias) no armazenamento compartilhado do app (App Groups), acessivel apenas pelo Desenrola AI.</li>
+    </ul>
+
+    <h3>2.4 Dados que NAO coletamos</h3>
+    <ul>
+      <li>Teclas digitadas em outros aplicativos (o teclado nao faz keylogging)</li>
+      <li>Dados de cartao de credito (pagamentos sao processados diretamente pela Apple via In-App Purchase)</li>
       <li>Localizacao precisa (GPS)</li>
       <li>Contatos do telefone</li>
       <li>Dados de saude</li>
@@ -131,7 +146,8 @@
       <tr><th>Provedor</th><th>Dados Compartilhados</th><th>Finalidade</th><th>Localizacao</th></tr>
       <tr><td>Anthropic (Claude AI)</td><td>Textos e imagens enviados para analise</td><td>Processamento por inteligencia artificial</td><td>Estados Unidos</td></tr>
       <tr><td>Google Firebase</td><td>Dados de conta, conteudo armazenado</td><td>Autenticacao, banco de dados, hospedagem</td><td>Estados Unidos</td></tr>
-      <tr><td>Stripe</td><td>E-mail, dados de transacao</td><td>Processamento de pagamentos</td><td>Estados Unidos</td></tr>
+      <tr><td>Apple (In-App Purchase)</td><td>Dados de transacao, Apple ID</td><td>Processamento de pagamentos e assinaturas no iOS</td><td>Estados Unidos</td></tr>
+      <tr><td>Railway (Servidor)</td><td>Dados enviados para processamento (textos, imagens)</td><td>Hospedagem do servidor backend</td><td>Estados Unidos</td></tr>
       <tr><td>Google Analytics</td><td>Dados de uso anonimizados</td><td>Analise de metricas (apenas na versao web)</td><td>Estados Unidos</td></tr>
     </table>
 
@@ -163,12 +179,32 @@
 
     <!-- 7 -->
     <h2 id="s7">7. Inteligencia Artificial e Processamento Automatizado</h2>
-    <p>O Desenrola AI utiliza modelos de inteligencia artificial fornecidos pela <strong>Anthropic</strong> para:</p>
+    <p>O Desenrola AI utiliza o modelo de inteligencia artificial <strong>Claude</strong>, desenvolvido e operado pela <strong>Anthropic, PBC</strong> (San Francisco, EUA), para processar os dados enviados pelos usuarios.</p>
+
+    <h3>7.1 Dados enviados ao Claude (Anthropic)</h3>
+    <p>Quando voce utiliza o servico, os seguintes dados podem ser enviados a API do Claude da Anthropic para processamento:</p>
     <ul>
-      <li>Analisar imagens de perfis de plataformas de relacionamento;</li>
-      <li>Extrair informacoes textuais de screenshots;</li>
-      <li>Gerar sugestoes de mensagens e respostas;</li>
-      <li>Analisar o tom e contexto de conversas.</li>
+      <li><strong>Capturas de tela de perfis:</strong> Screenshots de perfis de plataformas de relacionamento sao enviados para analise visual, extracao de informacoes (nome, idade, biografia, interesses) e recorte da foto de perfil;</li>
+      <li><strong>Textos de conversas:</strong> Mensagens copiadas ou digitadas sao enviadas para geracao de sugestoes de resposta contextuais;</li>
+      <li><strong>Dados do seu perfil:</strong> Suas preferencias (idade, genero, interesses, estilo de humor, objetivo) sao incluidas no contexto para personalizar as sugestoes;</li>
+      <li><strong>Fotos de perfil recortadas:</strong> Imagens de perfil processadas pelo servidor podem ser analisadas pela IA para descricao visual.</li>
+    </ul>
+
+    <h3>7.2 Como a Anthropic trata seus dados</h3>
+    <p>De acordo com a politica de uso da API da Anthropic:</p>
+    <ul>
+      <li>A Anthropic <strong>nao utiliza dados enviados via API para treinar seus modelos</strong> de IA;</li>
+      <li>Os dados sao processados em servidores nos Estados Unidos;</li>
+      <li>A Anthropic pode reter logs de API por ate 30 dias para fins de seguranca e deteccao de abusos;</li>
+      <li>Para mais informacoes, consulte a <a href="https://www.anthropic.com/privacy" target="_blank">Politica de Privacidade da Anthropic</a>.</li>
+    </ul>
+
+    <h3>7.3 Processamento de imagens no servidor</h3>
+    <p>Alem do processamento pela IA, nosso servidor realiza operacoes tecnicas sobre imagens enviadas:</p>
+    <ul>
+      <li><strong>Recorte de foto de perfil:</strong> Screenshots de perfis do Instagram e outras plataformas sao processados para detectar e recortar automaticamente a foto de perfil utilizando analise de imagem (bibliotecas sharp e opencv-wasm);</li>
+      <li><strong>Redimensionamento:</strong> Imagens sao redimensionadas para otimizar armazenamento e transmissao;</li>
+      <li>Essas operacoes ocorrem no nosso servidor (hospedado na Railway, EUA) e os dados processados sao armazenados temporariamente apenas durante o processamento.</li>
     </ul>
 
     <div class="warning-box">
@@ -297,7 +333,7 @@
       <li><strong>Google Analytics:</strong> Para metricas de uso e desempenho do site.</li>
       <li><strong>Meta Pixel:</strong> Para mensurar efetividade de campanhas publicitarias.</li>
     </ul>
-    <p>No aplicativo iOS, <strong>nao utilizamos cookies</strong> ou tecnologias de rastreamento de terceiros.</p>
+    <p>No aplicativo iOS, utilizamos o <strong>Firebase Analytics</strong> (Google) para metricas de uso anonimizadas. <strong>Nao utilizamos cookies</strong> ou tecnologias de rastreamento de terceiros no app iOS.</p>
     <p>Voce pode gerenciar suas preferencias de cookies nas configuracoes do seu navegador.</p>
 
     <!-- 16 -->

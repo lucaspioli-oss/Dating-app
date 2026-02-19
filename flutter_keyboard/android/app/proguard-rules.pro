@@ -36,6 +36,9 @@
 -keep class com.desenrolaai.app.keyboard.DesenrolaKeyboardService { *; }
 -keep class com.desenrolaai.app.MainActivity { *; }
 
+# Keep accessibility service (must be discoverable by system)
+-keep class com.desenrolaai.app.keyboard.accessibility.DesenrolaAccessibilityService { *; }
+
 # Obfuscate everything else
 -repackageclasses ''
 -allowaccessmodification
