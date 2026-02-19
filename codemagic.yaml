@@ -79,12 +79,9 @@ workflows:
         script: |
           flutter test --reporter compact
 
-      - name: Generate app icons (iOS only)
+      - name: Generate app icons
         script: |
-          # Temporarily disable Android icons (no android/ dir in iOS-only build)
-          sed -i '' 's/android: true/android: false/' pubspec.yaml
           dart run flutter_launcher_icons
-          git checkout pubspec.yaml
 
       - name: Generate native splash screen
         script: |
