@@ -110,6 +110,19 @@ app_target.build_configurations.each do |config|
   config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'Runner/Runner.entitlements'
 end
 
+# Add shared files (KeychainHelper) to Runner target so AppDelegate can use them
+shared_files = ['KeychainHelper.swift']
+runner_group = project.main_group.find_subpath('Runner', false) || project.main_group
+shared_files.each do |filename|
+  src = "ios/FlirtKeyboardExtension/#{filename}"
+  if File.exist?(src)
+    # Add a reference in Runner group pointing to the file in FlirtKeyboardExtension/
+    ref = runner_group.new_file("../FlirtKeyboardExtension/#{filename}")
+    app_target.source_build_phase.add_file_reference(ref)
+    puts "  Added #{filename} to Runner target"
+  end
+end
+
 # Add the extension as a dependency of the main app
 app_target.add_dependency(extension_target)
 
