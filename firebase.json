@@ -27,6 +27,14 @@
         "destination": "/download.html"
       },
       {
+        "source": "/terms",
+        "destination": "/terms.html"
+      },
+      {
+        "source": "/terms-android",
+        "destination": "/terms-android.html"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
