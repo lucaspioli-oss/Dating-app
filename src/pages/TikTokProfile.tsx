@@ -76,7 +76,7 @@ export default function TikTokProfile() {
         <div className="flex justify-center mb-3">
           <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-white/20">
             <img
-              src="/assets/images/NEO.png"
+              src="/assets/images/NEO-final.png"
               alt="NEO"
               className="w-full h-full object-cover"
             />

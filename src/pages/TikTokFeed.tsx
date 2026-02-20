@@ -10,7 +10,8 @@ import {
   Home,
   Search,
   User,
-  Bookmark
+  Bookmark,
+  ChevronUp
 } from 'lucide-react'
 
 interface Video {
@@ -33,7 +34,7 @@ const videos: Video[] = [
     id: '1',
     url: '/assets/Videos/v1_tiktok.mp4',
     username: 'neo.desenrola',
-    userAvatar: '/assets/images/NEO.png',
+    userAvatar: '/assets/images/NEO-final.png',
     description: 'O segredo que ninguém te conta sobre conversas... 🔥 #desenrola #dicas',
     music: 'som original - neo.desenrola',
     likes: '42.5K',
@@ -44,7 +45,7 @@ const videos: Video[] = [
     id: '2',
     url: '/assets/Videos/v2_tiktok.mp4',
     username: 'neo.desenrola',
-    userAvatar: '/assets/images/NEO.png',
+    userAvatar: '/assets/images/NEO-final.png',
     description: 'Teste isso no próximo match 👀 #conversas #dating',
     music: 'Fine Line (Instrumental) - Dua Lipa',
     likes: '38.1K',
@@ -55,7 +56,7 @@ const videos: Video[] = [
     id: '3',
     url: '/assets/Videos/v3_tiktok.mp4',
     username: 'neo.desenrola',
-    userAvatar: '/assets/images/NEO.png',
+    userAvatar: '/assets/images/NEO-final.png',
     description: 'Por que suas conversas morrem? A resposta vai te surpreender 💀',
     music: 'Murder In My Mind - Kordhell',
     likes: '67.2K',
@@ -69,6 +70,8 @@ export default function TikTokFeed() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [likedVideos, setLikedVideos] = useState<Set<string>>(new Set())
   const [isPlaying, setIsPlaying] = useState(true)
+  const [showSwipeHint, setShowSwipeHint] = useState(false)
+  const hasShownHint = useRef(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([])
 
@@ -84,6 +87,29 @@ export default function TikTokFeed() {
       }
     })
   }, [currentIndex, isPlaying])
+
+  // Detecta quando o primeiro vídeo termina um ciclo para mostrar a seta
+  useEffect(() => {
+    const firstVideo = videoRefs.current[0]
+    if (!firstVideo || hasShownHint.current) return
+
+    const handleTimeUpdate = () => {
+      if (firstVideo.duration && firstVideo.currentTime >= firstVideo.duration - 0.3 && !hasShownHint.current) {
+        hasShownHint.current = true
+        setShowSwipeHint(true)
+      }
+    }
+
+    firstVideo.addEventListener('timeupdate', handleTimeUpdate)
+    return () => firstVideo.removeEventListener('timeupdate', handleTimeUpdate)
+  }, [])
+
+  // Esconde a seta quando o usuário rola
+  useEffect(() => {
+    if (currentIndex > 0 && showSwipeHint) {
+      setShowSwipeHint(false)
+    }
+  }, [currentIndex, showSwipeHint])
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const container = e.currentTarget
@@ -254,6 +280,34 @@ export default function TikTokFeed() {
                 </div>
               </div>
             </div>
+
+            {/* Swipe up hint - apenas no primeiro vídeo */}
+            <AnimatePresence>
+              {index === 0 && showSwipeHint && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0, transition: { duration: 0.3 } }}
+                  className="absolute bottom-24 left-0 right-0 flex flex-col items-center pointer-events-none z-10"
+                >
+                  <motion.div
+                    animate={{ y: [0, -12, 0] }}
+                    transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                    className="flex flex-col items-center gap-0"
+                  >
+                    <ChevronUp className="w-7 h-7 text-white/60" />
+                    <ChevronUp className="w-7 h-7 text-white/40 -mt-4" />
+                  </motion.div>
+                  <motion.p
+                    animate={{ opacity: [0.4, 0.8, 0.4] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="text-white/50 text-xs mt-1 font-medium"
+                  >
+                    Arraste para cima
+                  </motion.p>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         ))}
       </div>

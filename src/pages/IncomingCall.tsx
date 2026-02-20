@@ -96,7 +96,7 @@ export default function IncomingCall() {
             className="rounded-full overflow-hidden border-2 border-white/10"
             style={{ width: '112px', height: '112px' }}
           >
-            <img src="/assets/images/NEO.png" alt="NEO" className="w-full h-full object-cover" />
+            <img src="/assets/images/NEO-final.png" alt="NEO" className="w-full h-full object-cover" />
           </motion.div>
 
           {/* Nome */}

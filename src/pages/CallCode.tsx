@@ -81,7 +81,7 @@ export default function CallCode() {
             className="rounded-full overflow-hidden mx-auto border-2 border-white/10"
             style={{ width: '96px', height: '96px', marginBottom: '16px' }}
           >
-            <img src="/assets/images/NEO.png" alt="NEO" className="w-full h-full object-cover" />
+            <img src="/assets/images/NEO-final.png" alt="NEO" className="w-full h-full object-cover" />
           </motion.div>
           <h1 className="text-2xl font-light text-white" style={{ marginBottom: '4px' }}>NEO</h1>
           <p className="text-call-green text-sm">{timer.formatted}</p>
