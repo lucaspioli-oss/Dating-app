@@ -41,6 +41,13 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
         description: l10n.switchKeyboardDesc,
         instruction: l10n.switchKeyboardInstruction,
       ),
+      _SetupStep(
+        icon: Icons.smart_toy_outlined,
+        title: 'Inteligencia Artificial',
+        description: 'O Desenrola AI usa inteligencia artificial para gerar sugestoes de mensagens personalizadas.',
+        instruction: 'Seus dados sao enviados para a Anthropic (Claude AI), empresa de IA sediada nos EUA, exclusivamente para gerar suas sugestoes.',
+        isAiConsent: true,
+      ),
     ];
   }
 
@@ -205,6 +212,30 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
             ),
           ),
 
+          // AI consent details (only on AI consent step)
+          if (step.isAiConsent) ...[
+            const SizedBox(height: 16),
+            _buildAiDetailCard(
+              icon: Icons.upload_outlined,
+              title: 'Dados enviados:',
+              items: [
+                'Textos de conversas que voce compartilha',
+                'Informacoes de perfis (bio, interesses)',
+                'Screenshots analisados',
+              ],
+            ),
+            const SizedBox(height: 10),
+            _buildAiDetailCard(
+              icon: Icons.shield_outlined,
+              title: 'Garantias:',
+              items: [
+                'Dados nao sao armazenados permanentemente',
+                'Nao sao usados para treinar modelos de IA',
+                'Transmissao protegida por criptografia',
+              ],
+            ),
+          ],
+
           // Security tip (only when present)
           if (step.tip != null) ...[
             const SizedBox(height: 16),
@@ -284,6 +315,56 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
     );
   }
 
+  Widget _buildAiDetailCard({
+    required IconData icon,
+    required String title,
+    required List<String> items,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.elevatedDark,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: AppColors.primary, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...items.map((item) => Padding(
+            padding: const EdgeInsets.only(left: 26, bottom: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('• ', style: TextStyle(color: AppColors.textTertiary, fontSize: 13)),
+                Expanded(
+                  child: Text(
+                    item,
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.4),
+                  ),
+                ),
+              ],
+            ),
+          )),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBottomButtons(BuildContext context, int totalSteps) {
     final l10n = AppLocalizations.of(context)!;
 
@@ -327,9 +408,14 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           GradientButton(
-            text: l10n.startUsingButton,
+            text: 'Concordo e Comecar',
             icon: Icons.rocket_launch,
-            onPressed: _completeSetup,
+            onPressed: () async {
+              // Save AI consent when user taps the final button
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool('ai_data_consent_accepted', true);
+              _completeSetup();
+            },
           ),
         ],
       );
@@ -371,6 +457,7 @@ class _SetupStep {
   final String description;
   final String instruction;
   final String? tip;
+  final bool isAiConsent;
 
   const _SetupStep({
     required this.icon,
@@ -378,5 +465,6 @@ class _SetupStep {
     required this.description,
     required this.instruction,
     this.tip,
+    this.isAiConsent = false,
   });
 }
