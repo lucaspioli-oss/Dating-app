@@ -11,6 +11,7 @@ import '../config/app_haptics.dart';
 import '../models/profile_model.dart';
 import '../providers/app_state.dart';
 import '../services/agent_service.dart';
+import '../services/ai_consent_service.dart';
 import '../services/conversation_service.dart';
 import '../services/profile_service.dart';
 import '../widgets/profile_avatar.dart';
@@ -1259,6 +1260,9 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
   }
 
   Future<void> _generateSuggestions() async {
+    // Check AI data consent before first use
+    if (!await AiConsentService.ensureConsent(context)) return;
+
     setState(() {
       _isGenerating = true;
       _errorMessage = null;
@@ -1304,6 +1308,9 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
       });
       return;
     }
+
+    // Check AI data consent before first use
+    if (!await AiConsentService.ensureConsent(context)) return;
 
     setState(() {
       _isGenerating = true;

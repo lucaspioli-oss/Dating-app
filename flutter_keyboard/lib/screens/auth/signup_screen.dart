@@ -1,4 +1,6 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
 import '../../config/app_theme.dart';
 import '../../services/firebase_auth_service.dart';
@@ -267,32 +269,33 @@ class _SignupScreenState extends State<SignupScreen> {
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() => _acceptedTerms = !_acceptedTerms);
-                            },
-                            child: Text.rich(
-                              TextSpan(
-                                text: '${l10n.termsPrefix} ',
-                                style: TextStyle(color: AppColors.textSecondary),
-                                children: [
-                                  TextSpan(
-                                    text: l10n.termsLink,
-                                    style: TextStyle(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                          child: Text.rich(
+                            TextSpan(
+                              text: '${l10n.termsPrefix} ',
+                              style: TextStyle(color: AppColors.textSecondary),
+                              children: [
+                                TextSpan(
+                                  text: l10n.termsLink,
+                                  style: TextStyle(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w500,
+                                    decoration: TextDecoration.underline,
                                   ),
-                                  TextSpan(text: ' ${l10n.andConjunction} '),
-                                  TextSpan(
-                                    text: l10n.privacyPolicyLink,
-                                    style: TextStyle(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () => launchUrl(Uri.parse('https://desenrola-ia.web.app/terms')),
+                                ),
+                                TextSpan(text: ' ${l10n.andConjunction} '),
+                                TextSpan(
+                                  text: l10n.privacyPolicyLink,
+                                  style: TextStyle(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w500,
+                                    decoration: TextDecoration.underline,
                                   ),
-                                ],
-                              ),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () => launchUrl(Uri.parse('https://desenrola-ia.web.app/privacy')),
+                                ),
+                              ],
                             ),
                           ),
                         ),
