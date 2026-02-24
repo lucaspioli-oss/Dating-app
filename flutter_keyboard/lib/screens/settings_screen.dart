@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -24,6 +26,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final KeyboardService _keyboardService = KeyboardService();
   bool _isDeveloper = false;
   bool _isKeyboardEnabled = false;
+  bool _isAccessibilityEnabled = false;
   bool _isLoading = true;
 
   @override
@@ -35,10 +38,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadStatus() async {
     final isDev = await _subscriptionService.isDeveloper();
     final isKeyboard = await _keyboardService.isKeyboardEnabled();
+    bool isA11y = false;
+    if (Platform.isAndroid) {
+      isA11y = await _keyboardService.isAccessibilityServiceEnabled();
+    }
     if (mounted) {
       setState(() {
         _isDeveloper = isDev;
         _isKeyboardEnabled = isKeyboard;
+        _isAccessibilityEnabled = isA11y;
         _isLoading = false;
       });
     }
@@ -55,6 +63,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           _buildKeyboardSection(context),
+          if (Platform.isAndroid) ...[
+            const SizedBox(height: 24),
+            _buildAccessibilitySection(context),
+          ],
           if (_isDeveloper) ...[
             const SizedBox(height: 24),
             _buildTrainingSection(context),
@@ -157,6 +169,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 );
               },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccessibilitySection(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l10n.accessibilityStatusLabel,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: Icon(
+                _isAccessibilityEnabled
+                    ? Icons.check_circle
+                    : Icons.warning_amber_rounded,
+                color: _isAccessibilityEnabled ? AppColors.success : AppColors.warning,
+              ),
+              title: Text(l10n.accessibilityStatusLabel),
+              subtitle: Text(
+                _isAccessibilityEnabled ? l10n.accessibilityStatusActive : l10n.accessibilityStatusInactive,
+              ),
+              trailing: _isAccessibilityEnabled
+                  ? null
+                  : TextButton(
+                      onPressed: () async {
+                        await _keyboardService.openAccessibilitySettings();
+                        Future.delayed(
+                          const Duration(seconds: 1),
+                          () async {
+                            final enabled = await _keyboardService.isAccessibilityServiceEnabled();
+                            if (mounted) {
+                              setState(() => _isAccessibilityEnabled = enabled);
+                            }
+                          },
+                        );
+                      },
+                      child: Text(l10n.activateButton),
+                    ),
             ),
           ],
         ),

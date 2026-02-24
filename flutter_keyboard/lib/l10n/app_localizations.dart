@@ -2457,6 +2457,120 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Digite uma senha'**
   String get passwordValidationEnter;
+
+  /// No description provided for @activateKeyboardDescAndroid.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para usar sugestões inteligentes direto no WhatsApp, Tinder e outros apps, você precisa ativar nosso teclado personalizado nas configurações do Android.'**
+  String get activateKeyboardDescAndroid;
+
+  /// No description provided for @activateKeyboardInstructionAndroid.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vá em:\nConfigurações → Idioma e entrada → Teclado virtual → Gerenciar teclados → Ative \"Desenrola AI\"'**
+  String get activateKeyboardInstructionAndroid;
+
+  /// No description provided for @switchKeyboardDescAndroid.
+  ///
+  /// In pt, this message translates to:
+  /// **'Em qualquer app de mensagens, toque no ícone do teclado na barra de navegação ou mantenha pressionada a barra de espaço para trocar para o Desenrola AI.'**
+  String get switchKeyboardDescAndroid;
+
+  /// No description provided for @switchKeyboardInstructionAndroid.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque no ícone do teclado ou mantenha pressionada a barra de espaço'**
+  String get switchKeyboardInstructionAndroid;
+
+  /// No description provided for @accessibilityServiceTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ative a Leitura Automática'**
+  String get accessibilityServiceTitle;
+
+  /// No description provided for @accessibilityServiceDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'O Desenrola AI pode ler automaticamente as conversas dos apps de dating e WhatsApp, eliminando a necessidade de copiar e colar mensagens manualmente.'**
+  String get accessibilityServiceDesc;
+
+  /// No description provided for @accessibilityServiceInstruction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vá em:\nConfigurações → Acessibilidade → Serviços instalados → Ative \"Desenrola AI\"'**
+  String get accessibilityServiceInstruction;
+
+  /// No description provided for @accessibilityServiceTip.
+  ///
+  /// In pt, this message translates to:
+  /// **'O serviço só monitora apps de dating e WhatsApp. Nenhum dado de outros apps é acessado.'**
+  String get accessibilityServiceTip;
+
+  /// No description provided for @accessibilityServiceEnabledStatus.
+  ///
+  /// In pt, this message translates to:
+  /// **'Serviço ativado!'**
+  String get accessibilityServiceEnabledStatus;
+
+  /// No description provided for @accessibilityServiceNotEnabledStatus.
+  ///
+  /// In pt, this message translates to:
+  /// **'Serviço não ativado'**
+  String get accessibilityServiceNotEnabledStatus;
+
+  /// No description provided for @openAccessibilitySettingsButton.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir Acessibilidade'**
+  String get openAccessibilitySettingsButton;
+
+  /// No description provided for @continueWithoutAccessibility.
+  ///
+  /// In pt, this message translates to:
+  /// **'Continuar sem leitura automática'**
+  String get continueWithoutAccessibility;
+
+  /// No description provided for @aiConsentSetupTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Uso de Inteligência Artificial'**
+  String get aiConsentSetupTitle;
+
+  /// No description provided for @aiConsentSetupDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para gerar sugestões de mensagens, o Desenrola AI envia alguns dos seus dados para um serviço de inteligência artificial de terceiros (Anthropic Claude AI).'**
+  String get aiConsentSetupDesc;
+
+  /// No description provided for @aiConsentSetupInstruction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seus dados são usados apenas para gerar sugestões, não são armazenados permanentemente e são transmitidos com criptografia.'**
+  String get aiConsentSetupInstruction;
+
+  /// No description provided for @agreeAndStartButton.
+  ///
+  /// In pt, this message translates to:
+  /// **'Concordo e Começar!'**
+  String get agreeAndStartButton;
+
+  /// No description provided for @accessibilityStatusLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Leitura Automática'**
+  String get accessibilityStatusLabel;
+
+  /// No description provided for @accessibilityStatusActive.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ativado'**
+  String get accessibilityStatusActive;
+
+  /// No description provided for @accessibilityStatusInactive.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desativado'**
+  String get accessibilityStatusInactive;
 }
 
 class _AppLocalizationsDelegate

@@ -1,9 +1,12 @@
+import 'dart:io';
 import 'package:flutter/services.dart';
 
-/// Serviço para comunicação com o teclado nativo iOS via MethodChannel
+/// Serviço para comunicação com o teclado nativo via MethodChannel
 class KeyboardService {
-  // Nome do canal deve corresponder ao código nativo iOS
   static const platform = MethodChannel('com.desenrolaai/native');
+
+  bool get isAndroid => Platform.isAndroid;
+  bool get isIOS => Platform.isIOS;
 
   /// Verifica se o teclado customizado está habilitado
   Future<bool> isKeyboardEnabled() async {
@@ -63,6 +66,28 @@ class KeyboardService {
       await platform.invokeMethod('clearKeyboardAuth');
     } on PlatformException catch (e) {
       print("Erro ao limpar auth do teclado: ${e.message}");
+    }
+  }
+
+  /// [Android only] Verifica se o Accessibility Service está ativado
+  Future<bool> isAccessibilityServiceEnabled() async {
+    if (!isAndroid) return false;
+    try {
+      final bool result = await platform.invokeMethod('isAccessibilityServiceEnabled');
+      return result;
+    } on PlatformException catch (e) {
+      print("Erro ao verificar accessibility: ${e.message}");
+      return false;
+    }
+  }
+
+  /// [Android only] Abre as configurações de acessibilidade
+  Future<void> openAccessibilitySettings() async {
+    if (!isAndroid) return;
+    try {
+      await platform.invokeMethod('openAccessibilitySettings');
+    } on PlatformException catch (e) {
+      print("Erro ao abrir configurações de acessibilidade: ${e.message}");
     }
   }
 }

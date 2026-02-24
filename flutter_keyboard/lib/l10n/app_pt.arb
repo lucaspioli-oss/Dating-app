@@ -419,5 +419,28 @@
   "addStoryError": "Erro ao adicionar story:",
   "addPlatformError": "Erro ao adicionar plataforma:",
   "conversationLabel": "Conversa",
-  "passwordValidationEnter": "Digite uma senha"
+  "passwordValidationEnter": "Digite uma senha",
+
+  "activateKeyboardDescAndroid": "Para usar sugestões inteligentes direto no WhatsApp, Tinder e outros apps, você precisa ativar nosso teclado personalizado nas configurações do Android.",
+  "activateKeyboardInstructionAndroid": "Vá em:\nConfigurações → Idioma e entrada → Teclado virtual → Gerenciar teclados → Ative \"Desenrola AI\"",
+  "switchKeyboardDescAndroid": "Em qualquer app de mensagens, toque no ícone do teclado na barra de navegação ou mantenha pressionada a barra de espaço para trocar para o Desenrola AI.",
+  "switchKeyboardInstructionAndroid": "Toque no ícone do teclado ou mantenha pressionada a barra de espaço",
+
+  "accessibilityServiceTitle": "Ative a Leitura Automática",
+  "accessibilityServiceDesc": "O Desenrola AI pode ler automaticamente as conversas dos apps de dating e WhatsApp, eliminando a necessidade de copiar e colar mensagens manualmente.",
+  "accessibilityServiceInstruction": "Vá em:\nConfigurações → Acessibilidade → Serviços instalados → Ative \"Desenrola AI\"",
+  "accessibilityServiceTip": "O serviço só monitora apps de dating e WhatsApp. Nenhum dado de outros apps é acessado.",
+  "accessibilityServiceEnabledStatus": "Serviço ativado!",
+  "accessibilityServiceNotEnabledStatus": "Serviço não ativado",
+  "openAccessibilitySettingsButton": "Abrir Acessibilidade",
+  "continueWithoutAccessibility": "Continuar sem leitura automática",
+
+  "aiConsentSetupTitle": "Uso de Inteligência Artificial",
+  "aiConsentSetupDesc": "Para gerar sugestões de mensagens, o Desenrola AI envia alguns dos seus dados para um serviço de inteligência artificial de terceiros (Anthropic Claude AI).",
+  "aiConsentSetupInstruction": "Seus dados são usados apenas para gerar sugestões, não são armazenados permanentemente e são transmitidos com criptografia.",
+  "agreeAndStartButton": "Concordo e Começar!",
+
+  "accessibilityStatusLabel": "Leitura Automática",
+  "accessibilityStatusActive": "Ativado",
+  "accessibilityStatusInactive": "Desativado"
 }

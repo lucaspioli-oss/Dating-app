@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/keyboard_service.dart';
@@ -18,9 +19,38 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
   final KeyboardService _keyboardService = KeyboardService();
   int _currentPage = 0;
   bool _isKeyboardEnabled = false;
+  bool _isAccessibilityEnabled = false;
 
   List<_SetupStep> _getSteps(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+
+    if (Platform.isAndroid) {
+      return [
+        _SetupStep(
+          icon: Icons.keyboard_alt_outlined,
+          title: l10n.activateKeyboardTitle,
+          description: l10n.activateKeyboardDescAndroid,
+          instruction: l10n.activateKeyboardInstructionAndroid,
+        ),
+        _SetupStep(
+          icon: Icons.accessibility_new_outlined,
+          title: l10n.accessibilityServiceTitle,
+          description: l10n.accessibilityServiceDesc,
+          instruction: l10n.accessibilityServiceInstruction,
+          tip: l10n.accessibilityServiceTip,
+          isAccessibility: true,
+        ),
+        _SetupStep(
+          icon: Icons.smart_toy_outlined,
+          title: l10n.aiConsentSetupTitle,
+          description: l10n.aiConsentSetupDesc,
+          instruction: l10n.aiConsentSetupInstruction,
+          isAiConsent: true,
+        ),
+      ];
+    }
+
+    // iOS steps
     return [
       _SetupStep(
         icon: Icons.keyboard_alt_outlined,
@@ -48,6 +78,7 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
   void initState() {
     super.initState();
     _checkKeyboardStatus();
+    _checkAccessibilityStatus();
   }
 
   @override
@@ -60,6 +91,14 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
     final enabled = await _keyboardService.isKeyboardEnabled();
     if (mounted) {
       setState(() => _isKeyboardEnabled = enabled);
+    }
+  }
+
+  Future<void> _checkAccessibilityStatus() async {
+    if (!Platform.isAndroid) return;
+    final enabled = await _keyboardService.isAccessibilityServiceEnabled();
+    if (mounted) {
+      setState(() => _isAccessibilityEnabled = enabled);
     }
   }
 
@@ -94,6 +133,11 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
                 onPageChanged: (index) {
                   setState(() => _currentPage = index);
                   if (index == 0) _checkKeyboardStatus();
+                  // Re-check accessibility when navigating to the accessibility page
+                  final currentSteps = _getSteps(context);
+                  if (index < currentSteps.length && currentSteps[index].isAccessibility) {
+                    _checkAccessibilityStatus();
+                  }
                 },
                 itemCount: steps.length,
                 itemBuilder: (context, index) {
@@ -127,7 +171,7 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
             // Bottom buttons
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-              child: _buildBottomButtons(context, steps.length),
+              child: _buildBottomButtons(context, steps),
             ),
           ],
         ),
@@ -279,13 +323,56 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
               ),
             ),
           ],
+
+          // Accessibility status indicator (only on accessibility step)
+          if (step.isAccessibility) ...[
+            const SizedBox(height: 24),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: _isAccessibilityEnabled
+                    ? AppColors.success.withOpacity(0.15)
+                    : AppColors.warning.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _isAccessibilityEnabled
+                        ? Icons.check_circle
+                        : Icons.warning_amber_rounded,
+                    size: 18,
+                    color: _isAccessibilityEnabled
+                        ? AppColors.success
+                        : AppColors.warning,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _isAccessibilityEnabled
+                        ? l10n.accessibilityServiceEnabledStatus
+                        : l10n.accessibilityServiceNotEnabledStatus,
+                    style: TextStyle(
+                      color: _isAccessibilityEnabled
+                          ? AppColors.success
+                          : AppColors.warning,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildBottomButtons(BuildContext context, int totalSteps) {
+  Widget _buildBottomButtons(BuildContext context, List<_SetupStep> steps) {
     final l10n = AppLocalizations.of(context)!;
+    final totalSteps = steps.length;
+    final currentStep = _currentPage < steps.length ? steps[_currentPage] : null;
 
     if (_currentPage == 0) {
       return Column(
@@ -322,7 +409,68 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
       );
     }
 
+    // Accessibility step (Android only)
+    if (currentStep?.isAccessibility == true) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          GradientButton(
+            text: l10n.openAccessibilitySettingsButton,
+            icon: Icons.accessibility_new,
+            onPressed: () async {
+              await _keyboardService.openAccessibilitySettings();
+              // Re-check after returning from settings
+              Future.delayed(const Duration(seconds: 1), _checkAccessibilityStatus);
+            },
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton(
+            onPressed: () {
+              _pageController.nextPage(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+            },
+            child: Text(l10n.nextButton),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: () {
+              _pageController.nextPage(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+            },
+            child: Text(
+              l10n.continueWithoutAccessibility,
+              style: TextStyle(color: AppColors.textTertiary),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Last page
     if (_currentPage == totalSteps - 1) {
+      // AI Consent step (Android last page)
+      if (currentStep?.isAiConsent == true) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            GradientButton(
+              text: l10n.agreeAndStartButton,
+              icon: Icons.rocket_launch,
+              onPressed: () async {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('ai_data_consent_accepted', true);
+                await _completeSetup();
+              },
+            ),
+          ],
+        );
+      }
+
+      // iOS last page
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -335,6 +483,7 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
       );
     }
 
+    // Middle pages (back/next)
     return Row(
       children: [
         Expanded(
@@ -371,6 +520,8 @@ class _SetupStep {
   final String description;
   final String instruction;
   final String? tip;
+  final bool isAccessibility;
+  final bool isAiConsent;
 
   const _SetupStep({
     required this.icon,
@@ -378,5 +529,7 @@ class _SetupStep {
     required this.description,
     required this.instruction,
     this.tip,
+    this.isAccessibility = false,
+    this.isAiConsent = false,
   });
 }

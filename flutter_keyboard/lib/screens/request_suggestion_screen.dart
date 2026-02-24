@@ -12,6 +12,7 @@ import '../models/profile_model.dart';
 import '../providers/app_state.dart';
 import '../services/agent_service.dart';
 import '../services/conversation_service.dart';
+import '../services/ai_consent_service.dart';
 import '../services/profile_service.dart';
 import '../widgets/profile_avatar.dart';
 import 'conversation_detail_screen.dart';
@@ -1259,6 +1260,8 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
   }
 
   Future<void> _generateSuggestions() async {
+    if (!await AiConsentService.ensureConsent(context)) return;
+
     setState(() {
       _isGenerating = true;
       _errorMessage = null;
@@ -1304,6 +1307,8 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
       });
       return;
     }
+
+    if (!await AiConsentService.ensureConsent(context)) return;
 
     setState(() {
       _isGenerating = true;
