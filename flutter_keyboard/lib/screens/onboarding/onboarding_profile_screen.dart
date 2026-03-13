@@ -154,8 +154,8 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
   }
 
   Widget _buildNameAgePage() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -228,8 +228,8 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
   }
 
   Widget _buildHumorStylePage() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -267,8 +267,8 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
   }
 
   Widget _buildRelationshipGoalPage() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
