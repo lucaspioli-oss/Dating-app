@@ -168,6 +168,7 @@
   "changeMode": "Trocar modo",
   "addProfileScreenshot": "Adicionar print do perfil",
   "screenshotInstructions": "Tire um print da página do perfil dela no Instagram",
+  "screenshotAutoFillHint": "A IA extrai nome, bio, idade e interesses automaticamente",
   "croppedProfilePicLabel": "Foto de perfil\n(recorte automático)",
   "profilePhotosTitle": "Fotos do Perfil",
   "profilePhotosDescription": "Adicione as fotos do perfil dela (pode adicionar várias)",

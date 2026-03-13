@@ -365,6 +365,18 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: profile.temperatureColor.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          profile.temperatureIndicator,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
                       Text(
                         _formatRelativeTime(activityDate),
                         style: TextStyle(

@@ -11,6 +11,7 @@ import 'subscription_required_screen.dart';
 import '../main_screen.dart';
 import '../keyboard_setup_screen.dart';
 import '../app_tutorial_screen.dart';
+import '../onboarding/onboarding_profile_screen.dart';
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
@@ -51,6 +52,7 @@ class _SubscriptionWrapperState extends State<SubscriptionWrapper> with WidgetsB
   Timer? _tokenRefreshTimer;
   bool _isLoading = true;
   SubscriptionStatus _status = SubscriptionStatus.inactive;
+  bool _hasCompletedOnboarding = true; // default true to avoid flash
   bool _hasSeenKeyboardSetup = true; // default true to avoid flash
   bool _hasSeenAppTutorial = true; // default true to avoid flash
 
@@ -98,6 +100,7 @@ class _SubscriptionWrapperState extends State<SubscriptionWrapper> with WidgetsB
 
       // Check if user has seen keyboard setup and app tutorial
       final prefs = await SharedPreferences.getInstance();
+      final hasCompletedOnboarding = prefs.getBool('hasCompletedOnboardingProfile') ?? false;
       final hasSeenSetup = prefs.getBool('hasSeenKeyboardSetup') ?? false;
       final hasSeenTutorial = prefs.getBool('hasSeenAppTutorial') ?? false;
 
@@ -107,6 +110,7 @@ class _SubscriptionWrapperState extends State<SubscriptionWrapper> with WidgetsB
       if (mounted) {
         setState(() {
           _status = status;
+          _hasCompletedOnboarding = hasCompletedOnboarding;
           _hasSeenKeyboardSetup = hasSeenSetup;
           _hasSeenAppTutorial = hasSeenTutorial;
           _isLoading = false;
@@ -143,30 +147,35 @@ class _SubscriptionWrapperState extends State<SubscriptionWrapper> with WidgetsB
       return const AppLoadingScreen();
     }
 
-    // ONLY allow access if status is explicitly active
-    if (_status == SubscriptionStatus.active) {
-      if (!_hasSeenKeyboardSetup) {
-        return KeyboardSetupScreen(
-          onComplete: () {
-            if (mounted) {
-              setState(() => _hasSeenKeyboardSetup = true);
-            }
-          },
-        );
-      }
-      if (!_hasSeenAppTutorial) {
-        return AppTutorialScreen(
-          onComplete: () {
-            if (mounted) {
-              setState(() => _hasSeenAppTutorial = true);
-            }
-          },
-        );
-      }
-      return const MainScreen();
+    // Allow access for active subscribers AND free tier users
+    // Free tier users get 5 AI suggestions per day (gated at point of use)
+    if (!_hasCompletedOnboarding) {
+      return OnboardingProfileScreen(
+        onComplete: () {
+          if (mounted) {
+            setState(() => _hasCompletedOnboarding = true);
+          }
+        },
+      );
     }
-
-    // Any other status - show pricing page
-    return SubscriptionRequiredScreen(status: _status);
+    if (!_hasSeenKeyboardSetup) {
+      return KeyboardSetupScreen(
+        onComplete: () {
+          if (mounted) {
+            setState(() => _hasSeenKeyboardSetup = true);
+          }
+        },
+      );
+    }
+    if (!_hasSeenAppTutorial) {
+      return AppTutorialScreen(
+        onComplete: () {
+          if (mounted) {
+            setState(() => _hasSeenAppTutorial = true);
+          }
+        },
+      );
+    }
+    return const MainScreen();
   }
 }

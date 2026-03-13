@@ -1018,6 +1018,12 @@ abstract class AppLocalizations {
   /// **'Tire um print da página do perfil dela no Instagram'**
   String get screenshotInstructions;
 
+  /// No description provided for @screenshotAutoFillHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'A IA extrai nome, bio, idade e interesses automaticamente'**
+  String get screenshotAutoFillHint;
+
   /// No description provided for @croppedProfilePicLabel.
   ///
   /// In pt, this message translates to:

@@ -493,6 +493,10 @@ class AppLocalizationsPt extends AppLocalizations {
       'Tire um print da página do perfil dela no Instagram';
 
   @override
+  String get screenshotAutoFillHint =>
+      'A IA extrai nome, bio, idade e interesses automaticamente';
+
+  @override
   String get croppedProfilePicLabel => 'Foto de perfil\n(recorte automático)';
 
   @override

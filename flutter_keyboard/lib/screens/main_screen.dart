@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
 import 'profiles_list_screen.dart';
 import 'profile_screen.dart';
+import 'dashboard_screen.dart';
 import '../config/app_theme.dart';
 import '../config/app_haptics.dart';
 
@@ -38,6 +39,7 @@ class _MainScreenState extends State<MainScreen> {
           children: const [
             ProfilesListScreen(),
             MyProfileContent(),
+            DashboardScreen(),
             SubscriptionContent(),
           ],
         ),
@@ -61,6 +63,11 @@ class _MainScreenState extends State<MainScreen> {
             icon: const Icon(Icons.person_outlined),
             selectedIcon: const Icon(Icons.person),
             label: AppLocalizations.of(context)!.myProfileTab,
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.insights_outlined),
+            selectedIcon: Icon(Icons.insights),
+            label: 'Stats',
           ),
           NavigationDestination(
             icon: const Icon(Icons.credit_card_outlined),

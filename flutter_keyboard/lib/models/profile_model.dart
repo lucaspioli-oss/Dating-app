@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Tipos de plataforma suportados
@@ -277,6 +278,26 @@ class Profile {
 
   /// Retorna stories do Instagram
   List<StoryData> get stories => instagram?.stories ?? [];
+
+  /// Indicador de temperatura baseado na última atividade
+  String get temperatureIndicator {
+    if (lastActivityAt == null) return '\u{1F480}'; // skull
+    final diff = DateTime.now().difference(lastActivityAt!);
+    if (diff.inDays > 7) return '\u{1F480}';
+    if (diff.inDays >= 3) return '\u{2744}\u{FE0F}';
+    if (diff.inHours >= 24) return '\u{1F525}';
+    return '\u{1F525}\u{1F525}\u{1F525}';
+  }
+
+  /// Cor da temperatura baseada na última atividade
+  Color get temperatureColor {
+    if (lastActivityAt == null) return const Color(0xFF9E9E9E);
+    final diff = DateTime.now().difference(lastActivityAt!);
+    if (diff.inDays > 7) return const Color(0xFF9E9E9E);
+    if (diff.inDays >= 3) return const Color(0xFF42A5F5);
+    if (diff.inHours >= 24) return const Color(0xFFFF9800);
+    return const Color(0xFFF44336);
+  }
 
   Map<String, dynamic> toMap() {
     final platformsMap = <String, dynamic>{};
