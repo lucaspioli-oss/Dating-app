@@ -649,7 +649,139 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             const SizedBox(height: 8),
             _buildProfileImagesGrid(index, entry),
           ] else ...[
-            // Non-Instagram platforms: original behavior
+            // Non-Instagram platforms: screenshot import + manual photos
+            // Screenshot import button (auto-fills name, bio, age, interests)
+            if (entry.profileImages.isEmpty) ...[
+              GestureDetector(
+                onTap: () => _pickGeneralScreenshot(index),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.primary.withOpacity(0.08),
+                        const Color(0xFFFF5722).withOpacity(0.08),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                  ),
+                  child: Column(
+                    children: [
+                      const Icon(Icons.screenshot_outlined, color: AppColors.primary, size: 32),
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.profileScreenshotMode,
+                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        l10n.screenshotAutoFillHint,
+                        style: const TextStyle(color: AppColors.textTertiary, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(child: Divider(color: AppColors.elevatedDark)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(l10n.orDivider, style: const TextStyle(color: AppColors.textTertiary, fontSize: 12)),
+                  ),
+                  Expanded(child: Divider(color: AppColors.elevatedDark)),
+                ],
+              ),
+              const SizedBox(height: 12),
+            ] else ...[
+              // Show uploaded screenshot + cropped avatar
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: Stack(
+                      children: [
+                        Container(
+                          height: 180,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFF3A3A4E)),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(11),
+                            child: Image.memory(
+                              entry.profileImages.first,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 6,
+                          right: 6,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                entry.profileImages.clear();
+                                entry.profileBase64s.clear();
+                                entry.profileMediaTypes.clear();
+                                entry.croppedProfilePicBytes = null;
+                                entry.croppedProfilePicBase64 = null;
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.7),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.close, size: 14, color: AppColors.textPrimary),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      children: [
+                        Text(
+                          l10n.croppedProfilePicLabel,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: AppColors.textTertiary, fontSize: 11),
+                        ),
+                        const SizedBox(height: 8),
+                        if (entry.croppedProfilePicBytes != null)
+                          Container(
+                            width: 90,
+                            height: 90,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppColors.primary.withOpacity(0.5),
+                                width: 2,
+                              ),
+                            ),
+                            child: ClipOval(
+                              child: Image.memory(
+                                entry.croppedProfilePicBytes!,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+            ],
             Text(
               l10n.profilePhotosTitle,
               style: const TextStyle(

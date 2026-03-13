@@ -493,6 +493,10 @@ class AppLocalizationsPt extends AppLocalizations {
       'Tire um print da página do perfil dela no Instagram';
 
   @override
+  String get screenshotAutoFillHint =>
+      'A IA extrai nome, bio, idade e interesses automaticamente';
+
+  @override
   String get croppedProfilePicLabel => 'Foto de perfil\n(recorte automático)';
 
   @override
@@ -1239,4 +1243,70 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get passwordValidationEnter => 'Digite uma senha';
+
+  @override
+  String get activateKeyboardDescAndroid =>
+      'Para usar sugestões inteligentes direto no WhatsApp, Tinder e outros apps, você precisa ativar nosso teclado personalizado nas configurações do Android.';
+
+  @override
+  String get activateKeyboardInstructionAndroid =>
+      'Vá em:\nConfigurações → Idioma e entrada → Teclado virtual → Gerenciar teclados → Ative \"Desenrola AI\"';
+
+  @override
+  String get switchKeyboardDescAndroid =>
+      'Em qualquer app de mensagens, toque no ícone do teclado na barra de navegação ou mantenha pressionada a barra de espaço para trocar para o Desenrola AI.';
+
+  @override
+  String get switchKeyboardInstructionAndroid =>
+      'Toque no ícone do teclado ou mantenha pressionada a barra de espaço';
+
+  @override
+  String get accessibilityServiceTitle => 'Ative a Leitura Automática';
+
+  @override
+  String get accessibilityServiceDesc =>
+      'O Desenrola AI pode ler automaticamente as conversas dos apps de dating e WhatsApp, eliminando a necessidade de copiar e colar mensagens manualmente.';
+
+  @override
+  String get accessibilityServiceInstruction =>
+      'Vá em:\nConfigurações → Acessibilidade → Serviços instalados → Ative \"Desenrola AI\"';
+
+  @override
+  String get accessibilityServiceTip =>
+      'O serviço só monitora apps de dating e WhatsApp. Nenhum dado de outros apps é acessado.';
+
+  @override
+  String get accessibilityServiceEnabledStatus => 'Serviço ativado!';
+
+  @override
+  String get accessibilityServiceNotEnabledStatus => 'Serviço não ativado';
+
+  @override
+  String get openAccessibilitySettingsButton => 'Abrir Acessibilidade';
+
+  @override
+  String get continueWithoutAccessibility => 'Continuar sem leitura automática';
+
+  @override
+  String get aiConsentSetupTitle => 'Uso de Inteligência Artificial';
+
+  @override
+  String get aiConsentSetupDesc =>
+      'Para gerar sugestões de mensagens, o Desenrola AI envia alguns dos seus dados para um serviço de inteligência artificial de terceiros (Anthropic Claude AI).';
+
+  @override
+  String get aiConsentSetupInstruction =>
+      'Seus dados são usados apenas para gerar sugestões, não são armazenados permanentemente e são transmitidos com criptografia.';
+
+  @override
+  String get agreeAndStartButton => 'Concordo e Começar!';
+
+  @override
+  String get accessibilityStatusLabel => 'Leitura Automática';
+
+  @override
+  String get accessibilityStatusActive => 'Ativado';
+
+  @override
+  String get accessibilityStatusInactive => 'Desativado';
 }

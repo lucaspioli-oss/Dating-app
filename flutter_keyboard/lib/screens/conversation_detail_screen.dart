@@ -15,6 +15,9 @@ import '../services/subscription_service.dart';
 import '../models/conversation.dart';
 import '../widgets/app_loading.dart';
 import '../widgets/profile_avatar.dart';
+import '../widgets/calibration_card.dart';
+import '../widgets/freemium_upgrade_prompt.dart';
+import '../services/freemium_service.dart';
 
 class ConversationDetailScreen extends StatefulWidget {
   final String conversationId;
@@ -702,6 +705,19 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
   }
 
   Future<void> _generateSuggestionsFromText(String herMessage) async {
+    // Check freemium limits for non-subscribers
+    final subscriptionService = SubscriptionService();
+    final subStatus = await subscriptionService.subscriptionStatusStream.first;
+    if (subStatus != SubscriptionStatus.active) {
+      final freemiumService = FreemiumService();
+      final canUse = await freemiumService.canUseFreeAI();
+      if (!canUse) {
+        if (mounted) FreemiumUpgradePrompt.show(context);
+        return;
+      }
+      await freemiumService.incrementUsage();
+    }
+
     setState(() {
       _isGeneratingSuggestions = true;
       _suggestions = [];
@@ -821,6 +837,12 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
       appBar: _buildAppBar(),
       body: Column(
         children: [
+          // Calibration card showing detected patterns
+          if (_conversation!.avatar.detectedPatterns != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+              child: CalibrationCard(patterns: _conversation!.avatar.detectedPatterns!),
+            ),
           Expanded(child: _buildMessageHistory()),
           if (_responseOptions.isNotEmpty) _buildSuggestionsSection(),
           _buildInputSection(),
