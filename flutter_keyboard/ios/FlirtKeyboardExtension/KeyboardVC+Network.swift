@@ -6,6 +6,7 @@ extension KeyboardViewController {
 
     func currentTone() -> String { return availableTones[selectedToneIndex] }
     func currentObjective() -> String { return availableObjectives[selectedObjectiveIndex].id }
+    func currentLanguage() -> String? { return sharedDefaults?.string(forKey: "userLanguage") }
 
     // MARK: - Objective Per Profile Keys
 
@@ -304,6 +305,7 @@ extension KeyboardViewController {
         var body: [String: Any] = ["text": text, "tone": tone]
         if let convId = conversationId { body["conversationId"] = convId }
         if let obj = objective { body["objective"] = obj }
+        if let lang = currentLanguage() { body["language"] = lang }
 
         do { request.httpBody = try JSONSerialization.data(withJSONObject: body) } catch { return }
 
@@ -436,6 +438,7 @@ extension KeyboardViewController {
         ]
         if let convId = conv.conversationId { body["conversationId"] = convId }
         if let profileId = conv.profileId { body["profileId"] = profileId }
+        if let lang = currentLanguage() { body["language"] = lang }
 
         do { request.httpBody = try JSONSerialization.data(withJSONObject: body) } catch { return }
 
@@ -526,6 +529,7 @@ extension KeyboardViewController {
             "tone": currentTone(),
         ]
         if let convId = conv.conversationId { body["conversationId"] = convId }
+        if let lang = currentLanguage() { body["language"] = lang }
 
         do { request.httpBody = try JSONSerialization.data(withJSONObject: body) } catch { return }
 

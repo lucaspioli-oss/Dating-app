@@ -57,6 +57,17 @@ import CoreImage
                                    details: nil))
             }
 
+        case "setLanguage":
+            if let args = call.arguments as? [String: Any],
+               let language = args["language"] as? String {
+                saveToSharedDefaults(key: "userLanguage", value: language)
+                result(nil)
+            } else {
+                result(FlutterError(code: "INVALID_ARGUMENT",
+                                   message: "Language inválido",
+                                   details: nil))
+            }
+
         case "shareAuthWithKeyboard":
             if let args = call.arguments as? [String: Any],
                let authToken = args["authToken"] as? String,

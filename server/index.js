@@ -14,6 +14,7 @@ const stripe_1 = require("./services/stripe");
 const auth_1 = require("./middleware/auth");
 const { verifyRequestSignature } = require("./middleware/auth");
 const instagram_crop_service_1 = require("./services/instagram-crop-service");
+const face_crop_service_1 = require("./services/face-crop-service");
 const fastify = (0, fastify_1.default)({
     logger: true,
 });
@@ -63,12 +64,16 @@ const analyzeSchema = {
                     'pedir_desculpas', 'criar_conexao',
                 ],
             },
+            language: {
+                type: 'string',
+                enum: ['pt', 'en', 'es'],
+            },
         },
     },
 };
 fastify.post('/analyze', { schema: analyzeSchema }, async (request, reply) => {
     try {
-        const { text, tone, conversationId, objective } = request.body;
+        const { text, tone, conversationId, objective, language } = request.body;
         // PRO MODE: If conversationId is provided, use rich context pipeline
         if (conversationId) {
             try {
@@ -159,7 +164,7 @@ A última mensagem dela foi:
 
 Gere APENAS 3 sugestões de resposta numeradas (1. 2. 3.), cada uma curta (1-2 frases).
 Calibre com base no histórico, tom detectado, e OBJETIVO definido acima.`;
-                        const analysis = await (0, anthropic_1.analyzeMessage)({ text: richPrompt, tone });
+                        const analysis = await (0, anthropic_1.analyzeMessage)({ text: richPrompt, tone, language });
                         return reply.code(200).send({ analysis, mode: 'pro' });
                     }
                 }
@@ -172,7 +177,7 @@ Calibre com base no histórico, tom detectado, e OBJETIVO definido acima.`;
         // BASIC MODE: Simple analysis without context
         const basicObjective = (0, prompts_1.getObjectivePrompt)(objective || 'automatico');
         const textWithObjective = `${basicObjective}\n\nMensagem recebida:\n"${text}"\n\nGere APENAS 3 sugestões de resposta numeradas (1. 2. 3.), cada uma curta (1-2 frases).`;
-        const analysis = await (0, anthropic_1.analyzeMessage)({ text: textWithObjective, tone });
+        const analysis = await (0, anthropic_1.analyzeMessage)({ text: textWithObjective, tone, language });
         const response = {
             analysis,
             mode: 'basic',
@@ -193,8 +198,9 @@ fastify.get('/health', async (request, reply) => {
 // Nova rota: Analisar perfil de apps de namoro
 fastify.post('/analyze-profile', async (request, reply) => {
     try {
-        const { bio, platform, photoDescription, name, age, userContext } = request.body;
+        const { bio, platform, photoDescription, name, age, userContext, language } = request.body;
         const agent = new agents_1.ProfileAnalyzerAgent();
+        if (language) agent.setLanguage(language);
         const result = await agent.execute({ bio, platform, photoDescription, name, age }, userContext);
         return reply.code(200).send({ analysis: result });
     }
@@ -209,7 +215,7 @@ fastify.post('/analyze-profile', async (request, reply) => {
 // Nova rota: Gerar primeira mensagem (com inteligência coletiva por características)
 fastify.post('/generate-first-message', async (request, reply) => {
     try {
-        const { matchName, matchBio, platform, tone, photoDescription, specificDetail, userContext } = request.body;
+        const { matchName, matchBio, platform, tone, photoDescription, specificDetail, userContext, language } = request.body;
         // Extrair características do perfil para buscar insights relevantes
         const profileTags = extractProfileTags(matchBio, photoDescription);
         // Buscar insights da inteligência coletiva por CARACTERÍSTICAS, não por nome
@@ -231,6 +237,7 @@ fastify.post('/generate-first-message', async (request, reply) => {
             console.warn('Não foi possível buscar insights coletivos:', err);
         }
         const agent = new agents_1.FirstMessageAgent();
+        if (language) agent.setLanguage(language);
         const result = await agent.execute({ matchName, matchBio, platform, tone, photoDescription, specificDetail, collectiveInsights }, userContext);
         return reply.code(200).send({ suggestions: result });
     }
@@ -328,7 +335,7 @@ async function getInsightsByTags(tags, platform) {
 // Nova rota: Gerar abertura para Instagram (com inteligência coletiva por características)
 fastify.post('/generate-instagram-opener', async (request, reply) => {
     try {
-        const { username, bio, recentPosts, stories, tone, approachType, specificPost, userContext } = request.body;
+        const { username, bio, recentPosts, stories, tone, approachType, specificPost, userContext, language } = request.body;
         // Extrair características do perfil
         const allText = [bio, ...(recentPosts || []), ...(stories || [])].filter(Boolean).join(' ');
         const profileTags = extractProfileTags(allText);
@@ -352,6 +359,7 @@ fastify.post('/generate-instagram-opener', async (request, reply) => {
             console.warn('Não foi possível buscar insights coletivos:', err);
         }
         const agent = new agents_1.InstagramOpenerAgent();
+        if (language) agent.setLanguage(language);
         const result = await agent.execute({ username, bio, recentPosts, stories, tone, approachType, specificPost, collectiveInsights }, userContext);
         return reply.code(200).send({ suggestions: result });
     }
@@ -366,8 +374,9 @@ fastify.post('/generate-instagram-opener', async (request, reply) => {
 // Nova rota: Responder mensagem (versão melhorada)
 fastify.post('/reply', async (request, reply) => {
     try {
-        const { receivedMessage, conversationHistory, tone, matchName, context, userContext } = request.body;
+        const { receivedMessage, conversationHistory, tone, matchName, context, userContext, language } = request.body;
         const agent = new agents_1.ConversationReplyAgent();
+        if (language) agent.setLanguage(language);
         const result = await agent.execute({ receivedMessage, conversationHistory, tone, matchName, context }, userContext);
         return reply.code(200).send({ suggestions: result });
     }
@@ -397,18 +406,17 @@ fastify.post('/analyze-profile-image', async (request, reply) => {
             imageMediaType: imageMediaType || 'image/jpeg',
             platform,
         });
-        // For Instagram: server-side crop using OpenCV HoughCircles
+        // Server-side face crop using AI coordinates (all platforms)
         let croppedFaceBase64 = null;
-        if (platform && platform.toLowerCase() === 'instagram') {
+        if (result.facePosition) {
             try {
-                const cropResult = await instagram_crop_service_1.InstagramCropService.cropProfilePhoto(imageBase64);
+                const cropResult = await face_crop_service_1.FaceCropService.cropFace(imageBase64, result.facePosition);
                 if (cropResult.success && cropResult.croppedFaceBase64) {
                     croppedFaceBase64 = cropResult.croppedFaceBase64;
-                    console.log(`Instagram face crop: method=${cropResult.method}` +
-                        (cropResult.circle ? ` circle=(${cropResult.circle.x},${cropResult.circle.y}) r=${cropResult.circle.r}` : ''));
+                    console.log(`Face crop: method=${cropResult.method} platform=${platform || 'unknown'}`);
                 }
             } catch (cropError) {
-                console.warn('Instagram crop failed, client will use fallback:', cropError.message);
+                console.warn('Server face crop failed, client will use fallback:', cropError.message);
             }
         }
         // Analysis completed successfully
@@ -932,7 +940,7 @@ fastify.post('/keyboard/start-conversation', {
 }, async (request, reply) => {
     try {
         const userId = request.user.uid;
-        const { conversationId, profileId, objective, tone } = request.body;
+        const { conversationId, profileId, objective, tone, language } = request.body;
         if (!objective || !tone) {
             return reply.code(400).send({
                 error: 'Missing required fields',
@@ -1002,6 +1010,7 @@ fastify.post('/keyboard/start-conversation', {
                 : objectiveInstruction,
         };
         const agent = new agents_1.FirstMessageAgent();
+        if (language) agent.setLanguage(language);
         const result = await agent.execute(enrichedInput, userContext);
         return reply.code(200).send({ analysis: result });
     }
@@ -1021,7 +1030,7 @@ fastify.post('/keyboard/analyze-screenshot', {
 }, async (request, reply) => {
     try {
         const userId = request.user.uid;
-        const { imageBase64, imageMediaType, conversationId, objective, tone } = request.body;
+        const { imageBase64, imageMediaType, conversationId, objective, tone, language } = request.body;
         if (!imageBase64) {
             return reply.code(400).send({
                 error: 'Missing required fields',
@@ -1127,7 +1136,7 @@ ${objectiveInstruction}
 
 Gere APENAS 3 sugestões de resposta numeradas (1. 2. 3.), cada uma curta (1-2 frases).
 Calibre com base no contexto da conversa e OBJETIVO definido acima.`;
-        const analysis = await (0, anthropic_1.analyzeMessage)({ text: richPrompt, tone: tone || 'automatico' });
+        const analysis = await (0, anthropic_1.analyzeMessage)({ text: richPrompt, tone: tone || 'automatico', language });
         return reply.code(200).send({
             analysis,
             extractedMessages: extractedData.conversationContext || [],

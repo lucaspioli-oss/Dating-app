@@ -1,11 +1,26 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_profile.dart';
 
 class AgentService {
   final String baseUrl;
 
   AgentService({required this.baseUrl});
+
+  Future<http.Response> _postWithLanguage(Uri url, Map<String, dynamic> body, {Duration? timeout}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final lang = prefs.getString('selectedLanguage');
+    if (lang != null) body['language'] = lang;
+    final request = http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(body),
+    );
+    return timeout != null ? request.timeout(timeout, onTimeout: () {
+      throw TimeoutException('Request timeout');
+    }) : request;
+  }
 
   /// Gerar primeira mensagem criativa (expert mode - calibra automaticamente)
   Future<AgentResponse> generateFirstMessage({
@@ -29,16 +44,7 @@ class AgentService {
           'userContext': _userProfileToContext(userProfile),
       };
 
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      ).timeout(
-        const Duration(seconds: 45),
-        onTimeout: () {
-          throw TimeoutException('Request timeout');
-        },
-      );
+      final response = await _postWithLanguage(url, body, timeout: const Duration(seconds: 45));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -91,16 +97,7 @@ class AgentService {
           'userContext': _userProfileToContext(userProfile),
       };
 
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      ).timeout(
-        const Duration(seconds: 45),
-        onTimeout: () {
-          throw TimeoutException('Request timeout');
-        },
-      );
+      final response = await _postWithLanguage(url, body, timeout: const Duration(seconds: 45));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -141,16 +138,7 @@ class AgentService {
           'userContext': _userProfileToContext(userProfile),
       };
 
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      ).timeout(
-        const Duration(seconds: 45),
-        onTimeout: () {
-          throw TimeoutException('Request timeout');
-        },
-      );
+      final response = await _postWithLanguage(url, body, timeout: const Duration(seconds: 45));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -199,16 +187,7 @@ class AgentService {
         if (conversationHistory != null) 'conversationHistory': conversationHistory,
       };
 
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      ).timeout(
-        const Duration(seconds: 45),
-        onTimeout: () {
-          throw TimeoutException('Request timeout');
-        },
-      );
+      final response = await _postWithLanguage(url, body, timeout: const Duration(seconds: 45));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -254,16 +233,7 @@ class AgentService {
       };
 
       // Timeout maior para conexões móveis
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      ).timeout(
-        const Duration(seconds: 120),
-        onTimeout: () {
-          throw TimeoutException('Conexão lenta. Tente com Wi-Fi ou imagem menor.');
-        },
-      );
+      final response = await _postWithLanguage(url, body, timeout: const Duration(seconds: 120));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -320,16 +290,7 @@ class AgentService {
         if (conversationHistory != null) 'conversationHistory': conversationHistory,
       };
 
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      ).timeout(
-        const Duration(seconds: 60),
-        onTimeout: () {
-          throw TimeoutException('Request timeout');
-        },
-      );
+      final response = await _postWithLanguage(url, body, timeout: const Duration(seconds: 60));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -418,16 +379,7 @@ class AgentService {
         if (platform != null) 'platform': platform,
       };
 
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      ).timeout(
-        const Duration(seconds: 60),
-        onTimeout: () {
-          throw TimeoutException('Conexão lenta. Tente novamente.');
-        },
-      );
+      final response = await _postWithLanguage(url, body, timeout: const Duration(seconds: 60));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);

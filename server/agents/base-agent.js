@@ -6,13 +6,19 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.BaseAgent = void 0;
 const sdk_1 = __importDefault(require("@anthropic-ai/sdk"));
 const env_1 = require("../config/env");
+const prompts_1 = require("../prompts");
 class BaseAgent {
     client;
     model = 'claude-sonnet-4-5-20250929';
+    language = null;
     constructor() {
         this.client = new sdk_1.default({
             apiKey: env_1.env.ANTHROPIC_API_KEY,
         });
+    }
+    setLanguage(language) {
+        this.language = language;
+        return this;
     }
     /**
      * Gera o contexto do usuário formatado para o prompt
@@ -54,11 +60,17 @@ class BaseAgent {
      * Chama a API da Anthropic
      */
     async callClaude(systemPrompt, userPrompt) {
+        // Inject language directive if set
+        let finalSystemPrompt = systemPrompt;
+        if (this.language) {
+            const langDirective = (0, prompts_1.getLanguageDirective)(this.language);
+            finalSystemPrompt = `${systemPrompt}\n\n🌍 DIRETIVA DE IDIOMA:\n${langDirective}\n\nTODAS as sugestões DEVEM ser escritas neste idioma.`;
+        }
         const message = await this.client.messages.create({
             model: this.model,
             max_tokens: 1024,
             temperature: 0.85,
-            system: systemPrompt,
+            system: finalSystemPrompt,
             messages: [
                 {
                     role: 'user',

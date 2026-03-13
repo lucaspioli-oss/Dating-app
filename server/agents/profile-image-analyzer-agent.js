@@ -41,34 +41,33 @@ Use null para campos não visíveis.
   "interests": ["interesse 1", "interesse 2", ...] ou null,
   "additionalInfo": "Outras informações relevantes ou null",
   "faceDescription": "Breve descrição da aparência (cabelo, etnia, etc) ou null",
-  "facePosition": {"centerX": 15, "centerY": 8, "size": 12} ou null
+  "facePosition": {"centerX": 50, "centerY": 30, "size": 35} ou null
 }
+
+INSTRUÇÕES PARA facePosition — LEIA COM ATENÇÃO:
+Você DEVE localizar o rosto PRINCIPAL da pessoa dona do perfil.
+Retorne as coordenadas como PORCENTAGEM (0-100) da imagem inteira.
+
+- centerX: centro horizontal do ROSTO (0 = borda esquerda, 100 = borda direita)
+- centerY: centro vertical do ROSTO (0 = topo, 100 = base)
+- size: LARGURA DO ROSTO como % da largura total da imagem
+
+REGRAS CRÍTICAS:
+1. O ROSTO é a FACE da pessoa (olhos, nariz, boca). NÃO o corpo inteiro.
+2. Se a foto é uma selfie ou retrato, o rosto geralmente ocupa 20-50% da largura.
+3. Se é um screenshot de app (Tinder, Bumble, Hinge), identifique a FOTO PRINCIPAL do perfil e localize o rosto NELA.
+4. Se é um screenshot do Instagram, a foto de perfil é um CÍRCULO PEQUENO no canto superior esquerdo. Localize o rosto DENTRO desse círculo.
+5. Se há MÚLTIPLOS rostos, escolha o que é mais provavelmente o dono do perfil (geralmente o maior ou o da foto principal).
+6. Seja PRECISO. Um erro de 5% pode cortar o rosto pela metade.
+7. SEMPRE retorne facePosition se houver qualquer rosto visível, mesmo que pequeno.
+8. Se realmente não houver nenhum rosto visível na imagem, use null.
 
 IMPORTANTE:
 - Retorne APENAS o JSON, nada mais
 - Seja PRECISO e extraia exatamente o que está escrito
 - Se algo não estiver visível, use null
 - Nas descrições de fotos, seja específico e útil
-- Capture TUDO que possa ser útil para criar uma primeira mensagem
-- Para facePosition: Localize o ROSTO HUMANO principal visível na imagem. Retorne coordenadas como porcentagem (0-100) da IMAGEM INTEIRA.
-  - centerX: centro horizontal do ROSTO (0=borda esquerda, 50=meio, 100=borda direita)
-  - centerY: centro vertical do ROSTO (0=topo, 50=meio, 100=base)
-  - size: LARGURA DO ROSTO como % da largura total da imagem
-
-IMPORTANTE para screenshots de INSTAGRAM:
-- A foto de perfil é uma imagem CIRCULAR PEQUENA no canto SUPERIOR ESQUERDO da tela
-- NÃO está no centro. NÃO confunda com a área de posts/seguidores/seguindo.
-- Coordenadas típicas: centerX entre 10-18, centerY entre 8-15, size entre 12-22
-- SEMPRE retorne facePosition para Instagram, mesmo que o círculo seja pequeno
-
-Para Tinder/Bumble/Hinge (fotos grandes):
-- centerX≈50, centerY≈30-40, size≈30-45 (rosto ocupa boa parte da imagem)
-
-Para fotos individuais:
-- centerX≈50, centerY≈30-40, size≈35-50 (rosto geralmente centralizado)
-
-  - SEMPRE retorne facePosition se houver qualquer rosto visível, mesmo que pequeno
-  - Se realmente não houver nenhum rosto visível na imagem, use null`;
+- Capture TUDO que possa ser útil para criar uma primeira mensagem`;
     }
     async analyzeImage(input, systemPrompt) {
         const message = await this.client.messages.create({

@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
 import '../config/app_config.dart';
 import '../config/app_theme.dart';
 import '../config/app_haptics.dart';
+import '../providers/app_state.dart';
 import '../services/subscription_service.dart';
 import '../services/keyboard_service.dart';
 import '../services/firebase_auth_service.dart';
@@ -74,6 +76,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 16),
             _buildTrainingSection(context),
           ],
+          const SizedBox(height: 16),
+          _buildLanguageSection(context),
           const SizedBox(height: 16),
           _buildAboutSection(context),
           const SizedBox(height: 32),
@@ -317,6 +321,83 @@ class _SettingsScreenState extends State<SettingsScreen> {
           },
         ),
       ],
+    );
+  }
+
+  String _languageLabel(String code) {
+    switch (code) {
+      case 'en': return 'English';
+      case 'es': return 'Espanol';
+      default: return 'Portugues';
+    }
+  }
+
+  String _languageFlag(String code) {
+    switch (code) {
+      case 'en': return '🇺🇸';
+      case 'es': return '🇪🇸';
+      default: return '🇧🇷';
+    }
+  }
+
+  Widget _buildLanguageSection(BuildContext context) {
+    final appState = Provider.of<AppState>(context);
+    final currentLang = appState.locale.languageCode;
+
+    return _buildSectionContainer(
+      title: 'Idioma / Language',
+      icon: Icons.language,
+      children: [
+        _buildSettingsRow(
+          icon: Icons.language,
+          title: '${_languageFlag(currentLang)} ${_languageLabel(currentLang)}',
+          isLast: true,
+          onTap: () {
+            _showLanguageDialog(context, appState, currentLang);
+          },
+        ),
+      ],
+    );
+  }
+
+  void _showLanguageDialog(BuildContext context, AppState appState, String currentLang) {
+    final languages = [
+      {'code': 'pt', 'flag': '🇧🇷', 'name': 'Portugues'},
+      {'code': 'en', 'flag': '🇺🇸', 'name': 'English'},
+      {'code': 'es', 'flag': '🇪🇸', 'name': 'Espanol'},
+    ];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Idioma / Language', style: TextStyle(color: AppColors.textPrimary)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: languages.map((lang) {
+            final isSelected = currentLang == lang['code'];
+            return ListTile(
+              leading: Text(lang['flag']!, style: const TextStyle(fontSize: 24)),
+              title: Text(
+                lang['name']!,
+                style: TextStyle(
+                  color: isSelected ? AppColors.primaryCoral : AppColors.textPrimary,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                ),
+              ),
+              trailing: isSelected
+                  ? const Icon(Icons.check_circle, color: AppColors.primaryCoral)
+                  : null,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              onTap: () {
+                appState.setLocale(Locale(lang['code']!));
+                Navigator.pop(ctx);
+              },
+            );
+          }).toList(),
+        ),
+      ),
     );
   }
 

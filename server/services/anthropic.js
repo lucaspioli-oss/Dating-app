@@ -44,15 +44,25 @@ async function analyzeMessage(request) {
     try {
         // Selecionar o prompt correto baseado no tom (Básico/Avançado/Expert)
         const systemPrompt = (0, prompts_1.getSystemPromptForTone)(request.tone);
+        // Add language/culture directive if specified
+        const langDirective = request.language ? (0, prompts_1.getLanguageDirective)(request.language) : '';
+        const fullSystemPrompt = langDirective
+            ? `${systemPrompt}\n\n═══════════════════════════════════════════════════════════════════\n🌍 DIRETIVA DE IDIOMA E CULTURA\n═══════════════════════════════════════════════════════════════════\n${langDirective}\n\nTODAS as sugestões DEVEM ser escritas neste idioma, usando o estilo descrito acima.`
+            : systemPrompt;
+        const outputInstruction = request.language === 'en'
+            ? `\n\nIMPORTANT: Return ONLY the numbered response suggestions (1. 2. 3.). Do NOT include analysis, explanations, headers, red flags, investment level, reasoning, or any other text. ONLY ready-to-send messages.\n\nThe 3 suggestions must have DIFFERENT styles:\n1. A short, direct response\n2. A more elaborate, engaging response\n3. A creative/bold response`
+            : request.language === 'es'
+            ? `\n\nIMPORTANTE: Retorna SOLO las sugerencias de respuesta numeradas (1. 2. 3.). NO incluyas análisis, explicaciones, headers, red flags, nivel de inversión, razonamiento ni ningún otro texto. SOLO mensajes listos para enviar.\n\nLas 3 sugerencias deben tener estilos DIFERENTES:\n1. Una respuesta corta y directa\n2. Una respuesta más elaborada y envolvente\n3. Una respuesta creativa/atrevida`
+            : `\n\nIMPORTANTE: Retorne APENAS as sugestões de resposta numeradas (1. 2. 3.). NÃO inclua análise, explicações, headers, red flags, grau de investimento, raciocínio ou qualquer outro texto. SOMENTE as mensagens prontas para enviar.\n\nAs 3 sugestões devem ter estilos DIFERENTES entre si:\n1. Uma resposta curta e direta\n2. Uma resposta mais elaborada e envolvente\n3. Uma resposta criativa/ousada`;
         const message = await client.messages.create({
             model: 'claude-sonnet-4-5-20250929',
             max_tokens: 512,
             temperature: 0.85,
-            system: systemPrompt,
+            system: fullSystemPrompt,
             messages: [
                 {
                     role: 'user',
-                    content: `${request.text}\n\nIMPORTANTE: Retorne APENAS as sugestões de resposta numeradas (1. 2. 3.). NÃO inclua análise, explicações, headers, red flags, grau de investimento, raciocínio ou qualquer outro texto. SOMENTE as mensagens prontas para enviar.\n\nAs 3 sugestões devem ter estilos DIFERENTES entre si:\n1. Uma resposta curta e direta\n2. Uma resposta mais elaborada e envolvente\n3. Uma resposta criativa/ousada`,
+                    content: `${request.text}${outputInstruction}`,
                 },
             ],
         });

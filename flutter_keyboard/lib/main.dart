@@ -44,25 +44,31 @@ class DesenrolaAIApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => UserProfileProvider()),
         Provider(create: (_) => KeyboardService()),
       ],
-      child: MaterialApp(
-        title: 'Desenrola AI',
-        debugShowCheckedModeBanner: false,
-        navigatorObservers: [AnalyticsService.observer],
-        theme: AppTheme.darkTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.dark,
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: const [Locale('pt', 'BR')],
-        locale: const Locale('pt', 'BR'),
-        routes: {
-          '/login': (context) => const LoginScreen(),
-        },
-        home: const AuthWrapper(),
+      child: Consumer<AppState>(
+        builder: (context, appState, _) => MaterialApp(
+          title: 'Desenrola AI',
+          debugShowCheckedModeBanner: false,
+          navigatorObservers: [AnalyticsService.observer],
+          theme: AppTheme.darkTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: ThemeMode.dark,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('pt', 'BR'),
+            Locale('en'),
+            Locale('es'),
+          ],
+          locale: appState.locale,
+          routes: {
+            '/login': (context) => const LoginScreen(),
+          },
+          home: const AuthWrapper(),
+        ),
       ),
     );
   }

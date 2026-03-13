@@ -3,8 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/app_theme.dart';
+import '../../providers/app_state.dart';
 import '../../providers/user_profile_provider.dart';
-import '../../models/user_profile.dart';
 
 class OnboardingProfileScreen extends StatefulWidget {
   final VoidCallback onComplete;
@@ -19,30 +19,131 @@ class OnboardingProfileScreen extends StatefulWidget {
 class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  static const int _totalPages = 4;
 
   final _nameController = TextEditingController();
   final _ageController = TextEditingController(text: '25');
 
+  String _selectedLanguage = 'pt';
   String? _selectedHumorStyle;
   String? _selectedRelationshipGoal;
 
-  final List<Map<String, String>> _humorStyles = [
-    {'value': 'sarcástico', 'label': 'Sarcástico'},
-    {'value': 'engraçado', 'label': 'Engraçado'},
-    {'value': 'casual', 'label': 'Casual'},
-    {'value': 'intelectual', 'label': 'Intelectual'},
-    {'value': 'fofo', 'label': 'Fofo'},
+  final List<Map<String, String>> _languages = [
+    {'value': 'pt', 'label': 'Portugues', 'flag': '🇧🇷', 'native': 'Portugues'},
+    {'value': 'en', 'label': 'English', 'flag': '🇺🇸', 'native': 'English'},
+    {'value': 'es', 'label': 'Espanol', 'flag': '🇪🇸', 'native': 'Espanol'},
   ];
 
-  final List<Map<String, String>> _relationshipGoals = [
-    {'value': 'casual', 'label': 'Casual'},
-    {'value': 'sério', 'label': 'Relacionamento sério'},
-    {'value': 'amizade', 'label': 'Amizades'},
-    {'value': 'conhecer pessoas', 'label': 'Conhecer pessoas'},
-    {'value': 'ainda decidindo', 'label': 'Ainda decidindo'},
-  ];
+  final Map<String, List<Map<String, String>>> _humorStylesByLang = {
+    'pt': [
+      {'value': 'sarcastico', 'label': 'Sarcastico'},
+      {'value': 'engracado', 'label': 'Engracado'},
+      {'value': 'casual', 'label': 'Casual'},
+      {'value': 'intelectual', 'label': 'Intelectual'},
+      {'value': 'fofo', 'label': 'Fofo'},
+    ],
+    'en': [
+      {'value': 'sarcastico', 'label': 'Sarcastic'},
+      {'value': 'engracado', 'label': 'Funny'},
+      {'value': 'casual', 'label': 'Casual'},
+      {'value': 'intelectual', 'label': 'Intellectual'},
+      {'value': 'fofo', 'label': 'Sweet'},
+    ],
+    'es': [
+      {'value': 'sarcastico', 'label': 'Sarcastico'},
+      {'value': 'engracado', 'label': 'Gracioso'},
+      {'value': 'casual', 'label': 'Casual'},
+      {'value': 'intelectual', 'label': 'Intelectual'},
+      {'value': 'fofo', 'label': 'Tierno'},
+    ],
+  };
+
+  final Map<String, List<Map<String, String>>> _relationshipGoalsByLang = {
+    'pt': [
+      {'value': 'casual', 'label': 'Casual'},
+      {'value': 'serio', 'label': 'Relacionamento serio'},
+      {'value': 'amizade', 'label': 'Amizades'},
+      {'value': 'conhecer pessoas', 'label': 'Conhecer pessoas'},
+      {'value': 'ainda decidindo', 'label': 'Ainda decidindo'},
+    ],
+    'en': [
+      {'value': 'casual', 'label': 'Casual'},
+      {'value': 'serio', 'label': 'Serious relationship'},
+      {'value': 'amizade', 'label': 'Friendships'},
+      {'value': 'conhecer pessoas', 'label': 'Meet new people'},
+      {'value': 'ainda decidindo', 'label': 'Still deciding'},
+    ],
+    'es': [
+      {'value': 'casual', 'label': 'Casual'},
+      {'value': 'serio', 'label': 'Relacion seria'},
+      {'value': 'amizade', 'label': 'Amistades'},
+      {'value': 'conhecer pessoas', 'label': 'Conocer personas'},
+      {'value': 'ainda decidindo', 'label': 'Aun decidiendo'},
+    ],
+  };
 
   bool _isSaving = false;
+
+  List<Map<String, String>> get _humorStyles =>
+      _humorStylesByLang[_selectedLanguage] ?? _humorStylesByLang['pt']!;
+
+  List<Map<String, String>> get _relationshipGoals =>
+      _relationshipGoalsByLang[_selectedLanguage] ??
+      _relationshipGoalsByLang['pt']!;
+
+  // Localized strings for onboarding (before l10n is applied)
+  Map<String, String> get _strings {
+    switch (_selectedLanguage) {
+      case 'en':
+        return {
+          'chooseLanguage': 'Choose your language',
+          'whatIsYourName': 'What is your name?',
+          'yourName': 'Your name',
+          'yourAge': 'Your age',
+          'minAge': 'You must be at least 18 years old',
+          'humorStyle': 'What is your humor style?',
+          'humorSubtitle': 'This helps the AI match your vibe',
+          'whatAreYouLookingFor': 'What are you looking for?',
+          'selectGoal': 'Select your main goal',
+          'back': 'Back',
+          'next': 'Next',
+          'start': 'Start',
+          'saveError': 'Error saving profile. Please try again.',
+        };
+      case 'es':
+        return {
+          'chooseLanguage': 'Elige tu idioma',
+          'whatIsYourName': 'Como te llamas?',
+          'yourName': 'Tu nombre',
+          'yourAge': 'Tu edad',
+          'minAge': 'Debes tener al menos 18 anos',
+          'humorStyle': 'Cual es tu estilo de humor?',
+          'humorSubtitle': 'Esto ayuda a la IA a combinar con tu estilo',
+          'whatAreYouLookingFor': 'Que buscas?',
+          'selectGoal': 'Selecciona tu objetivo principal',
+          'back': 'Volver',
+          'next': 'Siguiente',
+          'start': 'Empezar',
+          'saveError': 'Error al guardar perfil. Intenta de nuevo.',
+        };
+      default:
+        return {
+          'chooseLanguage': 'Escolha seu idioma',
+          'whatIsYourName': 'Como voce se chama?',
+          'yourName': 'Seu nome',
+          'yourAge': 'Sua idade',
+          'minAge': 'Voce precisa ter pelo menos 18 anos',
+          'humorStyle': 'Qual seu estilo de humor?',
+          'humorSubtitle': 'Isso ajuda a IA a combinar com seu jeito',
+          'whatAreYouLookingFor': 'O que voce busca?',
+          'selectGoal': 'Selecione seu objetivo principal',
+          'back': 'Voltar',
+          'next': 'Proximo',
+          'start': 'Comecar',
+          'saveError': 'Erro ao salvar perfil. Tente novamente.',
+        };
+    }
+  }
 
   @override
   void dispose() {
@@ -55,11 +156,13 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
   bool _canAdvance() {
     switch (_currentPage) {
       case 0:
+        return true; // Language always has a selection
+      case 1:
         final age = int.tryParse(_ageController.text) ?? 0;
         return _nameController.text.trim().isNotEmpty && age >= 18;
-      case 1:
-        return _selectedHumorStyle != null;
       case 2:
+        return _selectedHumorStyle != null;
+      case 3:
         return _selectedRelationshipGoal != null;
       default:
         return false;
@@ -69,7 +172,13 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
   void _nextPage() {
     if (!_canAdvance()) return;
 
-    if (_currentPage < 2) {
+    if (_currentPage == 0) {
+      // Apply language selection
+      final appState = Provider.of<AppState>(context, listen: false);
+      appState.setLocale(Locale(_selectedLanguage));
+    }
+
+    if (_currentPage < _totalPages - 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 350),
         curve: Curves.easeInOut,
@@ -116,8 +225,8 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
       if (mounted) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Erro ao salvar perfil. Tente novamente.'),
+          SnackBar(
+            content: Text(_strings['saveError']!),
             backgroundColor: AppColors.error,
           ),
         );
@@ -140,6 +249,7 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
                   setState(() => _currentPage = page);
                 },
                 children: [
+                  _buildLanguagePage(),
                   _buildNameAgePage(),
                   _buildHumorStylePage(),
                   _buildRelationshipGoalPage(),
@@ -153,15 +263,88 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
     );
   }
 
-  Widget _buildNameAgePage() {
+  Widget _buildLanguagePage() {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const GradientText(
-            text: 'Como voce se chama?',
+            text: 'Desenrola AI',
             style: TextStyle(
+              fontSize: 36,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            _strings['chooseLanguage']!,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 18,
+            ),
+          ),
+          const SizedBox(height: 48),
+          ..._languages.map((lang) {
+            final isSelected = _selectedLanguage == lang['value'];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: GestureDetector(
+                onTap: () {
+                  setState(() => _selectedLanguage = lang['value']!);
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 24, vertical: 18),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    color: isSelected ? null : AppColors.surfaceDark,
+                    gradient: isSelected ? AppColors.primaryGradient : null,
+                    border: isSelected
+                        ? null
+                        : Border.all(
+                            color: AppColors.elevatedDark, width: 1.5),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        lang['flag']!,
+                        style: const TextStyle(fontSize: 28),
+                      ),
+                      const SizedBox(width: 16),
+                      Text(
+                        lang['native']!,
+                        style: TextStyle(
+                          color: isSelected
+                              ? Colors.white
+                              : AppColors.textPrimary,
+                          fontSize: 18,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNameAgePage() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          GradientText(
+            text: _strings['whatIsYourName']!,
+            style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
             ),
@@ -169,10 +352,11 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
           const SizedBox(height: 48),
           TextField(
             controller: _nameController,
-            style: const TextStyle(color: AppColors.textPrimary, fontSize: 18),
+            style:
+                const TextStyle(color: AppColors.textPrimary, fontSize: 18),
             textCapitalization: TextCapitalization.words,
             decoration: InputDecoration(
-              hintText: 'Seu nome',
+              hintText: _strings['yourName'],
               hintStyle: const TextStyle(color: AppColors.textTertiary),
               filled: true,
               fillColor: AppColors.surfaceDark,
@@ -191,14 +375,15 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
           const SizedBox(height: 24),
           TextField(
             controller: _ageController,
-            style: const TextStyle(color: AppColors.textPrimary, fontSize: 18),
+            style:
+                const TextStyle(color: AppColors.textPrimary, fontSize: 18),
             keyboardType: TextInputType.number,
             inputFormatters: [
               FilteringTextInputFormatter.digitsOnly,
               LengthLimitingTextInputFormatter(2),
             ],
             decoration: InputDecoration(
-              hintText: 'Sua idade',
+              hintText: _strings['yourAge'],
               hintStyle: const TextStyle(color: AppColors.textTertiary),
               filled: true,
               fillColor: AppColors.surfaceDark,
@@ -218,9 +403,10 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
           if (_ageController.text.isNotEmpty &&
               (int.tryParse(_ageController.text) ?? 0) < 18 &&
               (int.tryParse(_ageController.text) ?? 0) > 0)
-            const Text(
-              'Voce precisa ter pelo menos 18 anos',
-              style: TextStyle(color: AppColors.error, fontSize: 13),
+            Text(
+              _strings['minAge']!,
+              style:
+                  const TextStyle(color: AppColors.error, fontSize: 13),
             ),
         ],
       ),
@@ -233,17 +419,18 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const GradientText(
-            text: 'Qual seu estilo de humor?',
-            style: TextStyle(
+          GradientText(
+            text: _strings['humorStyle']!,
+            style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Isso ajuda a IA a combinar com seu jeito',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 15),
+          Text(
+            _strings['humorSubtitle']!,
+            style: const TextStyle(
+                color: AppColors.textSecondary, fontSize: 15),
           ),
           const SizedBox(height: 40),
           Wrap(
@@ -272,17 +459,18 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const GradientText(
-            text: 'O que voce busca?',
-            style: TextStyle(
+          GradientText(
+            text: _strings['whatAreYouLookingFor']!,
+            style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Selecione seu objetivo principal',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 15),
+          Text(
+            _strings['selectGoal']!,
+            style: const TextStyle(
+                color: AppColors.textSecondary, fontSize: 15),
           ),
           const SizedBox(height: 40),
           Wrap(
@@ -346,7 +534,7 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
           // Page indicator dots
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(3, (index) {
+            children: List.generate(_totalPages, (index) {
               final isActive = index == _currentPage;
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
@@ -369,9 +557,9 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
                 Expanded(
                   child: TextButton(
                     onPressed: _previousPage,
-                    child: const Text(
-                      'Voltar',
-                      style: TextStyle(
+                    child: Text(
+                      _strings['back']!,
+                      style: const TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 16,
                       ),
@@ -382,7 +570,9 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
               Expanded(
                 flex: 2,
                 child: GradientButton(
-                  text: _currentPage == 2 ? 'Começar' : 'Próximo',
+                  text: _currentPage == _totalPages - 1
+                      ? _strings['start']!
+                      : _strings['next']!,
                   onPressed: _canAdvance() ? _nextPage : null,
                   isLoading: _isSaving,
                 ),
