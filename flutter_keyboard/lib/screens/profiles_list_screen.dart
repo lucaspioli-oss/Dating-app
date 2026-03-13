@@ -189,11 +189,7 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [AppColors.primary, Color(0xFFFF5722)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          gradient: AppColors.buttonGradient,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
@@ -221,8 +217,8 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppColors.primary.withOpacity(0.2),
-                    const Color(0xFFFF5722).withOpacity(0.2),
+                    AppColors.primaryCoral.withOpacity(0.2),
+                    AppColors.primaryPink.withOpacity(0.2),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -265,7 +261,7 @@ class _ProfilesListScreenState extends State<ProfilesListScreen> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(30),
+                  borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
                       color: AppColors.primary.withOpacity(0.3),

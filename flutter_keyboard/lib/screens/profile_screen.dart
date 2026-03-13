@@ -323,16 +323,29 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     final subscriptionService = SubscriptionService();
     final l10n = AppLocalizations.of(context)!;
 
-    return Card(
-      elevation: 2,
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.elevatedDark),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            Icon(
-              isActive ? Icons.verified : Icons.info_outline,
-              size: 64,
-              color: isActive ? AppColors.success : AppColors.textTertiary,
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                gradient: isActive ? AppColors.primaryGradient : null,
+                color: isActive ? null : AppColors.elevatedDark,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isActive ? Icons.verified : Icons.info_outline,
+                size: 32,
+                color: Colors.white,
+              ),
             ),
             const SizedBox(height: 16),
             Text(
@@ -362,8 +375,12 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
   Widget _buildPlanDetailsCard(SubscriptionDetails details) {
     final l10n = AppLocalizations.of(context)!;
-    return Card(
-      elevation: 1,
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.elevatedDark),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -375,7 +392,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const Divider(),
+            const Divider(color: AppColors.elevatedDark),
             _buildDetailRow(l10n.planLabel, _getPlanDisplayName(details.plan)),
             _buildDetailRow(l10n.statusLabel, details.status == 'active' ? l10n.activeSubscriptionStatus : details.status),
             if (details.expiresAt != null)
@@ -436,7 +453,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           ),
         ] else ...[
           // No subscription - navigate to Apple IAP subscription screen
-          FilledButton.icon(
+          GradientButton(
+            text: l10n.subscribeNowButton,
+            icon: Icons.star,
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -446,11 +465,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 ),
               );
             },
-            icon: const Icon(Icons.star),
-            label: Text(l10n.subscribeNowButton),
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.all(16),
-            ),
           ),
         ],
       ],
@@ -1110,13 +1124,10 @@ class _MyProfileContentState extends State<MyProfileContent>
               const SizedBox(height: 12),
               _buildBioField(),
               const SizedBox(height: 32),
-              FilledButton.icon(
+              GradientButton(
+                text: l10n.saveProfileButton,
+                icon: Icons.save,
                 onPressed: _saveProfile,
-                icon: const Icon(Icons.save),
-                label: Text(l10n.saveProfileButton),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.all(16),
-                ),
               ),
             ],
           ),
@@ -1374,16 +1385,29 @@ class SubscriptionContent extends StatelessWidget {
     final subscriptionService = SubscriptionService();
     final l10n = AppLocalizations.of(context)!;
 
-    return Card(
-      elevation: 2,
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.elevatedDark),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            Icon(
-              isActive ? Icons.verified : Icons.info_outline,
-              size: 64,
-              color: isActive ? AppColors.success : AppColors.textTertiary,
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                gradient: isActive ? AppColors.primaryGradient : null,
+                color: isActive ? null : AppColors.elevatedDark,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isActive ? Icons.verified : Icons.info_outline,
+                size: 32,
+                color: Colors.white,
+              ),
             ),
             const SizedBox(height: 16),
             Text(
@@ -1413,8 +1437,12 @@ class SubscriptionContent extends StatelessWidget {
 
   Widget _buildPlanDetailsCard(BuildContext context, SubscriptionDetails details) {
     final l10n = AppLocalizations.of(context)!;
-    return Card(
-      elevation: 1,
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.elevatedDark),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -1426,7 +1454,7 @@ class SubscriptionContent extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const Divider(),
+            const Divider(color: AppColors.elevatedDark),
             _buildDetailRow(context, l10n.planLabel, _getPlanDisplayName(context, details.plan)),
             _buildDetailRow(context, l10n.statusLabel, details.status == 'active' ? l10n.activeSubscriptionStatus : details.status),
             if (details.expiresAt != null)
@@ -1487,7 +1515,9 @@ class SubscriptionContent extends StatelessWidget {
             ),
           ),
         ] else ...[
-          FilledButton.icon(
+          GradientButton(
+            text: l10n.subscribeNowButton,
+            icon: Icons.star,
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -1497,11 +1527,6 @@ class SubscriptionContent extends StatelessWidget {
                 ),
               );
             },
-            icon: const Icon(Icons.star),
-            label: Text(l10n.subscribeNowButton),
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.all(16),
-            ),
           ),
         ],
       ],

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
 import '../../config/app_theme.dart';
 import '../../config/app_page_transitions.dart';
-import '../../config/app_haptics.dart';
+
 import '../../services/firebase_auth_service.dart';
 import 'signup_screen.dart';
 
@@ -207,39 +207,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 24),
 
                     // Login button
-                    SizedBox(
-                      height: 52,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : () {
-                          AppHaptics.lightImpact();
-                          _signIn();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: AppColors.textPrimary,
-                          disabledBackgroundColor: AppColors.primary.withOpacity(0.5),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  color: AppColors.textPrimary,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Text(
-                                AppLocalizations.of(context)!.loginButton,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                      ),
+                    GradientButton(
+                      text: AppLocalizations.of(context)!.loginButton,
+                      onPressed: _isLoading ? null : _signIn,
+                      isLoading: _isLoading,
                     ),
                     const SizedBox(height: 32),
 
@@ -342,11 +313,11 @@ class _LoginScreenState extends State<LoginScreen> {
             fillColor: AppColors.surfaceDark,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColors.textSecondary),
+              borderSide: const BorderSide(color: AppColors.elevatedDark),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColors.textSecondary),
+              borderSide: const BorderSide(color: AppColors.elevatedDark),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),

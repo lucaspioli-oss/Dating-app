@@ -7,12 +7,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
 import '../config/app_config.dart';
 import '../config/app_theme.dart';
+import '../config/app_haptics.dart';
 import '../services/subscription_service.dart';
 import '../services/keyboard_service.dart';
 import '../services/firebase_auth_service.dart';
 import 'training_feedback_screen.dart';
 import 'keyboard_setup_screen.dart';
 import 'app_tutorial_screen.dart';
+import 'templates_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -56,223 +58,319 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
+      backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
-        title: Text(l10n.settingsTitle),
+        backgroundColor: AppColors.backgroundDark,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          l10n.settingsTitle,
+          style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        centerTitle: true,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           _buildKeyboardSection(context),
+          const SizedBox(height: 16),
           if (Platform.isAndroid) ...[
-            const SizedBox(height: 24),
             _buildAccessibilitySection(context),
+            const SizedBox(height: 16),
           ],
+          _buildToolsSection(context),
           if (_isDeveloper) ...[
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             _buildTrainingSection(context),
           ],
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           _buildAboutSection(context),
+          const SizedBox(height: 32),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSectionContainer({required String title, required IconData icon, required List<Widget> children}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.elevatedDark),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 18),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(color: AppColors.elevatedDark, height: 1),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSettingsRow({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    Color? iconColor,
+    Color? titleColor,
+    Widget? trailing,
+    VoidCallback? onTap,
+    bool isLast = false,
+  }) {
+    return InkWell(
+      onTap: onTap != null ? () {
+        AppHaptics.lightImpact();
+        onTap();
+      } : null,
+      borderRadius: isLast ? const BorderRadius.vertical(bottom: Radius.circular(16)) : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          border: isLast ? null : const Border(bottom: BorderSide(color: AppColors.elevatedDark, width: 0.5)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: iconColor ?? AppColors.textSecondary, size: 22),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: titleColor ?? AppColors.textPrimary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(color: AppColors.textTertiary, fontSize: 13),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (trailing != null) trailing,
+            if (onTap != null && trailing == null)
+              const Icon(Icons.chevron_right, color: AppColors.textTertiary, size: 22),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildKeyboardSection(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.smartKeyboardSection,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: Icon(
-                _isKeyboardEnabled
-                    ? Icons.check_circle
-                    : Icons.warning_amber_rounded,
-                color: _isKeyboardEnabled ? AppColors.success : AppColors.warning,
-              ),
-              title: Text(l10n.keyboardStatusLabel),
-              subtitle: Text(
-                _isKeyboardEnabled ? l10n.keyboardStatusActive : l10n.keyboardStatusInactive,
-              ),
-              trailing: _isKeyboardEnabled
-                  ? null
-                  : TextButton(
-                      onPressed: () async {
-                        await _keyboardService.openKeyboardSettings();
-                        Future.delayed(
-                          const Duration(seconds: 1),
-                          () async {
-                            final enabled =
-                                await _keyboardService.isKeyboardEnabled();
-                            if (mounted) {
-                              setState(() => _isKeyboardEnabled = enabled);
-                            }
-                          },
-                        );
-                      },
-                      child: Text(l10n.activateButton),
-                    ),
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.school_outlined),
-              title: Text(l10n.viewActivationGuideTitle),
-              subtitle: Text(
-                _isKeyboardEnabled
-                    ? l10n.viewActivationGuideDesc
-                    : l10n.followStepsToActivate,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () async {
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.setBool('hasSeenKeyboardSetup', false);
+    return _buildSectionContainer(
+      title: l10n.smartKeyboardSection,
+      icon: Icons.keyboard_alt_outlined,
+      children: [
+        _buildSettingsRow(
+          icon: _isKeyboardEnabled ? Icons.check_circle : Icons.warning_amber_rounded,
+          iconColor: _isKeyboardEnabled ? AppColors.success : AppColors.warning,
+          title: l10n.keyboardStatusLabel,
+          subtitle: _isKeyboardEnabled ? l10n.keyboardStatusActive : l10n.keyboardStatusInactive,
+          trailing: _isKeyboardEnabled
+              ? null
+              : Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    gradient: AppColors.buttonGradient,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    l10n.activateButton,
+                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ),
+          onTap: _isKeyboardEnabled ? null : () async {
+            await _keyboardService.openKeyboardSettings();
+            Future.delayed(
+              const Duration(seconds: 1),
+              () async {
+                final enabled = await _keyboardService.isKeyboardEnabled();
                 if (mounted) {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => KeyboardSetupScreen(
-                        onComplete: () {
-                          Navigator.of(context).pop();
-                          _loadStatus();
-                        },
-                      ),
-                    ),
-                  );
+                  setState(() => _isKeyboardEnabled = enabled);
                 }
               },
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.auto_awesome),
-              title: Text(l10n.viewAppTutorialTitle),
-              subtitle: Text(
-                l10n.viewAppTutorialDesc,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => AppTutorialScreen(
-                      onComplete: () {
-                        Navigator.of(context).pop();
-                      },
-                    ),
-                  ),
-                );
-              },
-            ),
-          ],
+            );
+          },
         ),
-      ),
+        _buildSettingsRow(
+          icon: Icons.school_outlined,
+          title: l10n.viewActivationGuideTitle,
+          subtitle: _isKeyboardEnabled ? l10n.viewActivationGuideDesc : l10n.followStepsToActivate,
+          onTap: () async {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setBool('hasSeenKeyboardSetup', false);
+            if (mounted) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => KeyboardSetupScreen(
+                    onComplete: () {
+                      Navigator.of(context).pop();
+                      _loadStatus();
+                    },
+                  ),
+                ),
+              );
+            }
+          },
+        ),
+        _buildSettingsRow(
+          icon: Icons.auto_awesome,
+          title: l10n.viewAppTutorialTitle,
+          subtitle: l10n.viewAppTutorialDesc,
+          isLast: true,
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => AppTutorialScreen(
+                  onComplete: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 
   Widget _buildAccessibilitySection(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.accessibilityStatusLabel,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: Icon(
-                _isAccessibilityEnabled
-                    ? Icons.check_circle
-                    : Icons.warning_amber_rounded,
-                color: _isAccessibilityEnabled ? AppColors.success : AppColors.warning,
-              ),
-              title: Text(l10n.accessibilityStatusLabel),
-              subtitle: Text(
-                _isAccessibilityEnabled ? l10n.accessibilityStatusActive : l10n.accessibilityStatusInactive,
-              ),
-              trailing: _isAccessibilityEnabled
-                  ? null
-                  : TextButton(
-                      onPressed: () async {
-                        await _keyboardService.openAccessibilitySettings();
-                        Future.delayed(
-                          const Duration(seconds: 1),
-                          () async {
-                            final enabled = await _keyboardService.isAccessibilityServiceEnabled();
-                            if (mounted) {
-                              setState(() => _isAccessibilityEnabled = enabled);
-                            }
-                          },
-                        );
-                      },
-                      child: Text(l10n.activateButton),
-                    ),
-            ),
-          ],
+    return _buildSectionContainer(
+      title: l10n.accessibilityStatusLabel,
+      icon: Icons.accessibility_new,
+      children: [
+        _buildSettingsRow(
+          icon: _isAccessibilityEnabled ? Icons.check_circle : Icons.warning_amber_rounded,
+          iconColor: _isAccessibilityEnabled ? AppColors.success : AppColors.warning,
+          title: l10n.accessibilityStatusLabel,
+          subtitle: _isAccessibilityEnabled ? l10n.accessibilityStatusActive : l10n.accessibilityStatusInactive,
+          isLast: true,
+          trailing: _isAccessibilityEnabled
+              ? null
+              : Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    gradient: AppColors.buttonGradient,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    l10n.activateButton,
+                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ),
+          onTap: _isAccessibilityEnabled ? null : () async {
+            await _keyboardService.openAccessibilitySettings();
+            Future.delayed(
+              const Duration(seconds: 1),
+              () async {
+                final enabled = await _keyboardService.isAccessibilityServiceEnabled();
+                if (mounted) {
+                  setState(() => _isAccessibilityEnabled = enabled);
+                }
+              },
+            );
+          },
         ),
-      ),
+      ],
+    );
+  }
+
+  Widget _buildToolsSection(BuildContext context) {
+    return _buildSectionContainer(
+      title: 'Ferramentas',
+      icon: Icons.build_outlined,
+      children: [
+        _buildSettingsRow(
+          icon: Icons.menu_book_outlined,
+          title: 'Roteiros de Conversa',
+          subtitle: 'Scripts prontos para diferentes situacoes',
+          isLast: true,
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const TemplatesScreen()),
+            );
+          },
+        ),
+      ],
     );
   }
 
   Widget _buildTrainingSection(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  l10n.aiTrainingSection,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: AppColors.warning,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    l10n.devBadge,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
+    return _buildSectionContainer(
+      title: l10n.aiTrainingSection,
+      icon: Icons.psychology,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: AppColors.warning.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(6),
             ),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: const Icon(Icons.psychology),
-              title: Text(l10n.trainingInstructionsTitle),
-              subtitle: Text(l10n.trainingInstructionsDesc),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const TrainingFeedbackScreen(),
-                  ),
-                );
-              },
+            child: Text(
+              l10n.devBadge,
+              style: const TextStyle(
+                color: AppColors.warning,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ],
+          ),
         ),
-      ),
+        _buildSettingsRow(
+          icon: Icons.psychology,
+          title: l10n.trainingInstructionsTitle,
+          subtitle: l10n.trainingInstructionsDesc,
+          isLast: true,
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const TrainingFeedbackScreen(),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 
@@ -280,49 +378,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final l10n = AppLocalizations.of(context)!;
     final user = FirebaseAuth.instance.currentUser;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.aboutSection,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: const Icon(Icons.person_outline),
-              title: Text(l10n.loggedAsLabel),
-              subtitle: Text(user?.email ?? l10n.notLoggedInLabel),
-            ),
-            ListTile(
-              leading: const Icon(Icons.info_outline),
-              title: Text(l10n.versionLabel),
-              subtitle: Text(AppConfig.appVersion),
-            ),
-            ListTile(
-              leading: const Icon(Icons.privacy_tip_outlined),
-              title: Text(l10n.privacyPolicyLabel),
-              onTap: () {
-                launchUrl(Uri.parse('https://desenrola-ia.web.app/privacy'));
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: Icon(Icons.logout, color: AppColors.error),
-              title: Text(l10n.logoutLabel, style: TextStyle(color: AppColors.error)),
-              onTap: () => _showLogoutDialog(context),
-            ),
-            ListTile(
-              leading: Icon(Icons.delete_forever, color: AppColors.error),
-              title: Text(l10n.deleteAccountLabel, style: TextStyle(color: AppColors.error)),
-              subtitle: Text(l10n.deleteAccountDesc),
-              onTap: () => _showDeleteAccountDialog(context),
-            ),
-          ],
+    return _buildSectionContainer(
+      title: l10n.aboutSection,
+      icon: Icons.info_outline,
+      children: [
+        _buildSettingsRow(
+          icon: Icons.person_outline,
+          title: l10n.loggedAsLabel,
+          subtitle: user?.email ?? l10n.notLoggedInLabel,
         ),
-      ),
+        _buildSettingsRow(
+          icon: Icons.info_outline,
+          title: l10n.versionLabel,
+          subtitle: AppConfig.appVersion,
+        ),
+        _buildSettingsRow(
+          icon: Icons.privacy_tip_outlined,
+          title: l10n.privacyPolicyLabel,
+          onTap: () {
+            launchUrl(Uri.parse('https://desenrola-ia.web.app/privacy'));
+          },
+        ),
+        _buildSettingsRow(
+          icon: Icons.logout,
+          iconColor: AppColors.error,
+          title: l10n.logoutLabel,
+          titleColor: AppColors.error,
+          onTap: () => _showLogoutDialog(context),
+        ),
+        _buildSettingsRow(
+          icon: Icons.delete_forever,
+          iconColor: AppColors.error,
+          title: l10n.deleteAccountLabel,
+          titleColor: AppColors.error,
+          subtitle: l10n.deleteAccountDesc,
+          isLast: true,
+          onTap: () => _showDeleteAccountDialog(context),
+        ),
+      ],
     );
   }
 
@@ -331,14 +424,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(l10n.deleteAccountTitle),
-        content: Text(
-          l10n.deleteAccountConfirmation,
-        ),
+        backgroundColor: AppColors.surfaceDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(l10n.deleteAccountTitle, style: const TextStyle(color: AppColors.textPrimary)),
+        content: Text(l10n.deleteAccountConfirmation, style: const TextStyle(color: AppColors.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(l10n.cancelButton),
+            child: Text(l10n.cancelButton, style: const TextStyle(color: AppColors.textSecondary)),
           ),
           TextButton(
             onPressed: () async {
@@ -368,12 +461,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(l10n.logoutTitle),
-        content: Text(l10n.logoutConfirmation),
+        backgroundColor: AppColors.surfaceDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(l10n.logoutTitle, style: const TextStyle(color: AppColors.textPrimary)),
+        content: Text(l10n.logoutConfirmation, style: const TextStyle(color: AppColors.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(l10n.cancelButton),
+            child: Text(l10n.cancelButton, style: const TextStyle(color: AppColors.textSecondary)),
           ),
           TextButton(
             onPressed: () async {

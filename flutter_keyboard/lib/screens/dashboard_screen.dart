@@ -137,8 +137,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
-        title: const Text('Stats'),
+        title: const GradientText(
+          text: 'Stats',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+        ),
         backgroundColor: AppColors.backgroundDark,
+        elevation: 0,
         centerTitle: true,
       ),
       body: _isLoading
