@@ -1907,24 +1907,12 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
               profileName = result.name;
               faceDescription = result.faceDescription;
             }
-            // Priority: server-cropped (OpenCV) > AI facePosition > ML Kit > heuristic
+            // Priority: server-cropped face (AI Vision + sharp) > client fallback
             if (result.serverCroppedFaceBase64 != null) {
               faceImageBase64 = result.serverCroppedFaceBase64;
             } else {
-              // Crop avatar: AI facePosition > platform heuristic > pre-crop
-              final isScreenshot = entry.instagramUploadMode == InstagramUploadMode.generalScreenshot
-                  || entry.type != PlatformType.instagram;
-              try {
-                final croppedBytes = await _cropAvatarFromImage(
-                  entry.profileImages[imgIndex],
-                  facePosition: result.facePosition,
-                  platform: entry.type.name,
-                  isScreenshot: isScreenshot,
-                );
-                faceImageBase64 = base64Encode(croppedBytes);
-              } catch (_) {
-                faceImageBase64 = entry.croppedProfilePicBase64 ?? imageBase64;
-              }
+              // Fallback: use pre-cropped local version or original image
+              faceImageBase64 = entry.croppedProfilePicBase64 ?? imageBase64;
             }
           }
 
