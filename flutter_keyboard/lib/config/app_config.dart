@@ -1,7 +1,7 @@
 /// Configurações centralizadas do app
 class AppConfig {
-  // URL do Backend (Railway - Produção)
-  static const String backendUrl = 'https://dating-app-production-ac43.up.railway.app';
+  // URL do Backend (VPS - Produção)
+  static const String backendUrl = 'https://api.desenrolaai.site';
 
   // Firebase
   static const String firebaseProjectId = 'desenrola-ia';

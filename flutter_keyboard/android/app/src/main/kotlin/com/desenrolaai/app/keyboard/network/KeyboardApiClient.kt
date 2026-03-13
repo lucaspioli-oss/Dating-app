@@ -19,7 +19,8 @@ class KeyboardApiClient {
         .writeTimeout(10, TimeUnit.SECONDS)
         .certificatePinner(
             okhttp3.CertificatePinner.Builder()
-                .add("dating-app-production-ac43.up.railway.app", "sha256/u6dScLDuE2TrAks7ct4HDBekXo9byFES6oApqW/pAjQ=")
+                .add("api.desenrolaai.site", "sha256/H7H1RHWBKgqEByLUEtw71ZAZ4lZfksUDeal/4VxjozQ=")
+                .add("api.desenrolaai.site", "sha256/y7xVm0TVJNahMr2sZydE2jQH8SquXV9yLF9seROHHHU=")
                 .build()
         )
         .build()

@@ -16,7 +16,7 @@ class AuthHelper(private val context: Context) {
         private const val KEY_USER_ID = "userId"
         private const val KEY_BACKEND_URL = "backendUrl"
         private const val KEY_DEFAULT_TONE = "defaultTone"
-        private const val DEFAULT_BACKEND_URL = "https://dating-app-production-ac43.up.railway.app"
+        private const val DEFAULT_BACKEND_URL = "https://api.desenrolaai.site"
     }
 
     private val masterKey: MasterKey by lazy {
