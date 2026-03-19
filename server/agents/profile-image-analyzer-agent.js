@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProfileImageAnalyzerAgent = void 0;
 const base_agent_1 = require("./base-agent");
+const { analyzeImageWithVision } = require("../services/vision-provider");
 class ProfileImageAnalyzerAgent extends base_agent_1.BaseAgent {
     async execute(input, userContext) {
         const systemPrompt = this.buildSystemPrompt();
@@ -70,36 +71,14 @@ IMPORTANTE:
 - Capture TUDO que possa ser útil para criar uma primeira mensagem`;
     }
     async analyzeImage(input, systemPrompt) {
-        const message = await this.client.messages.create({
-            model: 'claude-sonnet-4-5-20250929',
-            max_tokens: 2048,
+        return await analyzeImageWithVision({
+            imageBase64: input.imageBase64,
+            imageMediaType: input.imageMediaType,
+            systemPrompt,
+            userPrompt: `Analise este screenshot de perfil${input.platform ? ` do ${input.platform.toUpperCase()}` : ''} e extraia todas as informacoes visiveis no formato JSON especificado.`,
+            maxTokens: 2048,
             temperature: 0.3,
-            system: systemPrompt,
-            messages: [
-                {
-                    role: 'user',
-                    content: [
-                        {
-                            type: 'image',
-                            source: {
-                                type: 'base64',
-                                media_type: input.imageMediaType,
-                                data: input.imageBase64,
-                            },
-                        },
-                        {
-                            type: 'text',
-                            text: `Analise este screenshot de perfil${input.platform ? ` do ${input.platform.toUpperCase()}` : ''} e extraia todas as informações visíveis no formato JSON especificado.`,
-                        },
-                    ],
-                },
-            ],
         });
-        const content = message.content[0];
-        if (content.type === 'text') {
-            return content.text;
-        }
-        throw new Error('Resposta inesperada da API');
     }
     parseExtractedData(jsonResponse) {
         try {

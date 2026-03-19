@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ConversationImageAnalyzerAgent = void 0;
 const base_agent_1 = require("./base-agent");
+const { analyzeImageWithVision } = require("../services/vision-provider");
 class ConversationImageAnalyzerAgent extends base_agent_1.BaseAgent {
     // Implementação do método abstrato (não usado diretamente)
     async execute(input) {
@@ -45,36 +46,14 @@ IMPORTANTE:
 - Se a imagem não for de uma conversa, retorne {"error": "Imagem não parece ser uma conversa"}`;
     }
     async analyzeImage(input, systemPrompt) {
-        const message = await this.client.messages.create({
-            model: 'claude-sonnet-4-5-20250929',
-            max_tokens: 1024,
+        return await analyzeImageWithVision({
+            imageBase64: input.imageBase64,
+            imageMediaType: input.imageMediaType,
+            systemPrompt,
+            userPrompt: `Analise este screenshot de conversa${input.platform ? ` do ${input.platform.toUpperCase()}` : ''} e extraia a ultima mensagem do match (a pessoa com quem o usuario esta conversando).`,
+            maxTokens: 1024,
             temperature: 0.3,
-            system: systemPrompt,
-            messages: [
-                {
-                    role: 'user',
-                    content: [
-                        {
-                            type: 'image',
-                            source: {
-                                type: 'base64',
-                                media_type: input.imageMediaType,
-                                data: input.imageBase64,
-                            },
-                        },
-                        {
-                            type: 'text',
-                            text: `Analise este screenshot de conversa${input.platform ? ` do ${input.platform.toUpperCase()}` : ''} e extraia a última mensagem do match (a pessoa com quem o usuário está conversando).`,
-                        },
-                    ],
-                },
-            ],
         });
-        const content = message.content[0];
-        if (content.type === 'text') {
-            return content.text;
-        }
-        throw new Error('Resposta inesperada da API');
     }
     parseExtractedData(jsonResponse) {
         try {
