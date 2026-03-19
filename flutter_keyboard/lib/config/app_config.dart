@@ -1,15 +1,16 @@
-/// Configurações centralizadas do app
+/// Configuracoes centralizadas do app
 class AppConfig {
-  // URL do Backend (Railway - Produção)
+  // URL do Backend (VPS - Producao)
   static const String backendUrl = 'https://dating-app-production-ac43.up.railway.app';
 
-  // Firebase
-  static const String firebaseProjectId = 'desenrola-ia';
-  static const String firebaseHostingUrl = 'https://desenrola-ia.web.app';
+  // Supabase
+  static const String supabaseUrl = 'https://ocnwpywdvefpbgvbdkxw.supabase.co';
+  static const String supabaseAnonKey =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jbndweXdkdmVmcGJndmJka3h3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0OTIxNjEsImV4cCI6MjA4ODA2ODE2MX0.QnBZzEjY3Kb7LXkDDbxxyozrh0ROC1cE3FrUs-FcSXc';
 
   // App Info
   static const String appName = 'Desenrola IA';
-  static const String appVersion = '1.0.0';
+  static const String appVersion = '1.2.0';
 
   // Apple In-App Purchase Product IDs
   static const String appleMonthlyProductId = 'desenrola_ai_monthly_v2';

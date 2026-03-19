@@ -1,12 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 
 class AppState extends ChangeNotifier {
-  // Histórico de conversas
+  // Historico de conversas
   List<ConversationMessage> _messages = [];
 
   // Loading state
@@ -19,14 +19,14 @@ class AppState extends ChangeNotifier {
   String get backendUrl => AppConfig.backendUrl;
   List<ConversationMessage> get messages => _messages;
   bool get isLoading => _isLoading;
-  String? get userId => FirebaseAuth.instance.currentUser?.uid;
+  String? get userId => Supabase.instance.client.auth.currentUser?.id;
   Locale get locale => _locale;
 
   AppState() {
     _loadPreferences();
   }
 
-  // Carregar preferências salvas
+  // Carregar preferencias salvas
   Future<void> _loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     final langCode = prefs.getString('selectedLanguage');
@@ -42,20 +42,19 @@ class AppState extends ChangeNotifier {
     _locale = locale;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('selectedLanguage', locale.languageCode);
-    // Share with keyboard extension via App Group UserDefaults
     try {
       await _nativeChannel.invokeMethod('setLanguage', {'language': locale.languageCode});
     } catch (_) {}
     notifyListeners();
   }
 
-  // Adicionar mensagem ao histórico
+  // Adicionar mensagem ao historico
   void addMessage(ConversationMessage message) {
     _messages.insert(0, message);
     notifyListeners();
   }
 
-  // Limpar histórico
+  // Limpar historico
   void clearMessages() {
     _messages.clear();
     notifyListeners();
@@ -67,7 +66,7 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Recarregar preferências (útil após login)
+  // Recarregar preferencias (util apos login)
   Future<void> reloadPreferences() async {
     await _loadPreferences();
   }

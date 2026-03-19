@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/firebase_auth_service.dart';
 import '../../services/subscription_service.dart';
@@ -20,20 +20,18 @@ class AuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     final authService = FirebaseAuthService();
 
-    return StreamBuilder<User?>(
+    return StreamBuilder<AuthState>(
       stream: authService.authStateChanges,
       builder: (context, snapshot) {
-        // Loading
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const AppLoadingScreen();
         }
 
-        // Not logged in
-        if (!snapshot.hasData || snapshot.data == null) {
+        final session = Supabase.instance.client.auth.currentSession;
+        if (session == null) {
           return const LoginScreen();
         }
 
-        // Logged in - check subscription
         return const SubscriptionWrapper();
       },
     );
@@ -52,21 +50,21 @@ class _SubscriptionWrapperState extends State<SubscriptionWrapper> with WidgetsB
   Timer? _tokenRefreshTimer;
   bool _isLoading = true;
   SubscriptionStatus _status = SubscriptionStatus.inactive;
-  bool _hasCompletedOnboarding = true; // default true to avoid flash
-  bool _hasSeenKeyboardSetup = true; // default true to avoid flash
-  bool _hasSeenAppTutorial = true; // default true to avoid flash
+  bool _hasCompletedOnboarding = true;
+  bool _hasSeenKeyboardSetup = true;
+  bool _hasSeenAppTutorial = true;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    // Listen for token changes and re-share with keyboard
-    FirebaseAuth.instance.idTokenChanges().listen((user) {
-      if (user != null) _shareAuthWithKeyboard();
+    // Listen for auth state changes and re-share with keyboard
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      if (data.session != null) _shareAuthWithKeyboard();
     });
 
-    // Force-refresh token every 45 minutes (tokens expire in 60)
+    // Refresh token sharing periodically
     _tokenRefreshTimer = Timer.periodic(
       const Duration(minutes: 45),
       (_) => _shareAuthWithKeyboard(),
@@ -85,26 +83,20 @@ class _SubscriptionWrapperState extends State<SubscriptionWrapper> with WidgetsB
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      // Re-share fresh auth token every time app comes to foreground
       _shareAuthWithKeyboard();
     }
   }
 
   Future<void> _checkSubscription() async {
     try {
-      // Wait a moment to ensure Firestore is synced
       await Future.delayed(const Duration(milliseconds: 500));
-
-      // Share auth token with keyboard extension via App Groups
       _shareAuthWithKeyboard();
 
-      // Check if user has seen keyboard setup and app tutorial
       final prefs = await SharedPreferences.getInstance();
       final hasCompletedOnboarding = prefs.getBool('hasCompletedOnboardingProfile') ?? false;
       final hasSeenSetup = prefs.getBool('hasSeenKeyboardSetup') ?? false;
       final hasSeenTutorial = prefs.getBool('hasSeenAppTutorial') ?? false;
 
-      // Get current status from stream
       final status = await _subscriptionService.subscriptionStatusStream.first;
 
       if (mounted) {
@@ -128,16 +120,16 @@ class _SubscriptionWrapperState extends State<SubscriptionWrapper> with WidgetsB
 
   Future<void> _shareAuthWithKeyboard() async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final token = await user.getIdToken(true);
-        if (token != null) {
-          final keyboardService = KeyboardService();
-          await keyboardService.shareAuthWithKeyboard(token, user.uid);
-        }
+      final session = Supabase.instance.client.auth.currentSession;
+      if (session != null) {
+        final keyboardService = KeyboardService();
+        await keyboardService.shareAuthWithKeyboard(
+          session.accessToken,
+          session.user.id,
+        );
       }
     } catch (e) {
-      // Non-critical - keyboard will fall back to BASIC mode
+      // Non-critical
     }
   }
 
@@ -147,32 +139,24 @@ class _SubscriptionWrapperState extends State<SubscriptionWrapper> with WidgetsB
       return const AppLoadingScreen();
     }
 
-    // Allow access for active subscribers AND free tier users
-    // Free tier users get 5 AI suggestions per day (gated at point of use)
     if (!_hasCompletedOnboarding) {
       return OnboardingProfileScreen(
         onComplete: () {
-          if (mounted) {
-            setState(() => _hasCompletedOnboarding = true);
-          }
+          if (mounted) setState(() => _hasCompletedOnboarding = true);
         },
       );
     }
     if (!_hasSeenKeyboardSetup) {
       return KeyboardSetupScreen(
         onComplete: () {
-          if (mounted) {
-            setState(() => _hasSeenKeyboardSetup = true);
-          }
+          if (mounted) setState(() => _hasSeenKeyboardSetup = true);
         },
       );
     }
     if (!_hasSeenAppTutorial) {
       return AppTutorialScreen(
         onComplete: () {
-          if (mounted) {
-            setState(() => _hasSeenAppTutorial = true);
-          }
+          if (mounted) setState(() => _hasSeenAppTutorial = true);
         },
       );
     }

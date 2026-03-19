@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
 
 import 'services/analytics_service.dart';
@@ -14,20 +14,15 @@ import 'providers/user_profile_provider.dart';
 import 'services/keyboard_service.dart';
 import 'screens/auth/auth_wrapper.dart';
 import 'screens/auth/login_screen.dart';
+import 'config/app_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   HttpOverrides.global = AppHttpOverrides();
 
-  await Firebase.initializeApp(
-    options: const FirebaseOptions(
-      apiKey: 'AIzaSyAF16igVSJuhwldv_kRsJ0PMmRY759X_gA',
-      appId: '1:302725958482:ios:90084779f09a69bd11888b',
-      messagingSenderId: '302725958482',
-      projectId: 'desenrola-ia',
-      storageBucket: 'desenrola-ia.firebasestorage.app',
-      iosBundleId: 'com.desenrolaai.app',
-    ),
+  await Supabase.initialize(
+    url: AppConfig.supabaseUrl,
+    anonKey: AppConfig.supabaseAnonKey,
   );
 
   runApp(const DesenrolaAIApp());

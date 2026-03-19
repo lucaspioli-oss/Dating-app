@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const fastify_1 = __importDefault(require("fastify"));
 const cors_1 = __importDefault(require("@fastify/cors"));
 const env_1 = require("./config/env");
+const { supabaseAdmin } = require("./config/supabase");
 const anthropic_1 = require("./services/anthropic");
 const agents_1 = require("./agents");
 const conversation_manager_1 = require("./services/conversation-manager");
@@ -15,36 +16,33 @@ const auth_1 = require("./middleware/auth");
 const { verifyRequestSignature } = require("./middleware/auth");
 const instagram_crop_service_1 = require("./services/instagram-crop-service");
 const face_crop_service_1 = require("./services/face-crop-service");
-const fastify = (0, fastify_1.default)({
-    logger: true,
-});
-// Habilitar CORS (restrito a origens confiáveis)
+
+const fastify = (0, fastify_1.default)({ logger: true });
+
 fastify.register(cors_1.default, {
     origin: [
         'https://desenrola-ia.web.app',
         'https://desenrola-ia.firebaseapp.com',
+        'https://desenrolaai.site',
     ],
 });
-// Rate limiting
+
 fastify.register(require('@fastify/rate-limit'), {
     max: 15,
     timeWindow: '1 minute',
-    keyGenerator: (request) => {
-        return request.user?.uid || request.ip;
-    },
+    keyGenerator: (request) => request.user?.uid || request.ip,
 });
-// Raw body parser for Stripe webhooks
+
 fastify.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, body, done) => {
-    // Store raw body for webhook verification
     req.rawBody = body;
     try {
         const json = JSON.parse(body.toString());
         done(null, json);
-    }
-    catch (err) {
+    } catch (err) {
         done(err, undefined);
     }
 });
+
 const analyzeSchema = {
     body: {
         type: 'object',
@@ -53,7 +51,7 @@ const analyzeSchema = {
             text: { type: 'string', minLength: 1 },
             tone: {
                 type: 'string',
-                enum: ['automatico', 'engraçado', 'ousado', 'romântico', 'casual', 'confiante', 'expert'],
+                enum: ['automatico', 'engracado', 'ousado', 'romantico', 'casual', 'confiante', 'expert'],
             },
             conversationId: { type: 'string' },
             objective: {
@@ -64,39 +62,33 @@ const analyzeSchema = {
                     'pedir_desculpas', 'criar_conexao',
                 ],
             },
-            language: {
-                type: 'string',
-                enum: ['pt', 'en', 'es'],
-            },
+            language: { type: 'string', enum: ['pt', 'en', 'es'] },
         },
     },
 };
+
 fastify.post('/analyze', { schema: analyzeSchema }, async (request, reply) => {
     try {
         const { text, tone, conversationId, objective, language } = request.body;
-        // PRO MODE: If conversationId is provided, use rich context pipeline
         if (conversationId) {
             try {
-                const admin = require('firebase-admin');
-                const db = admin.firestore();
-                // Get auth token from header if present
                 let userId = null;
                 const authHeader = request.headers.authorization;
                 if (authHeader && authHeader.startsWith('Bearer ')) {
                     try {
                         const token = authHeader.split(' ')[1];
-                        const decoded = await admin.auth().verifyIdToken(token);
-                        userId = decoded.uid;
-                    }
-                    catch (e) {
-                        // Token invalid, continue without auth
-                    }
+                        const { data: { user: authUser } } = await supabaseAdmin.auth.getUser(token);
+                        if (authUser) userId = authUser.id;
+                    } catch (e) { }
                 }
                 if (userId) {
-                    const convRef = db.collection('conversations').doc(conversationId);
-                    const convDoc = await convRef.get();
-                    if (convDoc.exists && convDoc.data().userId === userId) {
-                        const convData = convDoc.data();
+                    const { data: convData } = await supabaseAdmin
+                        .from('conversations')
+                        .select('*')
+                        .eq('id', conversationId)
+                        .single();
+
+                    if (convData && convData.user_id === userId) {
                         // Save clipboard text as match's message
                         const matchMessage = {
                             id: `kb_match_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -105,50 +97,43 @@ fastify.post('/analyze', { schema: analyzeSchema }, async (request, reply) => {
                             timestamp: new Date().toISOString(),
                             source: 'keyboard_clipboard',
                         };
-                        await convRef.update({
-                            messages: admin.firestore.FieldValue.arrayUnion(matchMessage),
-                            lastMessageAt: admin.firestore.Timestamp.now(),
-                        });
-                        // Get updated conversation with full context
-                        const updatedDoc = await convRef.get();
-                        const data = updatedDoc.data();
-                        const messages = data.messages || [];
-                        const avatar = data.avatar || {};
-                        // Build rich context prompt
-                        let historyStr = '';
+                        const messages = [...(convData.messages || []), matchMessage];
+
+                        await supabaseAdmin
+                            .from('conversations')
+                            .update({ messages, last_message_at: new Date().toISOString() })
+                            .eq('id', conversationId);
+
+                        const avatar = convData.avatar || {};
                         const recentMessages = messages.slice(-20);
+                        let historyStr = '';
                         for (const msg of recentMessages) {
-                            const role = msg.role === 'user' ? 'Você' : (avatar.matchName || 'Match');
+                            const role = msg.role === 'user' ? 'Voce' : (avatar.matchName || 'Match');
                             historyStr += `${role}: ${msg.content}\n`;
                         }
-                        // Get collective insights if available
+
                         let collectiveStr = '';
-                        if (data.collectiveAvatarId) {
-                            const avatarDoc = await db.collection('collectiveAvatars').doc(data.collectiveAvatarId).get();
-                            if (avatarDoc.exists) {
-                                const ci = avatarDoc.data().collectiveInsights || {};
-                                if (ci.whatWorks && ci.whatWorks.length > 0) {
-                                    collectiveStr = `\nO que funciona com essa pessoa: ${ci.whatWorks.join(', ')}`;
-                                }
-                                if (ci.whatDoesntWork && ci.whatDoesntWork.length > 0) {
-                                    collectiveStr += `\nO que NÃO funciona: ${ci.whatDoesntWork.join(', ')}`;
-                                }
+                        if (convData.collective_avatar_id) {
+                            const { data: avatarDoc } = await supabaseAdmin
+                                .from('collective_avatars')
+                                .select('collective_insights')
+                                .eq('id', convData.collective_avatar_id)
+                                .single();
+                            if (avatarDoc) {
+                                const ci = avatarDoc.collective_insights || {};
+                                if (ci.whatWorks?.length > 0) collectiveStr = `\nO que funciona: ${ci.whatWorks.map(w => w.strategy || w).join(', ')}`;
+                                if (ci.whatDoesntWork?.length > 0) collectiveStr += `\nO que NAO funciona: ${ci.whatDoesntWork.map(w => w.strategy || w).join(', ')}`;
                             }
                         }
-                        // Build calibration info
+
                         let calibrationStr = '';
                         const patterns = avatar.detectedPatterns || {};
-                        if (patterns.responseLength) {
-                            calibrationStr += `\nTamanho de resposta dela: ${patterns.responseLength}`;
-                        }
-                        if (patterns.emotionalTone) {
-                            calibrationStr += `\nTom emocional: ${patterns.emotionalTone}`;
-                        }
-                        if (patterns.flirtLevel) {
-                            calibrationStr += `\nNível de flerte: ${patterns.flirtLevel}`;
-                        }
+                        if (patterns.responseLength) calibrationStr += `\nTamanho de resposta dela: ${patterns.responseLength}`;
+                        if (patterns.emotionalTone) calibrationStr += `\nTom emocional: ${patterns.emotionalTone}`;
+                        if (patterns.flirtLevel) calibrationStr += `\nNivel de flerte: ${patterns.flirtLevel}`;
+
                         const objectiveInstruction = (0, prompts_1.getObjectivePrompt)(objective || 'automatico');
-                        const richPrompt = `Você está ajudando a responder mensagens de dating.
+                        const richPrompt = `Voce esta ajudando a responder mensagens de dating.
 Perfil da match: ${avatar.matchName || 'Desconhecida'} (${avatar.platform || 'dating app'})
 ${avatar.bio ? `Bio: ${avatar.bio}` : ''}
 ${calibrationStr}
@@ -156,46 +141,35 @@ ${collectiveStr}
 
 ${objectiveInstruction}
 
-Histórico recente:
+Historico recente:
 ${historyStr}
 
-A última mensagem dela foi:
+A ultima mensagem dela foi:
 "${text}"
 
-Gere APENAS 3 sugestões de resposta numeradas (1. 2. 3.), cada uma curta (1-2 frases).
-Calibre com base no histórico, tom detectado, e OBJETIVO definido acima.`;
+Gere APENAS 3 sugestoes de resposta numeradas (1. 2. 3.), cada uma curta (1-2 frases).`;
                         const analysis = await (0, anthropic_1.analyzeMessage)({ text: richPrompt, tone, language });
                         return reply.code(200).send({ analysis, mode: 'pro' });
                     }
                 }
-            }
-            catch (proError) {
+            } catch (proError) {
                 fastify.log.error('PRO mode error, falling back to BASIC:', proError);
-                // Fall through to BASIC mode
             }
         }
-        // BASIC MODE: Simple analysis without context
         const basicObjective = (0, prompts_1.getObjectivePrompt)(objective || 'automatico');
-        const textWithObjective = `${basicObjective}\n\nMensagem recebida:\n"${text}"\n\nGere APENAS 3 sugestões de resposta numeradas (1. 2. 3.), cada uma curta (1-2 frases).`;
+        const textWithObjective = `${basicObjective}\n\nMensagem recebida:\n"${text}"\n\nGere APENAS 3 sugestoes de resposta numeradas (1. 2. 3.), cada uma curta (1-2 frases).`;
         const analysis = await (0, anthropic_1.analyzeMessage)({ text: textWithObjective, tone, language });
-        const response = {
-            analysis,
-            mode: 'basic',
-        };
-        return reply.code(200).send(response);
-    }
-    catch (error) {
+        return reply.code(200).send({ analysis, mode: 'basic' });
+    } catch (error) {
         fastify.log.error(error);
-        return reply.code(500).send({
-            error: 'Erro ao processar análise',
-            message: error instanceof Error ? error.message : 'Erro desconhecido',
-        });
+        return reply.code(500).send({ error: 'Erro ao processar analise', message: error instanceof Error ? error.message : 'Erro desconhecido' });
     }
 });
+
 fastify.get('/health', async (request, reply) => {
     return { status: 'ok', timestamp: new Date().toISOString() };
 });
-// Nova rota: Analisar perfil de apps de namoro
+
 fastify.post('/analyze-profile', async (request, reply) => {
     try {
         const { bio, platform, photoDescription, name, age, userContext, language } = request.body;
@@ -203,175 +177,126 @@ fastify.post('/analyze-profile', async (request, reply) => {
         if (language) agent.setLanguage(language);
         const result = await agent.execute({ bio, platform, photoDescription, name, age }, userContext);
         return reply.code(200).send({ analysis: result });
-    }
-    catch (error) {
+    } catch (error) {
         fastify.log.error(error);
-        return reply.code(500).send({
-            error: 'Erro ao analisar perfil',
-            message: error instanceof Error ? error.message : 'Erro desconhecido',
-        });
+        return reply.code(500).send({ error: 'Erro ao analisar perfil', message: error instanceof Error ? error.message : 'Erro desconhecido' });
     }
 });
-// Nova rota: Gerar primeira mensagem (com inteligência coletiva por características)
-fastify.post('/generate-first-message', async (request, reply) => {
-    try {
-        const { matchName, matchBio, platform, tone, photoDescription, specificDetail, userContext, language } = request.body;
-        // Extrair características do perfil para buscar insights relevantes
-        const profileTags = extractProfileTags(matchBio, photoDescription);
-        // Buscar insights da inteligência coletiva por CARACTERÍSTICAS, não por nome
-        let collectiveInsights;
-        try {
-            const insights = await getInsightsByTags(profileTags, platform || 'tinder');
-            if (insights) {
-                collectiveInsights = {
-                    whatWorks: insights.whatWorks,
-                    whatDoesntWork: insights.whatDoesntWork,
-                    goodOpenerExamples: insights.goodExamples,
-                    badOpenerExamples: insights.badExamples,
-                    bestOpenerTypes: insights.bestTypes,
-                    matchedTags: insights.matchedTags,
-                };
-            }
-        }
-        catch (err) {
-            console.warn('Não foi possível buscar insights coletivos:', err);
-        }
-        const agent = new agents_1.FirstMessageAgent();
-        if (language) agent.setLanguage(language);
-        const result = await agent.execute({ matchName, matchBio, platform, tone, photoDescription, specificDetail, collectiveInsights }, userContext);
-        return reply.code(200).send({ suggestions: result });
-    }
-    catch (error) {
-        fastify.log.error(error);
-        return reply.code(500).send({
-            error: 'Erro ao gerar primeira mensagem',
-            message: error instanceof Error ? error.message : 'Erro desconhecido',
-        });
-    }
-});
-// Extrair tags/características do perfil
-function extractProfileTags(bio, photoDescription) {
-    const tags = [];
-    const text = `${bio || ''} ${photoDescription || ''}`.toLowerCase();
-    // Categorias de interesse
-    const categories = {
-        'praia': ['praia', 'mar', 'surf', 'beach', 'litoral', 'verão'],
-        'fitness': ['academia', 'gym', 'crossfit', 'treino', 'fitness', 'musculação', 'corrida'],
-        'viagem': ['viagem', 'viajar', 'travel', 'mochilão', 'aventura', 'mundo'],
-        'música': ['música', 'show', 'festival', 'rock', 'sertanejo', 'pagode', 'funk', 'mpb', 'rap'],
-        'pagode': ['pagode', 'samba', 'roda de samba'],
-        'sertanejo': ['sertanejo', 'country', 'rodeio'],
-        'balada': ['balada', 'festa', 'night', 'club', 'role'],
-        'gastronomia': ['comida', 'restaurante', 'culinária', 'chef', 'cozinhar', 'foodie'],
-        'pets': ['cachorro', 'gato', 'pet', 'dog', 'cat', 'animal'],
-        'natureza': ['natureza', 'trilha', 'camping', 'montanha', 'cachoeira'],
-        'arte': ['arte', 'museu', 'teatro', 'cinema', 'fotografia'],
-        'livros': ['livro', 'leitura', 'ler', 'literatura'],
-        'games': ['game', 'jogo', 'gamer', 'playstation', 'xbox', 'nintendo'],
-        'esporte': ['futebol', 'vôlei', 'basquete', 'tênis', 'esporte'],
-        'cerveja': ['cerveja', 'beer', 'bar', 'happy hour', 'drinks', 'vinho'],
-        'café': ['café', 'coffee', 'cafeteria'],
-        'netflix': ['netflix', 'série', 'series', 'filme', 'maratonar'],
-        'tattoo': ['tattoo', 'tatuagem', 'tatuado'],
-        'signo_agua': ['câncer', 'cancer', 'canceriana', 'escorpião', 'escorpiana', 'peixes', 'pisciana'],
-        'signo_fogo': ['áries', 'aries', 'ariana', 'leão', 'leonina', 'sagitário', 'sagitariana'],
-        'signo_terra': ['touro', 'taurina', 'virgem', 'virginiana', 'capricórnio', 'capricorniana'],
-        'signo_ar': ['gêmeos', 'geminiana', 'libra', 'libriana', 'aquário', 'aquariana'],
-    };
-    for (const [tag, keywords] of Object.entries(categories)) {
-        if (keywords.some(kw => text.includes(kw))) {
-            tags.push(tag);
-        }
-    }
-    return tags;
-}
-// Buscar insights por tags no Firestore
+
+// Buscar insights por tags no Supabase
 async function getInsightsByTags(tags, platform) {
-    if (tags.length === 0)
-        return null;
+    if (tags.length === 0) return null;
     try {
-        const db = require('firebase-admin').firestore();
-        // Buscar insights agregados por tag
-        const insightsRef = db.collection('tagInsights');
-        const allInsights = {
-            whatWorks: [],
-            whatDoesntWork: [],
-            goodExamples: [],
-            badExamples: [],
-            bestTypes: [],
-            matchedTags: [],
-        };
+        const allInsights = { whatWorks: [], whatDoesntWork: [], goodExamples: [], badExamples: [], bestTypes: [], matchedTags: [] };
+
         for (const tag of tags) {
             const docId = `${tag}_${platform}`;
-            const doc = await insightsRef.doc(docId).get();
-            if (doc.exists) {
-                const data = doc.data();
+            const { data } = await supabaseAdmin
+                .from('tag_insights')
+                .select('*')
+                .eq('id', docId)
+                .single();
+
+            if (data) {
                 allInsights.matchedTags.push(tag);
-                if (data.whatWorks)
-                    allInsights.whatWorks.push(...data.whatWorks);
-                if (data.whatDoesntWork)
-                    allInsights.whatDoesntWork.push(...data.whatDoesntWork);
-                if (data.goodExamples)
-                    allInsights.goodExamples.push(...data.goodExamples);
-                if (data.badExamples)
-                    allInsights.badExamples.push(...data.badExamples);
-                if (data.bestTypes)
-                    allInsights.bestTypes.push(...data.bestTypes);
+                if (data.what_works) allInsights.whatWorks.push(...data.what_works);
+                if (data.what_doesnt_work) allInsights.whatDoesntWork.push(...data.what_doesnt_work);
+                if (data.good_examples) allInsights.goodExamples.push(...data.good_examples);
+                if (data.bad_examples) allInsights.badExamples.push(...data.bad_examples);
+                if (data.best_types) allInsights.bestTypes.push(...data.best_types);
             }
         }
-        // Remover duplicatas
+
         allInsights.whatWorks = [...new Set(allInsights.whatWorks)].slice(0, 5);
         allInsights.whatDoesntWork = [...new Set(allInsights.whatDoesntWork)].slice(0, 5);
         allInsights.goodExamples = [...new Set(allInsights.goodExamples)].slice(0, 5);
         allInsights.badExamples = [...new Set(allInsights.badExamples)].slice(0, 3);
         allInsights.bestTypes = [...new Set(allInsights.bestTypes)].slice(0, 3);
+
         return allInsights.matchedTags.length > 0 ? allInsights : null;
-    }
-    catch (err) {
+    } catch (err) {
         console.error('Erro ao buscar insights por tags:', err);
         return null;
     }
 }
-// Nova rota: Gerar abertura para Instagram (com inteligência coletiva por características)
+
+function extractProfileTags(bio, photoDescription) {
+    const tags = [];
+    const text = `${bio || ''} ${photoDescription || ''}`.toLowerCase();
+    const categories = {
+        'praia': ['praia', 'mar', 'surf', 'beach', 'litoral'],
+        'fitness': ['academia', 'gym', 'crossfit', 'treino', 'fitness'],
+        'viagem': ['viagem', 'viajar', 'travel', 'aventura'],
+        'musica': ['musica', 'show', 'festival', 'rock', 'sertanejo', 'pagode', 'funk'],
+        'balada': ['balada', 'festa', 'night', 'club'],
+        'gastronomia': ['comida', 'restaurante', 'culinaria', 'chef', 'foodie'],
+        'pets': ['cachorro', 'gato', 'pet', 'dog', 'cat'],
+        'natureza': ['natureza', 'trilha', 'camping', 'montanha'],
+        'arte': ['arte', 'museu', 'teatro', 'cinema', 'fotografia'],
+        'games': ['game', 'jogo', 'gamer', 'playstation', 'xbox'],
+        'esporte': ['futebol', 'volei', 'basquete', 'tenis', 'esporte'],
+        'cerveja': ['cerveja', 'beer', 'bar', 'happy hour', 'drinks'],
+        'cafe': ['cafe', 'coffee', 'cafeteria'],
+        'netflix': ['netflix', 'serie', 'series', 'filme'],
+        'tattoo': ['tattoo', 'tatuagem', 'tatuado'],
+    };
+    for (const [tag, keywords] of Object.entries(categories)) {
+        if (keywords.some(kw => text.includes(kw))) tags.push(tag);
+    }
+    return tags;
+}
+
+fastify.post('/generate-first-message', async (request, reply) => {
+    try {
+        const { matchName, matchBio, platform, tone, photoDescription, specificDetail, userContext, language } = request.body;
+        const profileTags = extractProfileTags(matchBio, photoDescription);
+        let collectiveInsights;
+        try {
+            const insights = await getInsightsByTags(profileTags, platform || 'tinder');
+            if (insights) {
+                collectiveInsights = {
+                    whatWorks: insights.whatWorks, whatDoesntWork: insights.whatDoesntWork,
+                    goodOpenerExamples: insights.goodExamples, badOpenerExamples: insights.badExamples,
+                    bestOpenerTypes: insights.bestTypes, matchedTags: insights.matchedTags,
+                };
+            }
+        } catch (err) { console.warn('Insights error:', err); }
+        const agent = new agents_1.FirstMessageAgent();
+        if (language) agent.setLanguage(language);
+        const result = await agent.execute({ matchName, matchBio, platform, tone, photoDescription, specificDetail, collectiveInsights }, userContext);
+        return reply.code(200).send({ suggestions: result });
+    } catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send({ error: 'Erro ao gerar primeira mensagem', message: error instanceof Error ? error.message : 'Erro desconhecido' });
+    }
+});
+
 fastify.post('/generate-instagram-opener', async (request, reply) => {
     try {
         const { username, bio, recentPosts, stories, tone, approachType, specificPost, userContext, language } = request.body;
-        // Extrair características do perfil
         const allText = [bio, ...(recentPosts || []), ...(stories || [])].filter(Boolean).join(' ');
         const profileTags = extractProfileTags(allText);
-        // Tags extracted for collective insights lookup
-        // Buscar insights por características
         let collectiveInsights;
         try {
             const insights = await getInsightsByTags(profileTags, 'instagram');
             if (insights) {
                 collectiveInsights = {
-                    whatWorks: insights.whatWorks,
-                    whatDoesntWork: insights.whatDoesntWork,
-                    goodOpenerExamples: insights.goodExamples,
-                    badOpenerExamples: insights.badExamples,
+                    whatWorks: insights.whatWorks, whatDoesntWork: insights.whatDoesntWork,
+                    goodOpenerExamples: insights.goodExamples, badOpenerExamples: insights.badExamples,
                     matchedTags: insights.matchedTags,
                 };
-                // Insights found for Instagram tags
             }
-        }
-        catch (err) {
-            console.warn('Não foi possível buscar insights coletivos:', err);
-        }
+        } catch (err) { console.warn('Insights error:', err); }
         const agent = new agents_1.InstagramOpenerAgent();
         if (language) agent.setLanguage(language);
         const result = await agent.execute({ username, bio, recentPosts, stories, tone, approachType, specificPost, collectiveInsights }, userContext);
         return reply.code(200).send({ suggestions: result });
-    }
-    catch (error) {
+    } catch (error) {
         fastify.log.error(error);
-        return reply.code(500).send({
-            error: 'Erro ao gerar abertura do Instagram',
-            message: error instanceof Error ? error.message : 'Erro desconhecido',
-        });
+        return reply.code(500).send({ error: 'Erro ao gerar abertura do Instagram', message: error instanceof Error ? error.message : 'Erro desconhecido' });
     }
 });
-// Nova rota: Responder mensagem (versão melhorada)
+
 fastify.post('/reply', async (request, reply) => {
     try {
         const { receivedMessage, conversationHistory, tone, matchName, context, userContext, language } = request.body;
@@ -379,414 +304,247 @@ fastify.post('/reply', async (request, reply) => {
         if (language) agent.setLanguage(language);
         const result = await agent.execute({ receivedMessage, conversationHistory, tone, matchName, context }, userContext);
         return reply.code(200).send({ suggestions: result });
-    }
-    catch (error) {
+    } catch (error) {
         fastify.log.error(error);
-        return reply.code(500).send({
-            error: 'Erro ao gerar resposta',
-            message: error instanceof Error ? error.message : 'Erro desconhecido',
-        });
+        return reply.code(500).send({ error: 'Erro ao gerar resposta', message: error instanceof Error ? error.message : 'Erro desconhecido' });
     }
 });
-// Nova rota: Analisar imagem de perfil
+
 fastify.post('/analyze-profile-image', async (request, reply) => {
     try {
         const { imageBase64, imageMediaType, platform } = request.body;
-        // Image analysis request received
-        if (!imageBase64) {
-            return reply.code(400).send({
-                error: 'Imagem não fornecida',
-                message: 'O campo imageBase64 é obrigatório',
-            });
-        }
+        if (!imageBase64) return reply.code(400).send({ error: 'Imagem nao fornecida' });
         const agent = new agents_1.ProfileImageAnalyzerAgent();
-        // Starting Claude Vision analysis
-        const result = await agent.analyzeImageAndParse({
-            imageBase64,
-            imageMediaType: imageMediaType || 'image/jpeg',
-            platform,
-        });
-        // Server-side face crop using AI coordinates (all platforms)
+        const result = await agent.analyzeImageAndParse({ imageBase64, imageMediaType: imageMediaType || 'image/jpeg', platform });
         let croppedFaceBase64 = null;
         if (result.facePosition) {
             try {
                 const cropResult = await face_crop_service_1.FaceCropService.cropFace(imageBase64, result.facePosition);
-                if (cropResult.success && cropResult.croppedFaceBase64) {
-                    croppedFaceBase64 = cropResult.croppedFaceBase64;
-                    console.log(`Face crop: method=${cropResult.method} platform=${platform || 'unknown'}`);
-                }
-            } catch (cropError) {
-                console.warn('Server face crop failed, client will use fallback:', cropError.message);
-            }
+                if (cropResult.success && cropResult.croppedFaceBase64) croppedFaceBase64 = cropResult.croppedFaceBase64;
+            } catch (cropError) { console.warn('Face crop failed:', cropError.message); }
         }
-        // Analysis completed successfully
-        return reply.code(200).send({
-            extractedData: result,
-            ...(croppedFaceBase64 ? { croppedFaceBase64 } : {}),
-        });
-    }
-    catch (error) {
-        console.error('❌ Erro ao analisar imagem:', error);
+        return reply.code(200).send({ extractedData: result, ...(croppedFaceBase64 ? { croppedFaceBase64 } : {}) });
+    } catch (error) {
         fastify.log.error(error);
-        return reply.code(500).send({
-            error: 'Erro ao analisar imagem',
-            message: error instanceof Error ? error.message : 'Erro desconhecido',
-            stack: error instanceof Error ? error.stack : undefined,
-        });
+        return reply.code(500).send({ error: 'Erro ao analisar imagem', message: error instanceof Error ? error.message : 'Erro desconhecido' });
     }
 });
-// ═══════════════════════════════════════════════════════════════════
-// 💬 ENDPOINTS DE GERENCIAMENTO DE CONVERSAS (COM AUTENTICAÇÃO)
-// ═══════════════════════════════════════════════════════════════════
-// Criar nova conversa
-fastify.post('/conversations', {
-    preHandler: auth_1.verifyAuth,
-}, async (request, reply) => {
+
+// ===================================================================
+// CONVERSATION ENDPOINTS (AUTH REQUIRED)
+// ===================================================================
+
+fastify.post('/conversations', { preHandler: auth_1.verifyAuth }, async (request, reply) => {
     try {
         const body = request.body;
         const userId = request.user.uid;
         const conversation = await conversation_manager_1.ConversationManager.createConversation({ ...body, userId });
         return reply.code(201).send(conversation);
-    }
-    catch (error) {
+    } catch (error) {
         fastify.log.error(error);
-        return reply.code(500).send({
-            error: 'Erro ao criar conversa',
-            message: error instanceof Error ? error.message : 'Erro desconhecido',
-        });
+        return reply.code(500).send({ error: 'Erro ao criar conversa', message: error instanceof Error ? error.message : 'Erro desconhecido' });
     }
 });
-// Listar conversas do usuário
-fastify.get('/conversations', {
-    preHandler: auth_1.verifyAuth,
-}, async (request, reply) => {
+
+fastify.get('/conversations', { preHandler: auth_1.verifyAuth }, async (request, reply) => {
     try {
         const userId = request.user.uid;
         const conversations = await conversation_manager_1.ConversationManager.listConversations(userId);
         return reply.code(200).send(conversations);
-    }
-    catch (error) {
+    } catch (error) {
         fastify.log.error(error);
-        return reply.code(500).send({
-            error: 'Erro ao listar conversas',
-            message: error instanceof Error ? error.message : 'Erro desconhecido',
-        });
+        return reply.code(500).send({ error: 'Erro ao listar conversas', message: error instanceof Error ? error.message : 'Erro desconhecido' });
     }
 });
-// Obter conversa específica
-fastify.get('/conversations/:id', {
-    preHandler: auth_1.verifyAuth,
-}, async (request, reply) => {
+
+fastify.get('/conversations/:id', { preHandler: auth_1.verifyAuth }, async (request, reply) => {
     try {
         const { id } = request.params;
         const userId = request.user.uid;
         const conversation = await conversation_manager_1.ConversationManager.getConversation(id, userId);
-        if (!conversation) {
-            return reply.code(404).send({ error: 'Conversa não encontrada' });
-        }
+        if (!conversation) return reply.code(404).send({ error: 'Conversa nao encontrada' });
         return reply.code(200).send(conversation);
-    }
-    catch (error) {
+    } catch (error) {
         fastify.log.error(error);
-        return reply.code(500).send({
-            error: 'Erro ao obter conversa',
-            message: error instanceof Error ? error.message : 'Erro desconhecido',
-        });
+        return reply.code(500).send({ error: 'Erro ao obter conversa', message: error instanceof Error ? error.message : 'Erro desconhecido' });
     }
 });
-// Adicionar mensagem à conversa
-fastify.post('/conversations/:id/messages', {
-    preHandler: auth_1.verifyAuth,
-}, async (request, reply) => {
+
+fastify.post('/conversations/:id/messages', { preHandler: auth_1.verifyAuth }, async (request, reply) => {
     try {
         const { id } = request.params;
         const userId = request.user.uid;
         const body = request.body;
-        const conversation = await conversation_manager_1.ConversationManager.addMessage({
-            conversationId: id,
-            userId,
-            ...body,
-        });
+        const conversation = await conversation_manager_1.ConversationManager.addMessage({ conversationId: id, userId, ...body });
         return reply.code(200).send(conversation);
-    }
-    catch (error) {
+    } catch (error) {
         fastify.log.error(error);
-        return reply.code(500).send({
-            error: 'Erro ao adicionar mensagem',
-            message: error instanceof Error ? error.message : 'Erro desconhecido',
-        });
+        return reply.code(500).send({ error: 'Erro ao adicionar mensagem', message: error instanceof Error ? error.message : 'Erro desconhecido' });
     }
 });
-// Gerar sugestões baseadas no histórico completo
-fastify.post('/conversations/:id/suggestions', {
-    preHandler: auth_1.verifyAuth,
-}, async (request, reply) => {
+
+fastify.post('/conversations/:id/suggestions', { preHandler: auth_1.verifyAuth }, async (request, reply) => {
     try {
         const { id } = request.params;
         const userId = request.user.uid;
         const { receivedMessage, tone, userContext } = request.body;
         const conversation = await conversation_manager_1.ConversationManager.getConversation(id, userId);
-        if (!conversation) {
-            return reply.code(404).send({ error: 'Conversa não encontrada' });
-        }
-        // Primeiro, adicionar a mensagem recebida ao histórico
-        await conversation_manager_1.ConversationManager.addMessage({
-            conversationId: id,
-            userId,
-            role: 'match',
-            content: receivedMessage,
-        });
-        // Obter histórico formatado com calibragem
+        if (!conversation) return reply.code(404).send({ error: 'Conversa nao encontrada' });
+
+        await conversation_manager_1.ConversationManager.addMessage({ conversationId: id, userId, role: 'match', content: receivedMessage });
         const formattedHistory = await conversation_manager_1.ConversationManager.getFormattedHistory(id, userId);
-        // Selecionar prompt baseado no tom
         const systemPrompt = (0, prompts_1.getSystemPromptForTone)(tone);
-        // Construir contexto do usuário
+
         let userContextStr = '';
         if (userContext) {
-            userContextStr = `
-═══════════════════════════════════════════════════════════════════
-👤 SEU PERFIL
-═══════════════════════════════════════════════════════════════════
-${userContext.name ? `Nome: ${userContext.name}` : ''}
-${userContext.age ? `Idade: ${userContext.age}` : ''}
-${userContext.interests && userContext.interests.length > 0 ? `Interesses: ${userContext.interests.join(', ')}` : ''}
-${userContext.dislikes && userContext.dislikes.length > 0 ? `⚠️ EVITE mencionar: ${userContext.dislikes.join(', ')}` : ''}
-${userContext.humorStyle ? `Estilo de humor: ${userContext.humorStyle}` : ''}
-${userContext.relationshipGoal ? `Objetivo: ${userContext.relationshipGoal}` : ''}
-`;
+            userContextStr = `\nSEU PERFIL\n`;
+            if (userContext.name) userContextStr += `Nome: ${userContext.name}\n`;
+            if (userContext.age) userContextStr += `Idade: ${userContext.age}\n`;
+            if (userContext.interests?.length > 0) userContextStr += `Interesses: ${userContext.interests.join(', ')}\n`;
+            if (userContext.dislikes?.length > 0) userContextStr += `EVITE mencionar: ${userContext.dislikes.join(', ')}\n`;
+            if (userContext.humorStyle) userContextStr += `Estilo de humor: ${userContext.humorStyle}\n`;
+            if (userContext.relationshipGoal) userContextStr += `Objetivo: ${userContext.relationshipGoal}\n`;
         }
-        // Gerar sugestões usando Claude
-        const fullPrompt = `${systemPrompt}\n\n${formattedHistory}\n${userContextStr}
 
-A mensagem mais recente que você acabou de receber foi:
-"${receivedMessage}"
-
-Com base em TODO o contexto acima (perfil do match, calibragem detectada, histórico completo), gere APENAS 3 sugestões de resposta que:
-1. ESPELHEM o tamanho de resposta detectado
-2. ADAPTEM ao tom emocional detectado
-3. MANTENHAM a qualidade da conversa
-4. AVANCEM a interação de forma natural`;
-        const response = await (0, anthropic_1.analyzeMessage)({
-            text: fullPrompt,
-            tone: tone,
-        });
+        const fullPrompt = `${systemPrompt}\n\n${formattedHistory}\n${userContextStr}\nA mensagem mais recente:\n"${receivedMessage}"\n\nGere APENAS 3 sugestoes de resposta.`;
+        const response = await (0, anthropic_1.analyzeMessage)({ text: fullPrompt, tone });
         return reply.code(200).send({ suggestions: response });
-    }
-    catch (error) {
+    } catch (error) {
         fastify.log.error(error);
-        return reply.code(500).send({
-            error: 'Erro ao gerar sugestões',
-            message: error instanceof Error ? error.message : 'Erro desconhecido',
-        });
+        return reply.code(500).send({ error: 'Erro ao gerar sugestoes', message: error instanceof Error ? error.message : 'Erro desconhecido' });
     }
 });
-// Atualizar tom da conversa
-fastify.patch('/conversations/:id/tone', {
-    preHandler: auth_1.verifyAuth,
-}, async (request, reply) => {
+
+fastify.patch('/conversations/:id/tone', { preHandler: auth_1.verifyAuth }, async (request, reply) => {
     try {
         const { id } = request.params;
         const userId = request.user.uid;
         const { tone } = request.body;
         await conversation_manager_1.ConversationManager.updateTone(id, userId, tone);
         return reply.code(200).send({ success: true });
-    }
-    catch (error) {
+    } catch (error) {
         fastify.log.error(error);
-        return reply.code(500).send({
-            error: 'Erro ao atualizar tom',
-            message: error instanceof Error ? error.message : 'Erro desconhecido',
-        });
+        return reply.code(500).send({ error: 'Erro ao atualizar tom', message: error instanceof Error ? error.message : 'Erro desconhecido' });
     }
 });
-// Deletar conversa
-fastify.delete('/conversations/:id', {
-    preHandler: auth_1.verifyAuth,
-}, async (request, reply) => {
+
+fastify.delete('/conversations/:id', { preHandler: auth_1.verifyAuth }, async (request, reply) => {
     try {
         const { id } = request.params;
         const userId = request.user.uid;
         const deleted = await conversation_manager_1.ConversationManager.deleteConversation(id, userId);
-        if (!deleted) {
-            return reply.code(404).send({ error: 'Conversa não encontrada' });
-        }
+        if (!deleted) return reply.code(404).send({ error: 'Conversa nao encontrada' });
         return reply.code(200).send({ success: true });
-    }
-    catch (error) {
+    } catch (error) {
         fastify.log.error(error);
-        return reply.code(500).send({
-            error: 'Erro ao deletar conversa',
-            message: error instanceof Error ? error.message : 'Erro desconhecido',
-        });
+        return reply.code(500).send({ error: 'Erro ao deletar conversa', message: error instanceof Error ? error.message : 'Erro desconhecido' });
     }
 });
-// ═══════════════════════════════════════════════════════════════════
-// 🧠 ENDPOINTS DE INTELIGÊNCIA COLETIVA
-// ═══════════════════════════════════════════════════════════════════
-// Submeter feedback sobre mensagem (funcionou/não funcionou)
-fastify.post('/conversations/:id/feedback', {
-    preHandler: auth_1.verifyAuth,
-}, async (request, reply) => {
+
+fastify.post('/conversations/:id/feedback', { preHandler: auth_1.verifyAuth }, async (request, reply) => {
     try {
         const { id } = request.params;
         const userId = request.user.uid;
         const { messageId, gotResponse, responseQuality } = request.body;
         await conversation_manager_1.ConversationManager.submitMessageFeedback(id, userId, messageId, gotResponse, responseQuality);
         return reply.code(200).send({ success: true });
-    }
-    catch (error) {
+    } catch (error) {
         fastify.log.error(error);
-        return reply.code(500).send({
-            error: 'Erro ao submeter feedback',
-            message: error instanceof Error ? error.message : 'Erro desconhecido',
-        });
+        return reply.code(500).send({ error: 'Erro ao submeter feedback', message: error instanceof Error ? error.message : 'Erro desconhecido' });
     }
 });
-// ═══════════════════════════════════════════════════════════════════
-// 💳 STRIPE ENDPOINTS
-// ═══════════════════════════════════════════════════════════════════
-// Create Stripe Checkout Session
-// Uses verifyAuthOnly because user needs to be logged in but may not have subscription yet
-fastify.post('/create-checkout-session', {
-    preHandler: auth_1.verifyAuthOnly,
-}, async (request, reply) => {
+
+// ===================================================================
+// STRIPE ENDPOINTS
+// ===================================================================
+
+fastify.post('/create-checkout-session', { preHandler: auth_1.verifyAuthOnly }, async (request, reply) => {
     try {
         const { priceId, plan } = request.body;
         const user = request.user;
-        if (!user.email) {
-            return reply.code(400).send({
-                error: 'Email not found',
-                message: 'User email is required to create checkout session',
-            });
-        }
-        // Create Stripe Checkout Session
-        const session = await (0, stripe_1.createCheckoutSession)({
-            priceId,
-            plan,
-            userId: user.uid,
-            userEmail: user.email,
-        });
-        return reply.code(200).send({
-            url: session.url,
-            sessionId: session.id,
-        });
-    }
-    catch (error) {
+        if (!user.email) return reply.code(400).send({ error: 'Email not found' });
+        const session = await (0, stripe_1.createCheckoutSession)({ priceId, plan, userId: user.uid, userEmail: user.email });
+        return reply.code(200).send({ url: session.url, sessionId: session.id });
+    } catch (error) {
         fastify.log.error(error);
-        return reply.code(500).send({
-            error: 'Failed to create checkout session',
-            message: error instanceof Error ? error.message : 'Unknown error',
-        });
+        return reply.code(500).send({ error: 'Failed to create checkout session', message: error instanceof Error ? error.message : 'Unknown error' });
     }
 });
-// Stripe Webhook Handler
-// URL: https://dating-app-production-ac43.up.railway.app/webhook/stripe
+
 fastify.post('/webhook/stripe', async (request, reply) => {
     const sig = request.headers['stripe-signature'];
-    if (!sig) {
-        console.error('❌ Missing stripe-signature header');
-        return reply.code(400).send({ error: 'Missing signature' });
-    }
+    if (!sig) return reply.code(400).send({ error: 'Missing signature' });
     let event;
     try {
         const rawBody = request.rawBody;
         event = (0, stripe_1.constructWebhookEvent)(rawBody, sig);
-    }
-    catch (err) {
-        console.error('❌ Webhook signature verification failed:', err.message);
+    } catch (err) {
         return reply.code(400).send({ error: `Webhook Error: ${err.message}` });
     }
-    console.log('📨 Stripe webhook received:', event.type);
+    console.log('Stripe webhook received:', event.type);
     try {
         switch (event.type) {
-            case 'checkout.session.completed':
-                await (0, stripe_1.handleCheckoutCompleted)(event.data.object);
-                break;
-            case 'customer.subscription.updated':
-                await (0, stripe_1.handleSubscriptionUpdated)(event.data.object);
-                break;
-            case 'customer.subscription.deleted':
-                await (0, stripe_1.handleSubscriptionDeleted)(event.data.object);
-                break;
-            case 'invoice.paid':
-                await (0, stripe_1.handleInvoicePaid)(event.data.object);
-                break;
-            case 'invoice.payment_failed':
-                await (0, stripe_1.handlePaymentFailed)(event.data.object);
-                break;
-            default:
-                console.log(`⚠️ Unhandled event type: ${event.type}`);
+            case 'checkout.session.completed': await (0, stripe_1.handleCheckoutCompleted)(event.data.object); break;
+            case 'customer.subscription.updated': await (0, stripe_1.handleSubscriptionUpdated)(event.data.object); break;
+            case 'customer.subscription.deleted': await (0, stripe_1.handleSubscriptionDeleted)(event.data.object); break;
+            case 'invoice.paid': await (0, stripe_1.handleInvoicePaid)(event.data.object); break;
+            case 'invoice.payment_failed': await (0, stripe_1.handlePaymentFailed)(event.data.object); break;
+            default: console.log(`Unhandled event type: ${event.type}`);
         }
         return reply.code(200).send({ received: true });
-    }
-    catch (error) {
-        console.error('❌ Error processing webhook:', error);
-        return reply.code(500).send({
-            error: 'Internal server error',
-            message: error.message,
-        });
+    } catch (error) {
+        console.error('Error processing webhook:', error);
+        return reply.code(500).send({ error: 'Internal server error', message: error.message });
     }
 });
-// ═══════════════════════════════════════════════════════════════════
-// ⌨️ KEYBOARD EXTENSION ENDPOINTS
-// ═══════════════════════════════════════════════════════════════════
-// Get keyboard context - returns profiles with photos and linked conversations
-fastify.get('/keyboard/context', {
-    preHandler: [verifyRequestSignature, auth_1.verifyAuth],
-}, async (request, reply) => {
+
+// ===================================================================
+// KEYBOARD EXTENSION ENDPOINTS
+// ===================================================================
+
+fastify.get('/keyboard/context', { preHandler: [verifyRequestSignature, auth_1.verifyAuth] }, async (request, reply) => {
     try {
         const userId = request.user.uid;
-        const admin = require('firebase-admin');
-        const db = admin.firestore();
-        // Get profiles (for photos) and conversations (for context)
-        const [profilesSnapshot, convsSnapshot] = await Promise.all([
-            db.collection('profiles')
-                .where('userId', '==', userId)
-                .orderBy('updatedAt', 'desc')
-                .limit(20)
-                .get(),
-            db.collection('conversations')
-                .where('userId', '==', userId)
-                .where('status', '==', 'active')
-                .get(),
+
+        const [profilesResult, convsResult] = await Promise.all([
+            supabaseAdmin.from('profiles').select('*').eq('user_id', userId).order('updated_at', { ascending: false }).limit(20),
+            supabaseAdmin.from('conversations').select('*').eq('user_id', userId).eq('status', 'active'),
         ]);
-        // Build profile photo map: lowercase name -> faceImageBase64
+
+        const profiles = profilesResult.data || [];
+        const convs = convsResult.data || [];
+
         const photoMap = {};
         const profileIdMap = {};
-        profilesSnapshot.docs.forEach(doc => {
-            const data = doc.data();
-            const key = (data.name || '').toLowerCase();
-            photoMap[key] = data.faceImageBase64 || null;
-            profileIdMap[key] = doc.id;
+        profiles.forEach(p => {
+            const key = (p.name || '').toLowerCase();
+            photoMap[key] = p.face_image_base64 || null;
+            profileIdMap[key] = p.id;
         });
-        // Build entries from conversations (each has its own platform)
+
         const seenKeys = new Set();
         const entries = [];
-        // Sort conversations by lastMessageAt desc
-        const sortedConvs = convsSnapshot.docs
-            .map(doc => ({ doc, lastMessageAt: doc.data().lastMessageAt?.toDate?.() || new Date(0) }))
-            .sort((a, b) => b.lastMessageAt - a.lastMessageAt);
-        for (const { doc } of sortedConvs) {
-            const data = doc.data();
-            const matchName = data.avatar?.matchName || data.avatar?.name || 'Desconhecida';
-            const platform = data.avatar?.platform || 'tinder';
+
+        const sortedConvs = convs.sort((a, b) => new Date(b.last_message_at || 0) - new Date(a.last_message_at || 0));
+
+        for (const conv of sortedConvs) {
+            const matchName = conv.avatar?.matchName || conv.avatar?.name || 'Desconhecida';
+            const platform = conv.avatar?.platform || 'tinder';
             const key = `${matchName.toLowerCase()}_${platform}`;
-            if (seenKeys.has(key)) continue; // dedupe same name+platform
+            if (seenKeys.has(key)) continue;
             seenKeys.add(key);
             const nameKey = matchName.toLowerCase();
             entries.push({
-                conversationId: doc.id,
+                conversationId: conv.id,
                 profileId: profileIdMap[nameKey] || null,
-                matchName,
-                platform,
+                matchName, platform,
                 faceImageBase64: photoMap[nameKey] || null,
             });
         }
-        // Add profiles that have NO conversation yet
-        profilesSnapshot.docs.forEach(doc => {
-            const data = doc.data();
-            const name = data.name || 'Sem nome';
-            const platforms = data.platforms || {};
+
+        profiles.forEach(p => {
+            const name = p.name || 'Sem nome';
+            const platforms = p.platforms || {};
             const firstPlatformKey = Object.keys(platforms)[0];
             const platform = firstPlatformKey ? (platforms[firstPlatformKey].type || firstPlatformKey) : 'instagram';
             const key = `${name.toLowerCase()}_${platform}`;
@@ -794,71 +552,52 @@ fastify.get('/keyboard/context', {
                 seenKeys.add(key);
                 entries.push({
                     conversationId: null,
-                    profileId: doc.id,
-                    matchName: name,
-                    platform,
-                    faceImageBase64: data.faceImageBase64 || null,
+                    profileId: p.id,
+                    matchName: name, platform,
+                    faceImageBase64: p.face_image_base64 || null,
                 });
             }
         });
+
         return reply.code(200).send({ conversations: entries });
-    }
-    catch (error) {
+    } catch (error) {
         fastify.log.error(error);
-        return reply.code(500).send({
-            error: 'Erro ao buscar contexto do teclado',
-            message: error instanceof Error ? error.message : 'Erro desconhecido',
-        });
+        return reply.code(500).send({ error: 'Erro ao buscar contexto do teclado', message: error instanceof Error ? error.message : 'Erro desconhecido' });
     }
 });
-// Save message sent via keyboard extension
-fastify.post('/keyboard/send-message', {
-    preHandler: [verifyRequestSignature, auth_1.verifyAuth],
-}, async (request, reply) => {
+
+fastify.post('/keyboard/send-message', { preHandler: [verifyRequestSignature, auth_1.verifyAuth] }, async (request, reply) => {
     try {
         const userId = request.user.uid;
         const { conversationId, profileId, content, wasAiSuggestion, tone, objective } = request.body;
-        if (!content) {
-            return reply.code(400).send({
-                error: 'Missing required fields',
-                message: 'content is required',
-            });
-        }
-        if (!conversationId && !profileId) {
-            return reply.code(400).send({
-                error: 'Missing required fields',
-                message: 'conversationId or profileId is required',
-            });
-        }
-        const admin = require('firebase-admin');
-        const db = admin.firestore();
+        if (!content) return reply.code(400).send({ error: 'Missing required fields', message: 'content is required' });
+        if (!conversationId && !profileId) return reply.code(400).send({ error: 'Missing required fields', message: 'conversationId or profileId is required' });
+
         let activeConversationId = conversationId;
-        // Auto-create conversation if only profileId provided
+
         if (!activeConversationId && profileId) {
-            // Check for existing active conversation first
-            const existingConv = await db.collection('conversations')
-                .where('userId', '==', userId)
-                .where('profileId', '==', profileId)
-                .where('status', '==', 'active')
-                .limit(1)
-                .get();
-            if (!existingConv.empty) {
-                activeConversationId = existingConv.docs[0].id;
+            const { data: existingConv } = await supabaseAdmin
+                .from('conversations')
+                .select('id')
+                .eq('user_id', userId).eq('profile_id', profileId).eq('status', 'active')
+                .limit(1).single();
+
+            if (existingConv) {
+                activeConversationId = existingConv.id;
             } else {
-                // Create new conversation from profile
-                const profileDoc = await db.collection('profiles').doc(profileId).get();
-                if (!profileDoc.exists || profileDoc.data().userId !== userId) {
-                    return reply.code(404).send({ error: 'Perfil não encontrado' });
-                }
-                const profileData = profileDoc.data();
+                const { data: profileData } = await supabaseAdmin.from('profiles').select('*').eq('id', profileId).single();
+                if (!profileData || profileData.user_id !== userId) return reply.code(404).send({ error: 'Perfil nao encontrado' });
+
                 const platforms = profileData.platforms || {};
                 const firstPlatformKey = Object.keys(platforms)[0];
                 const platformData = firstPlatformKey ? platforms[firstPlatformKey] : {};
                 const platform = platformData.type || firstPlatformKey || 'tinder';
-                const newConvRef = db.collection('conversations').doc();
-                await newConvRef.set({
-                    userId,
-                    profileId,
+                const newId = require('crypto').randomUUID();
+
+                await supabaseAdmin.from('conversations').insert({
+                    id: newId,
+                    user_id: userId,
+                    profile_id: profileId,
                     status: 'active',
                     avatar: {
                         matchName: profileData.name || 'Desconhecida',
@@ -869,235 +608,159 @@ fastify.post('/keyboard/send-message', {
                         analytics: { totalMessages: 0, aiSuggestionsUsed: 0, customMessagesUsed: 0 },
                     },
                     messages: [],
-                    currentTone: tone || 'casual',
-                    createdAt: admin.firestore.Timestamp.now(),
-                    lastMessageAt: admin.firestore.Timestamp.now(),
+                    current_tone: tone || 'casual',
+                    created_at: new Date().toISOString(),
+                    last_message_at: new Date().toISOString(),
                 });
-                activeConversationId = newConvRef.id;
-                fastify.log.info(`Auto-created conversation ${activeConversationId} for profile ${profileId}`);
+                activeConversationId = newId;
             }
         }
-        // Verify conversation belongs to user
-        const convRef = db.collection('conversations').doc(activeConversationId);
-        const convDoc = await convRef.get();
-        if (!convDoc.exists || convDoc.data().userId !== userId) {
-            return reply.code(404).send({ error: 'Conversa não encontrada' });
-        }
-        // Add message to conversation
+
+        const { data: convData } = await supabaseAdmin.from('conversations').select('*').eq('id', activeConversationId).single();
+        if (!convData || convData.user_id !== userId) return reply.code(404).send({ error: 'Conversa nao encontrada' });
+
         const message = {
             id: `kb_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            role: 'user',
-            content,
+            role: 'user', content,
             timestamp: new Date().toISOString(),
             wasAiSuggestion: wasAiSuggestion || false,
-            tone: tone || null,
-            objective: objective || null,
+            tone: tone || null, objective: objective || null,
             source: 'keyboard',
         };
-        await convRef.update({
-            messages: admin.firestore.FieldValue.arrayUnion(message),
-            lastMessageAt: admin.firestore.Timestamp.now(),
-        });
-        // Update analytics
-        const analyticsField = wasAiSuggestion
-            ? 'avatar.analytics.aiSuggestionsUsed'
-            : 'avatar.analytics.customMessagesUsed';
-        await convRef.update({
-            [analyticsField]: admin.firestore.FieldValue.increment(1),
-            'avatar.analytics.totalMessages': admin.firestore.FieldValue.increment(1),
-        });
-        // Update profile's lastActivityAt for sorting in profiles list
-        const convData = convDoc.data();
-        const convProfileId = convData.profileId;
-        if (convProfileId) {
+
+        const messages = [...(convData.messages || []), message];
+        const avatar = convData.avatar || {};
+        const analytics = avatar.analytics || { totalMessages: 0, aiSuggestionsUsed: 0, customMessagesUsed: 0 };
+        analytics.totalMessages = (analytics.totalMessages || 0) + 1;
+        if (wasAiSuggestion) analytics.aiSuggestionsUsed = (analytics.aiSuggestionsUsed || 0) + 1;
+        else analytics.customMessagesUsed = (analytics.customMessagesUsed || 0) + 1;
+        avatar.analytics = analytics;
+
+        await supabaseAdmin.from('conversations').update({
+            messages, avatar,
+            last_message_at: new Date().toISOString(),
+        }).eq('id', activeConversationId);
+
+        if (convData.profile_id) {
             try {
-                await db.collection('profiles').doc(convProfileId).update({
-                    lastActivityAt: admin.firestore.Timestamp.now(),
-                    lastMessagePreview: content.substring(0, 80),
-                    updatedAt: admin.firestore.Timestamp.now(),
-                });
-            }
-            catch (profileErr) {
-                // Non-critical - profile ordering won't update but message is saved
-                fastify.log.warn('Failed to update profile lastActivityAt:', profileErr);
-            }
+                await supabaseAdmin.from('profiles').update({
+                    last_activity_at: new Date().toISOString(),
+                    last_message_preview: content.substring(0, 80),
+                    updated_at: new Date().toISOString(),
+                }).eq('id', convData.profile_id);
+            } catch (e) { }
         }
+
         return reply.code(200).send({ success: true, messageId: message.id });
-    }
-    catch (error) {
+    } catch (error) {
         fastify.log.error(error);
-        return reply.code(500).send({
-            error: 'Erro ao salvar mensagem',
-            message: error instanceof Error ? error.message : 'Erro desconhecido',
-        });
+        return reply.code(500).send({ error: 'Erro ao salvar mensagem', message: error instanceof Error ? error.message : 'Erro desconhecido' });
     }
 });
-// ═══════════════════════════════════════════════════════════════════
-// ⌨️ KEYBOARD: START CONVERSATION (generate first message openers)
-// ═══════════════════════════════════════════════════════════════════
-fastify.post('/keyboard/start-conversation', {
-    preHandler: [verifyRequestSignature, auth_1.verifyAuth],
-}, async (request, reply) => {
+
+fastify.post('/keyboard/start-conversation', { preHandler: [verifyRequestSignature, auth_1.verifyAuth] }, async (request, reply) => {
     try {
         const userId = request.user.uid;
         const { conversationId, profileId, objective, tone, language } = request.body;
-        if (!objective || !tone) {
-            return reply.code(400).send({
-                error: 'Missing required fields',
-                message: 'objective and tone are required',
-            });
-        }
-        const admin = require('firebase-admin');
-        const db = admin.firestore();
-        // Build context from profile/conversation data
-        let matchName = '';
-        let matchBio = '';
-        let platform = 'tinder';
-        let photoDescription = '';
-        let specificDetail = '';
-        let userContext = undefined;
-        // Try to get data from conversation
+        if (!objective || !tone) return reply.code(400).send({ error: 'Missing required fields' });
+
+        let matchName = '', matchBio = '', platform = 'tinder', photoDescription = '', specificDetail = '';
+
         if (conversationId) {
-            try {
-                const convDoc = await db.collection('conversations').doc(conversationId).get();
-                if (convDoc.exists && convDoc.data().userId === userId) {
-                    const data = convDoc.data();
-                    const avatar = data.avatar || {};
-                    matchName = avatar.matchName || '';
-                    matchBio = avatar.bio || '';
-                    platform = avatar.platform || 'tinder';
-                    photoDescription = avatar.photoDescriptions || '';
-                    // Check existing messages for context
-                    const messages = data.messages || [];
-                    if (messages.length > 0) {
-                        specificDetail = `Já trocaram ${messages.length} mensagens anteriormente.`;
-                    }
-                }
-            }
-            catch (err) {
-                fastify.log.warn('Failed to fetch conversation for start-conversation:', err);
+            const { data: convDoc } = await supabaseAdmin.from('conversations').select('*').eq('id', conversationId).single();
+            if (convDoc && convDoc.user_id === userId) {
+                const avatar = convDoc.avatar || {};
+                matchName = avatar.matchName || '';
+                matchBio = avatar.bio || '';
+                platform = avatar.platform || 'tinder';
+                photoDescription = avatar.photoDescriptions || '';
+                const messages = convDoc.messages || [];
+                if (messages.length > 0) specificDetail = `Ja trocaram ${messages.length} mensagens anteriormente.`;
             }
         }
-        // Fallback: try profile data
+
         if (!matchName && profileId) {
-            try {
-                const profileDoc = await db.collection('profiles').doc(profileId).get();
-                if (profileDoc.exists && profileDoc.data().userId === userId) {
-                    const data = profileDoc.data();
-                    matchName = data.name || '';
-                    matchBio = data.bio || '';
-                    platform = data.platform || 'tinder';
-                    if (data.photoDescriptions && data.photoDescriptions.length > 0) {
-                        photoDescription = data.photoDescriptions.join('. ');
+            const { data: profileDoc } = await supabaseAdmin.from('profiles').select('*').eq('id', profileId).single();
+            if (profileDoc && profileDoc.user_id === userId) {
+                matchName = profileDoc.name || '';
+                const platforms = profileDoc.platforms || {};
+                const firstKey = Object.keys(platforms)[0];
+                if (firstKey) {
+                    matchBio = platforms[firstKey].bio || '';
+                    platform = platforms[firstKey].type || firstKey || 'tinder';
+                    if (platforms[firstKey].photoDescriptions?.length > 0) {
+                        photoDescription = platforms[firstKey].photoDescriptions.join('. ');
                     }
                 }
             }
-            catch (err) {
-                fastify.log.warn('Failed to fetch profile for start-conversation:', err);
-            }
         }
-        // Get objective prompt for calibration
+
         const objectiveInstruction = (0, prompts_1.getObjectivePrompt)(objective);
-        // Build enriched prompt for the agent
         const enrichedInput = {
-            matchName: matchName || 'Match',
-            matchBio: matchBio || '',
-            platform,
-            tone,
-            photoDescription,
-            specificDetail: specificDetail
-                ? `${specificDetail}\n\n${objectiveInstruction}`
-                : objectiveInstruction,
+            matchName: matchName || 'Match', matchBio: matchBio || '', platform, tone, photoDescription,
+            specificDetail: specificDetail ? `${specificDetail}\n\n${objectiveInstruction}` : objectiveInstruction,
         };
         const agent = new agents_1.FirstMessageAgent();
         if (language) agent.setLanguage(language);
-        const result = await agent.execute(enrichedInput, userContext);
+        const result = await agent.execute(enrichedInput);
         return reply.code(200).send({ analysis: result });
-    }
-    catch (error) {
+    } catch (error) {
         fastify.log.error(error);
-        return reply.code(500).send({
-            error: 'Erro ao gerar primeira mensagem',
-            message: error instanceof Error ? error.message : 'Erro desconhecido',
-        });
+        return reply.code(500).send({ error: 'Erro ao gerar primeira mensagem', message: error instanceof Error ? error.message : 'Erro desconhecido' });
     }
 });
-// ═══════════════════════════════════════════════════════════════════
-// ⌨️ KEYBOARD: ANALYZE SCREENSHOT (extract messages from image)
-// ═══════════════════════════════════════════════════════════════════
-fastify.post('/keyboard/analyze-screenshot', {
-    preHandler: [verifyRequestSignature, auth_1.verifyAuth],
-}, async (request, reply) => {
+
+fastify.post('/keyboard/analyze-screenshot', { preHandler: [verifyRequestSignature, auth_1.verifyAuth] }, async (request, reply) => {
     try {
         const userId = request.user.uid;
         const { imageBase64, imageMediaType, conversationId, objective, tone, language } = request.body;
-        if (!imageBase64) {
-            return reply.code(400).send({
-                error: 'Missing required fields',
-                message: 'imageBase64 is required',
-            });
-        }
-        const admin = require('firebase-admin');
-        const db = admin.firestore();
-        // Step 1: Extract messages from screenshot using ConversationImageAnalyzerAgent
+        if (!imageBase64) return reply.code(400).send({ error: 'Missing required fields', message: 'imageBase64 is required' });
+
         const imageAgent = new agents_1.ConversationImageAnalyzerAgent();
-        const extractedData = await imageAgent.analyzeAndExtract({
-            imageBase64,
-            imageMediaType: imageMediaType || 'image/jpeg',
-        });
+        const extractedData = await imageAgent.analyzeAndExtract({ imageBase64, imageMediaType: imageMediaType || 'image/jpeg' });
+
         if (!extractedData || !extractedData.lastMessage) {
-            return reply.code(200).send({
-                analysis: 'Não foi possível extrair mensagens da imagem. Tente com um print mais nítido.',
-                extractedMessages: [],
-                mode: 'screenshot',
-            });
+            return reply.code(200).send({ analysis: 'Nao foi possivel extrair mensagens da imagem.', extractedMessages: [], mode: 'screenshot' });
         }
-        // Step 2: Build context and generate suggestions
-        let richPrompt = '';
+
         let convContext = '';
         if (conversationId) {
             try {
-                const convDoc = await db.collection('conversations').doc(conversationId).get();
-                if (convDoc.exists && convDoc.data().userId === userId) {
-                    const data = convDoc.data();
-                    const avatar = data.avatar || {};
-                    const messages = data.messages || [];
-                    // Build history from saved messages
+                const { data: convDoc } = await supabaseAdmin.from('conversations').select('*').eq('id', conversationId).single();
+                if (convDoc && convDoc.user_id === userId) {
+                    const avatar = convDoc.avatar || {};
+                    const messages = convDoc.messages || [];
                     if (messages.length > 0) {
                         const recent = messages.slice(-15);
-                        convContext = 'Histórico salvo:\n' + recent.map(m => {
-                            const role = m.role === 'user' ? 'Você' : (avatar.matchName || 'Match');
+                        convContext = 'Historico salvo:\n' + recent.map(m => {
+                            const role = m.role === 'user' ? 'Voce' : (avatar.matchName || 'Match');
                             return `${role}: ${m.content}`;
                         }).join('\n');
                     }
-                    // Deduplicate: remove screenshot messages that already exist in history
+
+                    // Deduplicate & save screenshot messages
                     if (extractedData.conversationContext && messages.length > 0) {
                         const existingContents = messages.map(m => m.content.toLowerCase().trim());
                         extractedData.conversationContext = extractedData.conversationContext.filter(msg => {
                             const normalized = msg.toLowerCase().trim();
                             return !existingContents.some(existing => {
-                                // Fuzzy match: if 80%+ similar, consider duplicate
                                 const shorter = Math.min(existing.length, normalized.length);
                                 const longer = Math.max(existing.length, normalized.length);
                                 if (shorter === 0) return false;
                                 let matches = 0;
-                                for (let i = 0; i < shorter; i++) {
-                                    if (existing[i] === normalized[i]) matches++;
-                                }
+                                for (let i = 0; i < shorter; i++) { if (existing[i] === normalized[i]) matches++; }
                                 return (matches / longer) > 0.8;
                             });
                         });
                     }
-                    // Save extracted messages to conversation
+
                     const screenshotMessages = [];
                     if (extractedData.conversationContext) {
                         for (const msg of extractedData.conversationContext) {
                             screenshotMessages.push({
                                 id: `kb_screenshot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                                role: 'match',
-                                content: msg,
-                                timestamp: new Date().toISOString(),
-                                source: 'keyboard_screenshot',
+                                role: 'match', content: msg,
+                                timestamp: new Date().toISOString(), source: 'keyboard_screenshot',
                             });
                         }
                     }
@@ -1106,195 +769,142 @@ fastify.post('/keyboard/analyze-screenshot', {
                             id: `kb_screenshot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                             role: extractedData.lastMessageSender === 'user' ? 'user' : 'match',
                             content: extractedData.lastMessage,
-                            timestamp: new Date().toISOString(),
-                            source: 'keyboard_screenshot',
+                            timestamp: new Date().toISOString(), source: 'keyboard_screenshot',
                         });
                     }
                     if (screenshotMessages.length > 0) {
-                        await convDoc.ref.update({
-                            messages: admin.firestore.FieldValue.arrayUnion(...screenshotMessages),
-                            lastMessageAt: admin.firestore.Timestamp.now(),
-                        });
+                        const updatedMessages = [...messages, ...screenshotMessages];
+                        await supabaseAdmin.from('conversations').update({
+                            messages: updatedMessages,
+                            last_message_at: new Date().toISOString(),
+                        }).eq('id', conversationId);
                     }
                 }
-            }
-            catch (err) {
-                fastify.log.warn('Failed to process conversation context for screenshot:', err);
-            }
+            } catch (err) { fastify.log.warn('Failed to process conversation context for screenshot:', err); }
         }
-        // Build screenshot context
+
         let screenshotContext = '';
-        if (extractedData.conversationContext && extractedData.conversationContext.length > 0) {
+        if (extractedData.conversationContext?.length > 0) {
             screenshotContext = 'Mensagens do screenshot:\n' + extractedData.conversationContext.join('\n');
         }
         const objectiveInstruction = (0, prompts_1.getObjectivePrompt)(objective || 'automatico');
-        richPrompt = `Você está ajudando a responder mensagens de dating.
-${convContext ? convContext + '\n\n' : ''}${screenshotContext ? screenshotContext + '\n\n' : ''}A última mensagem ${extractedData.lastMessageSender === 'user' ? 'foi sua' : 'foi dela'}:
+        const richPrompt = `Voce esta ajudando a responder mensagens de dating.
+${convContext ? convContext + '\n\n' : ''}${screenshotContext ? screenshotContext + '\n\n' : ''}A ultima mensagem ${extractedData.lastMessageSender === 'user' ? 'foi sua' : 'foi dela'}:
 "${extractedData.lastMessage}"
 
 ${objectiveInstruction}
 
-Gere APENAS 3 sugestões de resposta numeradas (1. 2. 3.), cada uma curta (1-2 frases).
-Calibre com base no contexto da conversa e OBJETIVO definido acima.`;
+Gere APENAS 3 sugestoes de resposta numeradas (1. 2. 3.), cada uma curta (1-2 frases).`;
+
         const analysis = await (0, anthropic_1.analyzeMessage)({ text: richPrompt, tone: tone || 'automatico', language });
-        return reply.code(200).send({
-            analysis,
-            extractedMessages: extractedData.conversationContext || [],
-            mode: 'screenshot',
-        });
-    }
-    catch (error) {
+        return reply.code(200).send({ analysis, extractedMessages: extractedData.conversationContext || [], mode: 'screenshot' });
+    } catch (error) {
         fastify.log.error(error);
-        return reply.code(500).send({
-            error: 'Erro ao analisar screenshot',
-            message: error instanceof Error ? error.message : 'Erro desconhecido',
-        });
+        return reply.code(500).send({ error: 'Erro ao analisar screenshot', message: error instanceof Error ? error.message : 'Erro desconhecido' });
     }
 });
-// ═══════════════════════════════════════════════════════════════════
-// 🍎 APPLE IN-APP PURCHASE ENDPOINTS
-// ═══════════════════════════════════════════════════════════════════
-fastify.post('/apple/activate-subscription', {
-    preHandler: auth_1.verifyAuthOnly,
-}, async (request, reply) => {
+
+// ===================================================================
+// APPLE IN-APP PURCHASE
+// ===================================================================
+
+fastify.post('/apple/activate-subscription', { preHandler: auth_1.verifyAuthOnly }, async (request, reply) => {
     try {
-        const { productId, transactionId, plan, verificationData } = request.body;
+        const { productId, transactionId, plan } = request.body;
         const user = request.user;
-        if (!productId || !transactionId || !plan) {
-            return reply.code(400).send({
-                error: 'Missing required fields',
-                message: 'productId, transactionId, and plan are required',
-            });
-        }
-        const admin = require('firebase-admin');
-        const db = admin.firestore();
-        // Calculate expiration based on plan
+        if (!productId || !transactionId || !plan) return reply.code(400).send({ error: 'Missing required fields' });
+
         const now = new Date();
         let expiresAt;
         switch (plan) {
-            case 'monthly':
-                expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-                break;
-            case 'quarterly':
-                expiresAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
-                break;
-            case 'yearly':
-                expiresAt = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
-                break;
-            default:
-                expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+            case 'monthly': expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); break;
+            case 'quarterly': expiresAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000); break;
+            case 'yearly': expiresAt = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000); break;
+            default: expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
         }
-        // Update user subscription in Firestore
-        await db.collection('users').doc(user.uid).set({
+
+        await supabaseAdmin.from('users').upsert({
+            id: user.uid,
             email: user.email,
-            subscription: {
-                status: 'active',
-                plan,
-                provider: 'apple',
-                appleProductId: productId,
-                appleTransactionId: transactionId,
-                expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
-                startedAt: admin.firestore.FieldValue.serverTimestamp(),
-            },
-        }, { merge: true });
+            subscription_status: 'active',
+            subscription_plan: plan,
+            subscription_provider: 'apple',
+            apple_product_id: productId,
+            apple_transaction_id: transactionId,
+            subscription_expires_at: expiresAt.toISOString(),
+            subscription_started_at: now.toISOString(),
+            updated_at: now.toISOString(),
+        });
+
         console.log('Apple subscription activated:', { plan, expiresAt });
-        return reply.code(200).send({
-            success: true,
-            plan,
-            expiresAt: expiresAt.toISOString(),
-        });
-    }
-    catch (error) {
+        return reply.code(200).send({ success: true, plan, expiresAt: expiresAt.toISOString() });
+    } catch (error) {
         fastify.log.error(error);
-        return reply.code(500).send({
-            error: 'Failed to activate subscription',
-            message: error instanceof Error ? error.message : 'Unknown error',
-        });
+        return reply.code(500).send({ error: 'Failed to activate subscription', message: error instanceof Error ? error.message : 'Unknown error' });
     }
 });
-// === GDPR: Delete user account and all associated data ===
+
+// ===================================================================
+// GDPR: DELETE ACCOUNT
+// ===================================================================
+
 fastify.delete('/user/account', { preHandler: [auth_1.verifyAuthOnly] }, async (request, reply) => {
     try {
-        const admin = require('firebase-admin');
-        const db = admin.firestore();
         const userId = request.user.uid;
-        const batch = db.batch();
-        // Delete user document
-        batch.delete(db.collection('users').doc(userId));
-        // Delete profile
-        batch.delete(db.collection('profiles').doc(userId));
-        // Delete analytics
-        batch.delete(db.collection('analytics').doc(userId));
-        // Delete conversations
-        const conversationsSnapshot = await db.collection('conversations')
-            .where('userId', '==', userId)
-            .get();
-        conversationsSnapshot.docs.forEach(doc => {
-            batch.delete(doc.ref);
-        });
-        // Delete subscriptions
-        const subscriptionsSnapshot = await db.collection('subscriptions')
-            .where('userId', '==', userId)
-            .get();
-        subscriptionsSnapshot.docs.forEach(doc => {
-            batch.delete(doc.ref);
-        });
-        // Delete training feedback
-        const feedbackSnapshot = await db.collection('trainingFeedback')
-            .where('userId', '==', userId)
-            .get();
-        feedbackSnapshot.docs.forEach(doc => {
-            batch.delete(doc.ref);
-        });
-        await batch.commit();
-        // Delete Firebase Auth user
-        await admin.auth().deleteUser(userId);
+
+        // Delete user data
+        await Promise.all([
+            supabaseAdmin.from('users').delete().eq('id', userId),
+            supabaseAdmin.from('profiles').delete().eq('user_id', userId),
+            supabaseAdmin.from('analytics').delete().eq('user_id', userId),
+            supabaseAdmin.from('conversations').delete().eq('user_id', userId),
+            supabaseAdmin.from('training_feedback').delete().eq('user_id', userId),
+        ]);
+
+        // Delete Supabase Auth user
+        await supabaseAdmin.auth.admin.deleteUser(userId);
+
         return reply.code(200).send({ success: true, message: 'Account and all data deleted' });
-    }
-    catch (error) {
+    } catch (error) {
         fastify.log.error(error);
-        return reply.code(500).send({
-            error: 'Failed to delete account',
-            message: error instanceof Error ? error.message : 'Unknown error',
-        });
+        return reply.code(500).send({ error: 'Failed to delete account', message: error instanceof Error ? error.message : 'Unknown error' });
     }
 });
-// === Cron: Check expired subscriptions every 24h ===
+
+// ===================================================================
+// CRON: CHECK EXPIRED SUBSCRIPTIONS
+// ===================================================================
+
 async function checkExpiredSubscriptions() {
     try {
-        const admin = require('firebase-admin');
-        const db = admin.firestore();
-        const now = new Date();
-        const expiredSnapshot = await db.collection('users')
-            .where('subscription.status', '==', 'active')
-            .where('subscription.expiresAt', '<', now)
-            .get();
-        if (expiredSnapshot.empty) {
+        const now = new Date().toISOString();
+        const { data: expired } = await supabaseAdmin
+            .from('users')
+            .select('id')
+            .eq('subscription_status', 'active')
+            .lt('subscription_expires_at', now);
+
+        if (!expired || expired.length === 0) {
             console.log('Subscription check: no expired subscriptions found');
             return;
         }
-        const batch = db.batch();
-        expiredSnapshot.docs.forEach(doc => {
-            batch.update(doc.ref, {
-                'subscription.status': 'expired',
-            });
-        });
-        await batch.commit();
-        console.log(`Subscription check: marked ${expiredSnapshot.size} subscriptions as expired`);
-    }
-    catch (error) {
+
+        for (const user of expired) {
+            await supabaseAdmin.from('users').update({ subscription_status: 'expired', updated_at: now }).eq('id', user.id);
+        }
+        console.log(`Subscription check: marked ${expired.length} subscriptions as expired`);
+    } catch (error) {
         console.error('Subscription check failed:', error.message || error);
     }
 }
+
 const start = async () => {
     try {
         await fastify.listen({ port: env_1.env.PORT, host: '0.0.0.0' });
         console.log(`Servidor rodando na porta ${env_1.env.PORT}`);
-        // Run subscription check on startup, then every 24h
         checkExpiredSubscriptions();
         setInterval(checkExpiredSubscriptions, 24 * 60 * 60 * 1000);
-    }
-    catch (err) {
+    } catch (err) {
         fastify.log.error(err);
         process.exit(1);
     }

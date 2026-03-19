@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
@@ -403,7 +403,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildAboutSection(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final user = FirebaseAuth.instance.currentUser;
+    final user = Supabase.instance.client.auth.currentUser;
 
     return _buildSectionContainer(
       title: l10n.aboutSection,
@@ -501,7 +501,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () async {
               Navigator.of(ctx).pop();
               await KeyboardService().clearKeyboardAuth();
-              await FirebaseAuth.instance.signOut();
+              await Supabase.instance.client.auth.signOut();
             },
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
             child: Text(l10n.logoutButton),

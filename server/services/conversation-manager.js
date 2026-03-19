@@ -1,52 +1,18 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ConversationManager = void 0;
 const crypto_1 = require("crypto");
-const admin = __importStar(require("firebase-admin"));
+const { supabaseAdmin } = require("../config/supabase");
 const collective_avatar_manager_1 = require("./collective-avatar-manager");
-// Firestore reference
-const getDb = () => admin.firestore();
+
 class ConversationManager {
     /**
-     * Criar nova conversa (com vínculo ao avatar coletivo)
+     * Criar nova conversa
      */
     static async createConversation(request) {
         const conversationId = (0, crypto_1.randomUUID)();
-        const now = new Date();
-        // Encontrar ou criar avatar coletivo
+        const now = new Date().toISOString();
+
         const collectiveAvatar = await collective_avatar_manager_1.CollectiveAvatarManager.findOrCreateCollectiveAvatar({
             name: request.matchName,
             platform: request.platform,
@@ -55,6 +21,7 @@ class ConversationManager {
             location: request.location,
             interests: request.interests,
         });
+
         const avatar = {
             matchName: request.matchName,
             platform: request.platform,
@@ -84,8 +51,8 @@ class ConversationManager {
                 conversationQuality: 'average',
             },
         };
+
         const messages = [];
-        // Se tiver primeira mensagem (opener), adicionar
         if (request.firstMessage) {
             messages.push({
                 id: (0, crypto_1.randomUUID)(),
@@ -96,7 +63,30 @@ class ConversationManager {
                 tone: request.tone,
             });
         }
+
         const conversation = {
+            id: conversationId,
+            user_id: request.userId,
+            avatar,
+            messages,
+            platform: request.platform,
+            current_tone: request.tone || 'casual',
+            status: 'active',
+            collective_avatar_id: collectiveAvatar.id,
+            created_at: now,
+            last_message_at: now,
+        };
+
+        const { error } = await supabaseAdmin
+            .from('conversations')
+            .insert(conversation);
+
+        if (error) {
+            console.error('Error creating conversation:', error);
+            throw new Error('Erro ao criar conversa');
+        }
+
+        return {
             id: conversationId,
             userId: request.userId,
             avatar,
@@ -106,103 +96,105 @@ class ConversationManager {
             createdAt: now,
             lastMessageAt: now,
         };
-        // Salvar no Firestore (incluindo referência ao avatar coletivo)
-        await getDb().collection('conversations').doc(conversationId).set({
-            ...conversation,
-            collectiveAvatarId: collectiveAvatar.id, // Link para inteligência coletiva
-            createdAt: admin.firestore.Timestamp.fromDate(now),
-            lastMessageAt: admin.firestore.Timestamp.fromDate(now),
-        });
-        return conversation;
     }
+
     /**
-     * Adicionar mensagem à conversa
+     * Adicionar mensagem a conversa
      */
     static async addMessage(request) {
         const conversation = await this.getConversation(request.conversationId, request.userId);
         if (!conversation) {
-            throw new Error('Conversa não encontrada');
+            throw new Error('Conversa nao encontrada');
         }
+
         const message = {
             id: (0, crypto_1.randomUUID)(),
             role: request.role,
             content: request.content,
-            timestamp: new Date(),
+            timestamp: new Date().toISOString(),
             wasAiSuggestion: request.wasAiSuggestion,
             tone: request.tone,
         };
+
         conversation.messages.push(message);
-        conversation.lastMessageAt = new Date();
-        // Atualizar analytics
+        const now = new Date().toISOString();
+
+        // Update analytics
         conversation.avatar.analytics.totalMessages++;
         if (request.role === 'user') {
             if (request.wasAiSuggestion) {
                 conversation.avatar.analytics.aiSuggestionsUsed++;
-            }
-            else {
+            } else {
                 conversation.avatar.analytics.customMessagesUsed++;
             }
         }
-        // Se for mensagem do match, analisar e atualizar calibragem
+
+        // Calibrate on match messages
         if (request.role === 'match') {
             await this.updateCalibration(conversation, request.content);
         }
-        // Atualizar no Firestore
-        await getDb().collection('conversations').doc(request.conversationId).update({
-            messages: conversation.messages,
-            lastMessageAt: admin.firestore.Timestamp.fromDate(conversation.lastMessageAt),
-            avatar: conversation.avatar,
-        });
+
+        const { error } = await supabaseAdmin
+            .from('conversations')
+            .update({
+                messages: conversation.messages,
+                last_message_at: now,
+                avatar: conversation.avatar,
+            })
+            .eq('id', request.conversationId);
+
+        if (error) {
+            console.error('Error adding message:', error);
+            throw new Error('Erro ao adicionar mensagem');
+        }
+
+        conversation.lastMessageAt = now;
         return conversation;
     }
+
     /**
-     * Analisar mensagem e atualizar calibragem (local + contribuir para coletivo)
+     * Calibration analysis
      */
     static async updateCalibration(conversation, message) {
         const avatar = conversation.avatar;
-        // Detectar tamanho de resposta
         if (message.length < 50) {
             avatar.detectedPatterns.responseLength = 'short';
-        }
-        else if (message.length < 150) {
+        } else if (message.length < 150) {
             avatar.detectedPatterns.responseLength = 'medium';
-        }
-        else {
+        } else {
             avatar.detectedPatterns.responseLength = 'long';
         }
-        // Detectar uso de emojis
+
         const emojiRegex = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u;
         avatar.detectedPatterns.useEmojis = emojiRegex.test(message);
-        // Detectar tom emocional (análise simples baseada em palavras-chave)
-        const warmKeywords = ['amor', 'querido', 'fofo', 'lindo', 'amei', 'adorei', 'haha', 'rsrs', '❤️', '😊', '😍'];
-        const coldKeywords = ['ok', 'sei', 'talvez', 'não sei', 'depois', 'ocupado', 'ocupada'];
+
+        const warmKeywords = ['amor', 'querido', 'fofo', 'lindo', 'amei', 'adorei', 'haha', 'rsrs'];
+        const coldKeywords = ['ok', 'sei', 'talvez', 'nao sei', 'depois', 'ocupado', 'ocupada'];
         const lowerMessage = message.toLowerCase();
         const hasWarmKeywords = warmKeywords.some((keyword) => lowerMessage.includes(keyword));
         const hasColdKeywords = coldKeywords.some((keyword) => lowerMessage.includes(keyword));
+
         if (hasWarmKeywords && !hasColdKeywords) {
             avatar.detectedPatterns.emotionalTone = 'warm';
-        }
-        else if (hasColdKeywords && !hasWarmKeywords) {
+        } else if (hasColdKeywords && !hasWarmKeywords) {
             avatar.detectedPatterns.emotionalTone = 'cold';
-        }
-        else {
+        } else {
             avatar.detectedPatterns.emotionalTone = 'neutral';
         }
-        // Detectar nível de flerte (baseado em mensagens enviadas vs recebidas)
+
         const userMessages = conversation.messages.filter((m) => m.role === 'user').length;
         const matchMessages = conversation.messages.filter((m) => m.role === 'match').length;
         if (matchMessages > userMessages) {
             avatar.detectedPatterns.flirtLevel = 'high';
-        }
-        else if (matchMessages === userMessages) {
+        } else if (matchMessages === userMessages) {
             avatar.detectedPatterns.flirtLevel = 'medium';
-        }
-        else {
+        } else {
             avatar.detectedPatterns.flirtLevel = 'low';
         }
-        // Extrair informações aprendidas (palavras-chave)
+
+        // Extract learned info
         const hobbiesKeywords = ['gosto de', 'adoro', 'amo', 'curto', 'vicio em'];
-        const dislikesKeywords = ['odeio', 'não gosto', 'detesto', 'não curto'];
+        const dislikesKeywords = ['odeio', 'nao gosto', 'detesto', 'nao curto'];
         hobbiesKeywords.forEach((keyword) => {
             if (lowerMessage.includes(keyword)) {
                 const afterKeyword = lowerMessage.split(keyword)[1];
@@ -225,164 +217,168 @@ class ConversationManager {
                 }
             }
         });
-        avatar.detectedPatterns.lastUpdated = new Date();
-        // Avaliar qualidade da conversa
+
+        avatar.detectedPatterns.lastUpdated = new Date().toISOString();
+
         if (matchMessages >= 5 && avatar.detectedPatterns.emotionalTone === 'warm') {
             avatar.analytics.conversationQuality = 'excellent';
-        }
-        else if (matchMessages >= 3) {
+        } else if (matchMessages >= 3) {
             avatar.analytics.conversationQuality = 'good';
-        }
-        else if (matchMessages >= 1) {
+        } else if (matchMessages >= 1) {
             avatar.analytics.conversationQuality = 'average';
-        }
-        else {
+        } else {
             avatar.analytics.conversationQuality = 'poor';
         }
     }
+
     /**
-     * Obter conversa por ID (verificando ownership)
+     * Get conversation by ID (with ownership check)
      */
     static async getConversation(conversationId, userId) {
-        const doc = await getDb().collection('conversations').doc(conversationId).get();
-        if (!doc.exists) {
-            return null;
-        }
-        const data = doc.data();
-        // Verificar se a conversa pertence ao usuário
-        if (data?.userId !== userId) {
-            return null;
-        }
+        const { data, error } = await supabaseAdmin
+            .from('conversations')
+            .select('*')
+            .eq('id', conversationId)
+            .single();
+
+        if (error || !data) return null;
+        if (data.user_id !== userId) return null;
+
         return {
             ...data,
-            createdAt: data?.createdAt?.toDate() || new Date(),
-            lastMessageAt: data?.lastMessageAt?.toDate() || new Date(),
+            userId: data.user_id,
+            currentTone: data.current_tone,
+            collectiveAvatarId: data.collective_avatar_id,
+            createdAt: data.created_at,
+            lastMessageAt: data.last_message_at,
+            avatar: data.avatar || {},
+            messages: data.messages || [],
         };
     }
+
     /**
-     * Listar conversas do usuário
+     * List user conversations
      */
     static async listConversations(userId) {
-        const snapshot = await getDb()
-            .collection('conversations')
-            .where('userId', '==', userId)
-            .orderBy('lastMessageAt', 'desc')
-            .get();
-        return snapshot.docs.map((doc) => {
-            const data = doc.data();
-            const messages = data.messages || [];
+        const { data, error } = await supabaseAdmin
+            .from('conversations')
+            .select('*')
+            .eq('user_id', userId)
+            .order('last_message_at', { ascending: false });
+
+        if (error) {
+            console.error('Error listing conversations:', error);
+            return [];
+        }
+
+        return (data || []).map((row) => {
+            const messages = row.messages || [];
             return {
-                id: doc.id,
-                matchName: data.avatar?.matchName || 'Sem nome',
-                platform: data.avatar?.platform || 'tinder',
+                id: row.id,
+                matchName: row.avatar?.matchName || 'Sem nome',
+                platform: row.avatar?.platform || 'tinder',
                 lastMessage: messages.length > 0
                     ? messages[messages.length - 1].content
                     : 'Sem mensagens',
-                lastMessageAt: data.lastMessageAt?.toDate() || new Date(),
+                lastMessageAt: row.last_message_at,
                 unreadCount: 0,
                 avatar: {
-                    emotionalTone: data.avatar?.detectedPatterns?.emotionalTone || 'neutral',
-                    flirtLevel: data.avatar?.detectedPatterns?.flirtLevel || 'medium',
+                    emotionalTone: row.avatar?.detectedPatterns?.emotionalTone || 'neutral',
+                    flirtLevel: row.avatar?.detectedPatterns?.flirtLevel || 'medium',
                 },
             };
         });
     }
+
     /**
-     * Atualizar tom atual da conversa
+     * Update conversation tone
      */
     static async updateTone(conversationId, userId, tone) {
         const conversation = await this.getConversation(conversationId, userId);
         if (conversation) {
-            await getDb().collection('conversations').doc(conversationId).update({
-                currentTone: tone,
-            });
+            await supabaseAdmin
+                .from('conversations')
+                .update({ current_tone: tone })
+                .eq('id', conversationId);
         }
     }
+
     /**
-     * Deletar conversa
+     * Delete conversation
      */
     static async deleteConversation(conversationId, userId) {
         const conversation = await this.getConversation(conversationId, userId);
-        if (!conversation) {
-            return false;
-        }
-        await getDb().collection('conversations').doc(conversationId).delete();
-        return true;
+        if (!conversation) return false;
+
+        const { error } = await supabaseAdmin
+            .from('conversations')
+            .delete()
+            .eq('id', conversationId);
+
+        return !error;
     }
+
     /**
-     * Obter histórico formatado para o prompt da IA
-     * Inclui: contexto individual + inteligência coletiva
+     * Get formatted history for AI prompt
      */
     static async getFormattedHistory(conversationId, userId) {
         const conversation = await this.getConversation(conversationId, userId);
-        if (!conversation)
-            return '';
+        if (!conversation) return '';
         const { avatar, messages } = conversation;
-        // Obter insights coletivos (de múltiplos usuários)
+
         const collectiveInsights = await collective_avatar_manager_1.CollectiveAvatarManager.getCollectiveInsightsForPrompt(avatar.matchName, avatar.platform);
         let history = '';
-        // Se tiver insights coletivos, adicionar primeiro
         if (collectiveInsights) {
             history += collectiveInsights + '\n';
         }
-        history += `═══════════════════════════════════════════════════════════════════
-📋 CONTEXTO DA SUA CONVERSA ESPECÍFICA
-═══════════════════════════════════════════════════════════════════
 
-👤 PERFIL DO MATCH:
-Nome: ${avatar.matchName}
-Plataforma: ${avatar.platform.toUpperCase()}
-${avatar.bio ? `Bio: ${avatar.bio}` : ''}
-${avatar.age ? `Idade: ${avatar.age}` : ''}
-${avatar.location ? `Localização: ${avatar.location}` : ''}
-${avatar.interests && avatar.interests.length > 0 ? `Interesses: ${avatar.interests.join(', ')}` : ''}
+        history += `CONTEXTO DA SUA CONVERSA ESPECIFICA\n\n`;
+        history += `PERFIL DO MATCH:\n`;
+        history += `Nome: ${avatar.matchName}\n`;
+        history += `Plataforma: ${(avatar.platform || '').toUpperCase()}\n`;
+        if (avatar.bio) history += `Bio: ${avatar.bio}\n`;
+        if (avatar.age) history += `Idade: ${avatar.age}\n`;
+        if (avatar.location) history += `Localizacao: ${avatar.location}\n`;
+        if (avatar.interests?.length > 0) history += `Interesses: ${avatar.interests.join(', ')}\n`;
 
-📊 CALIBRAGEM DESTA CONVERSA:
-- Tamanho de resposta: ${avatar.detectedPatterns.responseLength === 'short' ? 'CURTO (espelhe com respostas curtas!)' : avatar.detectedPatterns.responseLength === 'long' ? 'LONGO (pode investir mais)' : 'MÉDIO'}
-- Tom emocional: ${avatar.detectedPatterns.emotionalTone === 'warm' ? '🔥 CALOROSO (ela/ele está receptivo!)' : avatar.detectedPatterns.emotionalTone === 'cold' ? '❄️ FRIO (reduza investimento)' : '😐 NEUTRO'}
-- Usa emojis: ${avatar.detectedPatterns.useEmojis ? 'SIM (você pode usar também)' : 'NÃO (evite emojis)'}
-- Nível de flerte: ${avatar.detectedPatterns.flirtLevel === 'high' ? '🔥 ALTO (ela/ele está muito interessado!)' : avatar.detectedPatterns.flirtLevel === 'low' ? '❄️ BAIXO (aumente atração gradualmente)' : '😊 MÉDIO'}
+        history += `\nCALIBRAGEM DESTA CONVERSA:\n`;
+        history += `- Tamanho de resposta: ${avatar.detectedPatterns.responseLength}\n`;
+        history += `- Tom emocional: ${avatar.detectedPatterns.emotionalTone}\n`;
+        history += `- Usa emojis: ${avatar.detectedPatterns.useEmojis ? 'SIM' : 'NAO'}\n`;
+        history += `- Nivel de flerte: ${avatar.detectedPatterns.flirtLevel}\n`;
 
-💡 INFORMAÇÕES APRENDIDAS NESTA CONVERSA:
-${avatar.learnedInfo.hobbies && avatar.learnedInfo.hobbies.length > 0 ? `- Hobbies: ${avatar.learnedInfo.hobbies.join(', ')}` : '- Nenhum hobby descoberto ainda'}
-${avatar.learnedInfo.dislikes && avatar.learnedInfo.dislikes.length > 0 ? `- Não gosta de: ${avatar.learnedInfo.dislikes.join(', ')}` : ''}
-${avatar.learnedInfo.personality && avatar.learnedInfo.personality.length > 0 ? `- Personalidade: ${avatar.learnedInfo.personality.join(', ')}` : ''}
+        history += `\nINFORMACOES APRENDIDAS:\n`;
+        if (avatar.learnedInfo?.hobbies?.length > 0) history += `- Hobbies: ${avatar.learnedInfo.hobbies.join(', ')}\n`;
+        if (avatar.learnedInfo?.dislikes?.length > 0) history += `- Nao gosta de: ${avatar.learnedInfo.dislikes.join(', ')}\n`;
 
-📈 ANÁLISE DE PERFORMANCE:
-- Total de mensagens: ${avatar.analytics.totalMessages}
-- Sugestões da IA usadas: ${avatar.analytics.aiSuggestionsUsed}
-- Mensagens customizadas: ${avatar.analytics.customMessagesUsed}
-- Qualidade da conversa: ${avatar.analytics.conversationQuality.toUpperCase()}
+        history += `\nANALISE DE PERFORMANCE:\n`;
+        history += `- Total de mensagens: ${avatar.analytics.totalMessages}\n`;
+        history += `- Sugestoes da IA usadas: ${avatar.analytics.aiSuggestionsUsed}\n`;
+        history += `- Mensagens customizadas: ${avatar.analytics.customMessagesUsed}\n`;
+        history += `- Qualidade da conversa: ${(avatar.analytics.conversationQuality || '').toUpperCase()}\n`;
 
-═══════════════════════════════════════════════════════════════════
-💬 HISTÓRICO DA CONVERSA
-═══════════════════════════════════════════════════════════════════
-
-`;
+        history += `\nHISTORICO DA CONVERSA\n\n`;
         messages.forEach((msg, index) => {
-            const roleLabel = msg.role === 'user' ? 'VOCÊ' : avatar.matchName.toUpperCase();
+            const roleLabel = msg.role === 'user' ? 'VOCE' : (avatar.matchName || '').toUpperCase();
             const suggestionLabel = msg.wasAiSuggestion ? ' [IA]' : '';
             history += `${index + 1}. ${roleLabel}${suggestionLabel}: "${msg.content}"\n`;
         });
-        history += `
-═══════════════════════════════════════════════════════════════════
 
-⚠️ INSTRUÇÕES DE CALIBRAGEM:
-- ESPELHE o tamanho de resposta detectado (${avatar.detectedPatterns.responseLength})
-- ADAPTE ao tom emocional (${avatar.detectedPatterns.emotionalTone})
-- MANTENHA a qualidade da conversa (atualmente: ${avatar.analytics.conversationQuality})
-${collectiveInsights ? '- USE os insights coletivos para evitar erros que outros cometeram' : ''}
-${avatar.learnedInfo.dislikes && avatar.learnedInfo.dislikes.length > 0 ? `- EVITE mencionar: ${avatar.learnedInfo.dislikes.join(', ')}` : ''}
-`;
+        history += `\nINSTRUCOES DE CALIBRAGEM:\n`;
+        history += `- ESPELHE o tamanho de resposta detectado (${avatar.detectedPatterns.responseLength})\n`;
+        history += `- ADAPTE ao tom emocional (${avatar.detectedPatterns.emotionalTone})\n`;
+        history += `- MANTENHA a qualidade da conversa (atualmente: ${avatar.analytics.conversationQuality})\n`;
+
         return history;
     }
+
     /**
-     * Registrar feedback sobre mensagem enviada
+     * Submit message feedback
      */
     static async submitMessageFeedback(conversationId, userId, messageId, gotResponse, responseQuality) {
         const conversation = await this.getConversation(conversationId, userId);
         if (!conversation) {
-            throw new Error('Conversa não encontrada');
+            throw new Error('Conversa nao encontrada');
         }
         await collective_avatar_manager_1.CollectiveAvatarManager.submitFeedback({
             conversationId,

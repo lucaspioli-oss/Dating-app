@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
 
@@ -155,10 +155,10 @@ class AppleIAPService {
 
   Future<void> _verifyAndActivate(PurchaseDetails purchase) async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
+      final session = Supabase.instance.client.auth.currentSession;
+      if (session == null) return;
 
-      final token = await user.getIdToken();
+      final token = session.accessToken;
 
       final plan = _productIdToPlan(purchase.productID);
 

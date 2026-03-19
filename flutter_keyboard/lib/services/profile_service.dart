@@ -1,24 +1,17 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/profile_model.dart';
 
 class ProfileService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final SupabaseClient _supabase = Supabase.instance.client;
 
-  /// Coleção de perfis
-  CollectionReference<Map<String, dynamic>> get _profilesCollection =>
-      _firestore.collection('profiles');
-
-  /// Buscar todos os perfis do usuário
+  /// Buscar todos os perfis do usuario (realtime stream)
   Stream<List<Profile>> getProfiles(String userId) {
-    return _profilesCollection
-        .where('userId', isEqualTo: userId)
-        .orderBy('updatedAt', descending: true)
-        .snapshots()
-        .map((snapshot) {
-          final profiles = snapshot.docs
-              .map((doc) => Profile.fromFirestore(doc))
-              .toList();
-          // Re-sort: profiles with lastActivityAt first, then by updatedAt
+    return _supabase
+        .from('profiles')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', userId)
+        .map((rows) {
+          final profiles = rows.map((row) => Profile.fromSupabase(row)).toList();
           profiles.sort((a, b) {
             final aDate = a.lastActivityAt ?? a.updatedAt;
             final bDate = b.lastActivityAt ?? b.updatedAt;
@@ -30,9 +23,14 @@ class ProfileService {
 
   /// Buscar perfil por ID
   Future<Profile?> getProfile(String profileId) async {
-    final doc = await _profilesCollection.doc(profileId).get();
-    if (!doc.exists) return null;
-    return Profile.fromFirestore(doc);
+    final data = await _supabase
+        .from('profiles')
+        .select()
+        .eq('id', profileId)
+        .maybeSingle();
+
+    if (data == null) return null;
+    return Profile.fromSupabase(data);
   }
 
   /// Criar novo perfil
@@ -43,62 +41,77 @@ class ProfileService {
     String? faceImageBase64,
     required PlatformData initialPlatform,
   }) async {
-    final now = DateTime.now();
+    final now = DateTime.now().toIso8601String();
 
     final profileData = {
-      'userId': userId,
+      'user_id': userId,
       'name': name,
-      'faceDescription': faceDescription,
-      'faceImageBase64': faceImageBase64,
+      'face_image_base64': faceImageBase64,
       'platforms': {
         initialPlatform.type.name: initialPlatform.toMap(),
       },
-      'createdAt': Timestamp.fromDate(now),
-      'updatedAt': Timestamp.fromDate(now),
+      'created_at': now,
+      'updated_at': now,
     };
 
-    final docRef = await _profilesCollection.add(profileData);
+    final result = await _supabase
+        .from('profiles')
+        .insert(profileData)
+        .select()
+        .single();
 
-    return Profile(
-      id: docRef.id,
-      userId: userId,
-      name: name,
-      faceDescription: faceDescription,
-      faceImageBase64: faceImageBase64,
-      platforms: {initialPlatform.type: initialPlatform},
-      createdAt: now,
-      updatedAt: now,
-    );
+    return Profile.fromSupabase(result);
   }
 
   /// Atualizar perfil
   Future<void> updateProfile(Profile profile) async {
     final updatedProfile = profile.copyWith(updatedAt: DateTime.now());
-    await _profilesCollection.doc(profile.id).update(updatedProfile.toMap());
+    await _supabase
+        .from('profiles')
+        .update(updatedProfile.toSupabaseMap())
+        .eq('id', profile.id);
   }
 
   /// Adicionar plataforma ao perfil
   Future<void> addPlatform(String profileId, PlatformData platform) async {
-    await _profilesCollection.doc(profileId).update({
-      'platforms.${platform.type.name}': platform.toMap(),
-      'updatedAt': Timestamp.now(),
-    });
+    final current = await getProfile(profileId);
+    if (current == null) return;
+
+    final platforms = current.platformsMap;
+    platforms[platform.type.name] = platform.toMap();
+
+    await _supabase.from('profiles').update({
+      'platforms': platforms,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', profileId);
   }
 
   /// Atualizar dados de uma plataforma
   Future<void> updatePlatform(String profileId, PlatformData platform) async {
-    await _profilesCollection.doc(profileId).update({
-      'platforms.${platform.type.name}': platform.toMap(),
-      'updatedAt': Timestamp.now(),
-    });
+    final current = await getProfile(profileId);
+    if (current == null) return;
+
+    final platforms = current.platformsMap;
+    platforms[platform.type.name] = platform.toMap();
+
+    await _supabase.from('profiles').update({
+      'platforms': platforms,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', profileId);
   }
 
   /// Remover plataforma do perfil
   Future<void> removePlatform(String profileId, PlatformType type) async {
-    await _profilesCollection.doc(profileId).update({
-      'platforms.${type.name}': FieldValue.delete(),
-      'updatedAt': Timestamp.now(),
-    });
+    final current = await getProfile(profileId);
+    if (current == null) return;
+
+    final platforms = current.platformsMap;
+    platforms.remove(type.name);
+
+    await _supabase.from('profiles').update({
+      'platforms': platforms,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', profileId);
   }
 
   /// Adicionar story ao Instagram
@@ -154,18 +167,20 @@ class ProfileService {
 
   /// Deletar perfil
   Future<void> deleteProfile(String profileId) async {
-    await _profilesCollection.doc(profileId).delete();
+    await _supabase.from('profiles').delete().eq('id', profileId);
   }
 
   /// Buscar perfil por nome (para evitar duplicatas)
   Future<Profile?> findProfileByName(String userId, String name) async {
-    final snapshot = await _profilesCollection
-        .where('userId', isEqualTo: userId)
-        .where('name', isEqualTo: name)
+    final data = await _supabase
+        .from('profiles')
+        .select()
+        .eq('user_id', userId)
+        .eq('name', name)
         .limit(1)
-        .get();
+        .maybeSingle();
 
-    if (snapshot.docs.isEmpty) return null;
-    return Profile.fromFirestore(snapshot.docs.first);
+    if (data == null) return null;
+    return Profile.fromSupabase(data);
   }
 }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+// Supabase uses ISO8601 strings instead of Firestore Timestamps
 
 /// Tipos de plataforma suportados
 enum PlatformType {
@@ -118,8 +118,8 @@ class PlatformData {
       'stories': stories?.map((s) => s.toMap()).toList(),
       'profileImageBase64': profileImageBase64,
       'profileImagesBase64': profileImagesBase64,
-      'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : null,
-      'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
+      'createdAt': createdAt != null ? createdAt!.toIso8601String() : null,
+      'updatedAt': updatedAt != null ? updatedAt!.toIso8601String() : null,
     };
   }
 
@@ -155,10 +155,10 @@ class PlatformData {
           ? List<String>.from(map['profileImagesBase64'])
           : null,
       createdAt: map['createdAt'] != null
-          ? (map['createdAt'] as Timestamp).toDate()
+          ? DateTime.parse(map['createdAt'])
           : null,
       updatedAt: map['updatedAt'] != null
-          ? (map['updatedAt'] as Timestamp).toDate()
+          ? DateTime.parse(map['updatedAt'])
           : null,
     );
   }
@@ -221,7 +221,7 @@ class StoryData {
       'id': id,
       'imageBase64': imageBase64,
       'description': description,
-      'createdAt': Timestamp.fromDate(createdAt),
+      'createdAt': createdAt.toIso8601String(),
     };
   }
 
@@ -231,7 +231,7 @@ class StoryData {
       imageBase64: map['imageBase64'],
       description: map['description'],
       createdAt: map['createdAt'] != null
-          ? (map['createdAt'] as Timestamp).toDate()
+          ? DateTime.parse(map['createdAt'])
           : DateTime.now(),
     );
   }
@@ -299,12 +299,16 @@ class Profile {
     return const Color(0xFFF44336);
   }
 
-  Map<String, dynamic> toMap() {
-    final platformsMap = <String, dynamic>{};
+  /// Returns platforms as a raw string-keyed map (for Supabase JSON updates)
+  Map<String, dynamic> get platformsMap {
+    final m = <String, dynamic>{};
     platforms.forEach((key, value) {
-      platformsMap[key.name] = value.toMap();
+      m[key.name] = value.toMap();
     });
+    return m;
+  }
 
+  Map<String, dynamic> toMap() {
     return {
       'id': id,
       'userId': userId,
@@ -312,10 +316,22 @@ class Profile {
       'faceDescription': faceDescription,
       'faceImageBase64': faceImageBase64,
       'platforms': platformsMap,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(updatedAt),
-      if (lastActivityAt != null) 'lastActivityAt': Timestamp.fromDate(lastActivityAt!),
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+      if (lastActivityAt != null) 'lastActivityAt': lastActivityAt!.toIso8601String(),
       if (lastMessagePreview != null) 'lastMessagePreview': lastMessagePreview,
+    };
+  }
+
+  Map<String, dynamic> toSupabaseMap() {
+    return {
+      'user_id': userId,
+      'name': name,
+      'face_image_base64': faceImageBase64,
+      'platforms': platformsMap,
+      'updated_at': updatedAt.toIso8601String(),
+      if (lastActivityAt != null) 'last_activity_at': lastActivityAt!.toIso8601String(),
+      if (lastMessagePreview != null) 'last_message_preview': lastMessagePreview,
     };
   }
 
@@ -340,21 +356,30 @@ class Profile {
       faceImageBase64: map['faceImageBase64'],
       platforms: platformsMap,
       createdAt: map['createdAt'] != null
-          ? (map['createdAt'] as Timestamp).toDate()
+          ? DateTime.parse(map['createdAt'])
           : DateTime.now(),
       updatedAt: map['updatedAt'] != null
-          ? (map['updatedAt'] as Timestamp).toDate()
+          ? DateTime.parse(map['updatedAt'])
           : DateTime.now(),
       lastActivityAt: map['lastActivityAt'] != null
-          ? (map['lastActivityAt'] as Timestamp).toDate()
+          ? DateTime.parse(map['lastActivityAt'])
           : null,
       lastMessagePreview: map['lastMessagePreview'],
     );
   }
 
-  factory Profile.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return Profile.fromMap({...data, 'id': doc.id});
+  factory Profile.fromSupabase(Map<String, dynamic> row) {
+    return Profile.fromMap({
+      ...row,
+      'id': row['id'],
+      'userId': row['user_id'] ?? row['userId'],
+      'faceImageBase64': row['face_image_base64'] ?? row['faceImageBase64'],
+      'faceDescription': row['face_description'] ?? row['faceDescription'],
+      'createdAt': row['created_at'] ?? row['createdAt'],
+      'updatedAt': row['updated_at'] ?? row['updatedAt'],
+      'lastActivityAt': row['last_activity_at'] ?? row['lastActivityAt'],
+      'lastMessagePreview': row['last_message_preview'] ?? row['lastMessagePreview'],
+    });
   }
 
   Profile copyWith({

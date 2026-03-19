@@ -1,69 +1,58 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/conversation.dart';
 
 class ConversationService {
   final String? baseUrl;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final SupabaseClient _supabase = Supabase.instance.client;
 
   ConversationService({this.baseUrl});
 
-  /// Buscar conversas de um perfil específico
+  /// Buscar conversas de um perfil especifico via Supabase realtime
   Stream<List<ConversationListItem>> getConversationsForProfile(String profileId) {
-    final userId = _auth.currentUser?.uid;
+    final userId = _supabase.auth.currentUser?.id;
     if (userId == null) {
-      print('[ConversationService] No user logged in');
       return Stream.value([]);
     }
 
-    print('[ConversationService] Fetching conversations for profileId: $profileId, userId: $userId');
-
-    return _firestore
-        .collection('conversations')
-        .where('userId', isEqualTo: userId)
-        .where('profileId', isEqualTo: profileId)
-        .orderBy('lastMessageAt', descending: true)
-        .snapshots()
-        .handleError((error) {
-          print('[ConversationService] Error fetching conversations: $error');
-        })
-        .map((snapshot) {
-      print('[ConversationService] Found ${snapshot.docs.length} conversations');
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        print('[ConversationService] Conversation ${doc.id}: profileId=${data['profileId']}, platform=${data['platform']}');
+    return _supabase
+        .from('conversations')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', userId)
+        .map((rows) {
+      final filtered = rows.where((row) => row['profile_id'] == profileId).toList();
+      filtered.sort((a, b) {
+        final aDate = DateTime.tryParse(a['last_message_at'] ?? '') ?? DateTime(2000);
+        final bDate = DateTime.tryParse(b['last_message_at'] ?? '') ?? DateTime(2000);
+        return bDate.compareTo(aDate);
+      });
+      return filtered.map((data) {
+        final avatar = data['avatar'] as Map<String, dynamic>? ?? {};
+        final messages = data['messages'] as List<dynamic>? ?? [];
+        final lastMsg = messages.isNotEmpty ? messages.last['content'] ?? '' : '';
         return ConversationListItem(
-          id: doc.id,
-          matchName: data['avatar']?['matchName'] ?? '',
-          username: data['avatar']?['username'],
-          platform: data['platform'] ?? data['avatar']?['platform'] ?? 'outro',
-          lastMessage: data['lastMessage'] ?? '',
-          lastMessageAt: data['lastMessageAt'] != null
-              ? (data['lastMessageAt'] as Timestamp).toDate()
-              : DateTime.now(),
-          unreadCount: data['unreadCount'] ?? 0,
-          faceImageUrl: data['avatar']?['faceImageUrl'],
-          age: data['avatar']?['age'],
-          avatar: data['avatar'] != null
-              ? Map<String, String>.from(
-                  (data['avatar'] as Map).map((k, v) => MapEntry(k.toString(), v?.toString() ?? '')))
-              : {},
+          id: data['id'],
+          matchName: avatar['matchName'] ?? '',
+          username: avatar['username'],
+          platform: data['platform'] ?? avatar['platform'] ?? 'outro',
+          lastMessage: lastMsg,
+          lastMessageAt: DateTime.tryParse(data['last_message_at'] ?? '') ?? DateTime.now(),
+          unreadCount: 0,
+          faceImageUrl: avatar['faceImageUrl'],
+          age: avatar['age'],
+          avatar: avatar.map((k, v) => MapEntry(k.toString(), v?.toString() ?? '')),
         );
       }).toList();
     });
   }
 
-  /// Obter token de autenticação
+  /// Obter token de autenticacao
   Future<String?> _getAuthToken() async {
-    final user = _auth.currentUser;
-    if (user == null) return null;
-    return await user.getIdToken();
+    return _supabase.auth.currentSession?.accessToken;
   }
 
-  /// Headers padrão com autenticação
+  /// Headers padrao com autenticacao
   Future<Map<String, String>> _getHeaders() async {
     final token = await _getAuthToken();
     return {
@@ -105,13 +94,8 @@ class ConversationService {
       if (faceDescription != null) 'faceDescription': faceDescription,
     };
 
-    final response = await http.post(
-      url,
-      headers: headers,
-      body: jsonEncode(body),
-    );
+    final response = await http.post(url, headers: headers, body: jsonEncode(body));
 
-    // 201 = nova conversa criada, 200 = conversa existente retornada
     if (response.statusCode == 201 || response.statusCode == 200) {
       return Conversation.fromJson(jsonDecode(response.body));
     } else {
@@ -119,13 +103,10 @@ class ConversationService {
     }
   }
 
-  /// Listar conversas
   Future<List<ConversationListItem>> listConversations() async {
     final url = Uri.parse('$baseUrl/conversations');
     final headers = await _getHeaders();
-
     final response = await http.get(url, headers: headers);
-
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((item) => ConversationListItem.fromJson(item)).toList();
@@ -134,13 +115,10 @@ class ConversationService {
     }
   }
 
-  /// Obter conversa específica
   Future<Conversation> getConversation(String conversationId) async {
     final url = Uri.parse('$baseUrl/conversations/$conversationId');
     final headers = await _getHeaders();
-
     final response = await http.get(url, headers: headers);
-
     if (response.statusCode == 200) {
       return Conversation.fromJson(jsonDecode(response.body));
     } else {
@@ -148,7 +126,6 @@ class ConversationService {
     }
   }
 
-  /// Adicionar mensagem
   Future<Conversation> addMessage({
     required String conversationId,
     required String role,
@@ -158,20 +135,13 @@ class ConversationService {
   }) async {
     final url = Uri.parse('$baseUrl/conversations/$conversationId/messages');
     final headers = await _getHeaders();
-
     final body = {
       'role': role,
       'content': content,
       if (wasAiSuggestion != null) 'wasAiSuggestion': wasAiSuggestion,
       if (tone != null) 'tone': tone,
     };
-
-    final response = await http.post(
-      url,
-      headers: headers,
-      body: jsonEncode(body),
-    );
-
+    final response = await http.post(url, headers: headers, body: jsonEncode(body));
     if (response.statusCode == 200) {
       return Conversation.fromJson(jsonDecode(response.body));
     } else {
@@ -179,7 +149,6 @@ class ConversationService {
     }
   }
 
-  /// Gerar sugestões baseadas no histórico
   Future<List<String>> generateSuggestions({
     required String conversationId,
     required String receivedMessage,
@@ -188,97 +157,58 @@ class ConversationService {
   }) async {
     final url = Uri.parse('$baseUrl/conversations/$conversationId/suggestions');
     final headers = await _getHeaders();
-
     final body = {
       'receivedMessage': receivedMessage,
       'tone': tone,
       if (userContext != null) 'userContext': userContext,
     };
-
-    final response = await http.post(
-      url,
-      headers: headers,
-      body: jsonEncode(body),
-    ).timeout(
+    final response = await http.post(url, headers: headers, body: jsonEncode(body)).timeout(
       const Duration(seconds: 45),
-      onTimeout: () {
-        throw Exception('Request timeout');
-      },
+      onTimeout: () => throw Exception('Request timeout'),
     );
-
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final suggestionsText = data['suggestions'] as String;
-
-      // Parse as sugestões
       final lines = suggestionsText.split('\n').where((line) => line.trim().isNotEmpty).toList();
       final parsedSuggestions = <String>[];
-
       for (var line in lines) {
         final cleaned = line.replaceFirst(RegExp(r'^\d+\.\s*'), '').trim();
-        if (cleaned.isNotEmpty) {
-          parsedSuggestions.add(cleaned);
-        }
+        if (cleaned.isNotEmpty) parsedSuggestions.add(cleaned);
       }
-
       return parsedSuggestions;
     } else {
-      throw Exception('Erro ao gerar sugestões: ${response.body}');
+      throw Exception('Erro ao gerar sugestoes: ${response.body}');
     }
   }
 
-  /// Atualizar tom da conversa
   Future<void> updateTone(String conversationId, String tone) async {
     final url = Uri.parse('$baseUrl/conversations/$conversationId/tone');
     final headers = await _getHeaders();
-
-    final response = await http.patch(
-      url,
-      headers: headers,
-      body: jsonEncode({'tone': tone}),
-    );
-
-    if (response.statusCode != 200) {
-      throw Exception('Erro ao atualizar tom: ${response.body}');
-    }
+    final response = await http.patch(url, headers: headers, body: jsonEncode({'tone': tone}));
+    if (response.statusCode != 200) throw Exception('Erro ao atualizar tom: ${response.body}');
   }
 
-  /// Deletar conversa
   Future<void> deleteConversation(String conversationId) async {
     final url = Uri.parse('$baseUrl/conversations/$conversationId');
     final headers = await _getHeaders();
-
     final response = await http.delete(url, headers: headers);
-
-    if (response.statusCode != 200) {
-      throw Exception('Erro ao deletar conversa: ${response.body}');
-    }
+    if (response.statusCode != 200) throw Exception('Erro ao deletar conversa: ${response.body}');
   }
 
-  /// Submeter feedback sobre mensagem (contribui para inteligência coletiva)
   Future<void> submitFeedback({
     required String conversationId,
     required String messageId,
     required bool gotResponse,
-    String? responseQuality, // 'cold', 'neutral', 'warm', 'hot'
+    String? responseQuality,
   }) async {
     final url = Uri.parse('$baseUrl/conversations/$conversationId/feedback');
     final headers = await _getHeaders();
-
     final body = {
       'messageId': messageId,
       'gotResponse': gotResponse,
       if (responseQuality != null) 'responseQuality': responseQuality,
     };
-
-    final response = await http.post(
-      url,
-      headers: headers,
-      body: jsonEncode(body),
-    );
-
-    if (response.statusCode != 200) {
-      throw Exception('Erro ao submeter feedback: ${response.body}');
-    }
+    final response = await http.post(url, headers: headers, body: jsonEncode(body));
+    if (response.statusCode != 200) throw Exception('Erro ao submeter feedback: ${response.body}');
   }
 }
