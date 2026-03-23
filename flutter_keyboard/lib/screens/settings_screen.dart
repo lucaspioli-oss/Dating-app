@@ -15,6 +15,7 @@ import 'training_feedback_screen.dart';
 import 'keyboard_setup_screen.dart';
 import 'app_tutorial_screen.dart';
 import 'templates_screen.dart';
+import 'profile_screen.dart' show SubscriptionContent;
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -69,6 +70,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          _buildSubscriptionSection(context),
+          const SizedBox(height: 16),
           _buildKeyboardSection(context),
           const SizedBox(height: 16),
           _buildToolsSection(context),
@@ -181,6 +184,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSubscriptionSection(BuildContext context) {
+    return _buildSectionContainer(
+      title: 'Assinatura',
+      icon: Icons.credit_card_outlined,
+      children: [
+        _buildSettingsRow(
+          icon: Icons.workspace_premium_outlined,
+          title: 'Gerenciar assinatura',
+          subtitle: 'Veja seu plano, renove ou cancele',
+          isLast: true,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SubscriptionContent()),
+            );
+          },
+        ),
+      ],
     );
   }
 

@@ -7,6 +7,7 @@ import '../models/user_profile.dart';
 import '../services/firebase_auth_service.dart';
 import '../services/subscription_service.dart';
 import '../config/app_theme.dart';
+import '../providers/app_state.dart';
 import 'settings_screen.dart';
 import 'auth/subscription_required_screen.dart';
 
@@ -963,6 +964,40 @@ class _MyProfileContentState extends State<MyProfileContent>
     }
   }
 
+  void _showLanguagePicker(BuildContext context, AppState appState, String currentLang) {
+    final languages = [
+      {'code': 'pt', 'flag': '🇧🇷', 'name': 'Português'},
+      {'code': 'en', 'flag': '🇺🇸', 'name': 'English'},
+      {'code': 'es', 'flag': '🇪🇸', 'name': 'Español'},
+    ];
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Idioma / Language', style: TextStyle(color: AppColors.textPrimary)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: languages.map((lang) {
+            final isSelected = currentLang == lang['code'];
+            return ListTile(
+              leading: Text(lang['flag']!, style: const TextStyle(fontSize: 24)),
+              title: Text(lang['name']!, style: TextStyle(
+                color: isSelected ? Colors.white : AppColors.textSecondary,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              )),
+              trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.green) : null,
+              onTap: () {
+                appState.setLocale(Locale(lang['code']!));
+                Navigator.pop(ctx);
+              },
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
   void _showUserMenu() {
     final authService = FirebaseAuthService();
     final user = authService.currentUser;
@@ -1070,6 +1105,18 @@ class _MyProfileContentState extends State<MyProfileContent>
       appBar: AppBar(
         title: Text(l10n.myProfileTab),
         centerTitle: true,
+        leading: Builder(
+          builder: (context) {
+            final appState = Provider.of<AppState>(context);
+            final lang = appState.locale.languageCode;
+            final flag = lang == 'en' ? '🇺🇸' : lang == 'es' ? '🇪🇸' : '🇧🇷';
+            return IconButton(
+              icon: Text(flag, style: const TextStyle(fontSize: 22)),
+              onPressed: () => _showLanguagePicker(context, appState, lang),
+              tooltip: 'Idioma',
+            );
+          },
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),

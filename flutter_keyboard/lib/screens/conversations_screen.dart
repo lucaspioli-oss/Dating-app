@@ -141,10 +141,19 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
             Text(emotionalToneEmoji),
           ],
         ),
-        subtitle: Text(
-          conv.lastMessage,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${conv.platformEmoji} ${conv.platform[0].toUpperCase()}${conv.platform.substring(1)}',
+              style: TextStyle(fontSize: 11, color: AppColors.textTertiary),
+            ),
+            Text(
+              conv.lastMessage,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,

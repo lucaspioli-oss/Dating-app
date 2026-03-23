@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
+import 'conversations_screen.dart';
 import 'profiles_list_screen.dart';
 import 'profile_screen.dart';
 import 'dashboard_screen.dart';
@@ -38,10 +39,10 @@ class _MainScreenState extends State<MainScreen> {
             AppHaptics.selection();
           },
           children: const [
+            ConversationsScreen(),
             ProfilesListScreen(),
             MyProfileContent(),
             DashboardScreen(),
-            SubscriptionContent(),
           ],
         ),
       ),
@@ -65,6 +66,14 @@ class _MainScreenState extends State<MainScreen> {
           },
           destinations: [
             NavigationDestination(
+              icon: const Icon(Icons.chat_bubble_outline),
+              selectedIcon: ShaderMask(
+                shaderCallback: (bounds) => AppColors.buttonGradient.createShader(bounds),
+                child: const Icon(Icons.chat_bubble, color: Colors.white),
+              ),
+              label: 'Conversas',
+            ),
+            NavigationDestination(
               icon: const Icon(Icons.people_outlined),
               selectedIcon: ShaderMask(
                 shaderCallback: (bounds) => AppColors.buttonGradient.createShader(bounds),
@@ -87,14 +96,6 @@ class _MainScreenState extends State<MainScreen> {
                 child: const Icon(Icons.insights, color: Colors.white),
               ),
               label: 'Stats',
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.credit_card_outlined),
-              selectedIcon: ShaderMask(
-                shaderCallback: (bounds) => AppColors.buttonGradient.createShader(bounds),
-                child: const Icon(Icons.credit_card, color: Colors.white),
-              ),
-              label: l10n.subscriptionTab,
             ),
           ],
         ),
