@@ -1,7 +1,7 @@
 /// Configuracoes centralizadas do app
 class AppConfig {
   // URL do Backend (VPS - Producao)
-  static const String backendUrl = 'https://dating-app-production-ac43.up.railway.app';
+  static const String backendUrl = 'https://api.desenrolaai.site';
 
   // Supabase
   static const String supabaseUrl = 'https://ocnwpywdvefpbgvbdkxw.supabase.co';

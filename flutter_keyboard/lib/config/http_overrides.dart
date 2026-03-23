@@ -9,7 +9,7 @@ class AppHttpOverrides extends HttpOverrides {
       ..badCertificateCallback =
           (X509Certificate cert, String host, int port) {
         // Only allow our production backend
-        if (host == 'dating-app-production-ac43.up.railway.app') {
+        if (host == 'api.desenrolaai.site') {
           return true; // Certificate is already validated by the system
         }
         return false; // Reject all other bad certificates

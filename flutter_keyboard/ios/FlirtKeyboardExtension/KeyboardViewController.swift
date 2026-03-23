@@ -109,7 +109,7 @@ class KeyboardViewController: UIInputViewController {
     }
 
     var backendUrl: String {
-        return sharedDefaults?.string(forKey: "backendUrl") ?? "https://dating-app-production-ac43.up.railway.app"
+        return sharedDefaults?.string(forKey: "backendUrl") ?? "https://api.desenrolaai.site"
     }
 
     var authToken: String? {
