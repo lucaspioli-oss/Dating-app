@@ -1,6 +1,21 @@
 import 'package:flutter/material.dart';
 // Supabase uses ISO8601 strings instead of Firestore Timestamps
 
+/// Parse date from either ISO8601 string or Firebase Timestamp map {_seconds, _nanoseconds}
+DateTime? _parseDate(dynamic value) {
+  if (value == null) return null;
+  if (value is DateTime) return value;
+  if (value is String) {
+    try { return DateTime.parse(value); } catch (_) { return null; }
+  }
+  if (value is Map) {
+    final seconds = value['_seconds'] ?? value['seconds'];
+    if (seconds is int) return DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
+  }
+  if (value is int) return DateTime.fromMillisecondsSinceEpoch(value * 1000);
+  return null;
+}
+
 /// Tipos de plataforma suportados
 enum PlatformType {
   instagram,
@@ -154,12 +169,8 @@ class PlatformData {
       profileImagesBase64: map['profileImagesBase64'] != null
           ? List<String>.from(map['profileImagesBase64'])
           : null,
-      createdAt: map['createdAt'] != null
-          ? DateTime.parse(map['createdAt'])
-          : null,
-      updatedAt: map['updatedAt'] != null
-          ? DateTime.parse(map['updatedAt'])
-          : null,
+      createdAt: _parseDate(map['createdAt']),
+      updatedAt: _parseDate(map['updatedAt']),
     );
   }
 
@@ -230,9 +241,7 @@ class StoryData {
       id: map['id'] ?? '',
       imageBase64: map['imageBase64'],
       description: map['description'],
-      createdAt: map['createdAt'] != null
-          ? DateTime.parse(map['createdAt'])
-          : DateTime.now(),
+      createdAt: _parseDate(map['createdAt']) ?? DateTime.now(),
     );
   }
 }
@@ -355,15 +364,9 @@ class Profile {
       faceDescription: map['faceDescription'],
       faceImageBase64: map['faceImageBase64'],
       platforms: platformsMap,
-      createdAt: map['createdAt'] != null
-          ? DateTime.parse(map['createdAt'])
-          : DateTime.now(),
-      updatedAt: map['updatedAt'] != null
-          ? DateTime.parse(map['updatedAt'])
-          : DateTime.now(),
-      lastActivityAt: map['lastActivityAt'] != null
-          ? DateTime.parse(map['lastActivityAt'])
-          : null,
+      createdAt: _parseDate(map['createdAt']) ?? DateTime.now(),
+      updatedAt: _parseDate(map['updatedAt']) ?? DateTime.now(),
+      lastActivityAt: _parseDate(map['lastActivityAt']),
       lastMessagePreview: map['lastMessagePreview'],
     );
   }
