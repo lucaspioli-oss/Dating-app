@@ -229,13 +229,6 @@ extension KeyboardViewController {
         renderCurrentState()
     }
 
-    @objc func backFromMultiMessagesTapped() {
-        multiMessages = ["", ""]
-        clearMultiMessageState()
-        currentState = .hub
-        renderCurrentState()
-    }
-
     // Legacy back methods (redirect to hub)
     @objc func backFromObjectiveTapped() {
         currentState = .hub
