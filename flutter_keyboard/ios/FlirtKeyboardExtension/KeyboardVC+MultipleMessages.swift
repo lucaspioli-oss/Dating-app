@@ -206,7 +206,7 @@ extension KeyboardViewController {
     @objc func backFromMultiMessagesTapped() {
         multiMessages = ["", ""]
         clearMultiMessageState()
-        currentState = .awaitingClipboard
+        currentState = .hub
         renderCurrentState()
     }
 

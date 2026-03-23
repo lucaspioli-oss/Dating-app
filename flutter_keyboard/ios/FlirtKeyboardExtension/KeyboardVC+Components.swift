@@ -86,9 +86,10 @@ extension KeyboardViewController {
 
         let gradientLayer = CAGradientLayer()
         gradientLayer.colors = [
-            UIColor(red: 1.0, green: 0.23, blue: 0.19, alpha: 1.0).cgColor,
-            UIColor(red: 0.91, green: 0.12, blue: 0.39, alpha: 1.0).cgColor,
-            UIColor(red: 0.48, green: 0.18, blue: 0.74, alpha: 1.0).cgColor,
+            Theme.flameRed.cgColor,
+            Theme.flameOrange.cgColor,
+            Theme.magenta.cgColor,
+            Theme.purple.cgColor,
         ]
         gradientLayer.startPoint = CGPoint(x: 0, y: 0)
         gradientLayer.endPoint = CGPoint(x: 1, y: 1)
@@ -426,9 +427,10 @@ extension KeyboardViewController {
 
         let gradient = CAGradientLayer()
         gradient.colors = [
-            UIColor(red: 1.0, green: 0.23, blue: 0.19, alpha: 1.0).cgColor,
-            UIColor(red: 0.91, green: 0.12, blue: 0.39, alpha: 1.0).cgColor,
-            UIColor(red: 0.48, green: 0.18, blue: 0.74, alpha: 1.0).cgColor,
+            Theme.flameRed.cgColor,
+            Theme.flameOrange.cgColor,
+            Theme.magenta.cgColor,
+            Theme.purple.cgColor,
         ]
         gradient.startPoint = CGPoint(x: 0, y: 0.5)
         gradient.endPoint = CGPoint(x: 1, y: 0.5)

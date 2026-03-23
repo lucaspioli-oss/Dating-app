@@ -571,7 +571,7 @@ extension KeyboardViewController {
                         self?.isLoadingSuggestions = false
                         self?.clipboardText = "[Screenshot analisado]"
                         self?.suggestions = parsed
-                        self?.previousState = .awaitingClipboard
+                        self?.previousState = .hub
                         self?.currentState = .suggestions
                         self?.renderCurrentState()
                     }
@@ -626,6 +626,7 @@ extension KeyboardViewController {
         consumedClipboard = current
         suggestions = []
         isLoadingSuggestions = true
+        previousState = .hub
         currentState = .suggestions
         renderCurrentState()
 
