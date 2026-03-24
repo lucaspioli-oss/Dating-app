@@ -38,27 +38,21 @@ extension KeyboardViewController {
         ])
 
         if suggestions.isEmpty {
-            let loadingStack = UIStackView()
-            loadingStack.axis = .horizontal
-            loadingStack.spacing = 10
-            loadingStack.alignment = .center
-            loadingStack.translatesAutoresizingMaskIntoConstraints = false
-            containerView.addSubview(loadingStack)
+            // Skeleton loading cards
+            let skeletonStack = UIStackView()
+            skeletonStack.axis = .vertical
+            skeletonStack.spacing = 6
+            skeletonStack.translatesAutoresizingMaskIntoConstraints = false
+            containerView.addSubview(skeletonStack)
 
-            let spinner = UIActivityIndicatorView(style: .medium)
-            spinner.color = Theme.rose
-            spinner.startAnimating()
-            loadingStack.addArrangedSubview(spinner)
-
-            let loadLabel = UILabel()
-            loadLabel.text = "Gerando sugestões..."
-            loadLabel.textColor = Theme.textSecondary
-            loadLabel.font = UIFont.systemFont(ofSize: 14)
-            loadingStack.addArrangedSubview(loadLabel)
+            for _ in 0..<3 {
+                skeletonStack.addArrangedSubview(makeSkeletonCard())
+            }
 
             NSLayoutConstraint.activate([
-                loadingStack.topAnchor.constraint(equalTo: headerLabel.bottomAnchor, constant: 30),
-                loadingStack.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
+                skeletonStack.topAnchor.constraint(equalTo: headerLabel.bottomAnchor, constant: 12),
+                skeletonStack.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 10),
+                skeletonStack.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -10),
             ])
             return
         }

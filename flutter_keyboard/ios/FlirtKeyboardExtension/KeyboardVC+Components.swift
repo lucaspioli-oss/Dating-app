@@ -439,4 +439,106 @@ extension KeyboardViewController {
 
         return btn
     }
+
+    func makeNewMatchButton() -> UIView {
+        let container = UIView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        container.widthAnchor.constraint(equalToConstant: 64).isActive = true
+
+        let photoSize: CGFloat = 48
+        let circleView = UIView()
+        circleView.backgroundColor = Theme.cardBg
+        circleView.layer.cornerRadius = photoSize / 2
+        circleView.layer.borderWidth = 1.5
+        circleView.layer.borderColor = Theme.border.cgColor
+        circleView.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(circleView)
+
+        let plusLabel = UILabel()
+        plusLabel.text = "+"
+        plusLabel.textColor = Theme.textSecondary
+        plusLabel.font = UIFont.systemFont(ofSize: 24, weight: .light)
+        plusLabel.textAlignment = .center
+        plusLabel.translatesAutoresizingMaskIntoConstraints = false
+        circleView.addSubview(plusLabel)
+
+        let nameLabel = UILabel()
+        nameLabel.text = "Rápido"
+        nameLabel.textColor = Theme.textSecondary
+        nameLabel.font = UIFont.systemFont(ofSize: 10)
+        nameLabel.textAlignment = .center
+        nameLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(nameLabel)
+
+        NSLayoutConstraint.activate([
+            circleView.topAnchor.constraint(equalTo: container.topAnchor),
+            circleView.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            circleView.widthAnchor.constraint(equalToConstant: photoSize),
+            circleView.heightAnchor.constraint(equalToConstant: photoSize),
+            plusLabel.centerXAnchor.constraint(equalTo: circleView.centerXAnchor),
+            plusLabel.centerYAnchor.constraint(equalTo: circleView.centerYAnchor),
+            nameLabel.topAnchor.constraint(equalTo: circleView.bottomAnchor, constant: 4),
+            nameLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            nameLabel.widthAnchor.constraint(equalTo: container.widthAnchor),
+        ])
+
+        let tapBtn = UIButton(type: .system)
+        tapBtn.translatesAutoresizingMaskIntoConstraints = false
+        tapBtn.addTarget(self, action: #selector(quickModeTapped), for: .touchUpInside)
+        container.addSubview(tapBtn)
+        NSLayoutConstraint.activate([
+            tapBtn.topAnchor.constraint(equalTo: container.topAnchor),
+            tapBtn.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            tapBtn.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            tapBtn.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+        ])
+
+        return container
+    }
+
+    func makeSkeletonCard() -> UIView {
+        let card = UIView()
+        card.translatesAutoresizingMaskIntoConstraints = false
+        card.backgroundColor = Theme.suggestionBg
+        card.layer.cornerRadius = 12
+        card.heightAnchor.constraint(equalToConstant: 52).isActive = true
+
+        // Line 1 (wider)
+        let line1 = UIView()
+        line1.backgroundColor = UIColor.white.withAlphaComponent(0.06)
+        line1.layer.cornerRadius = 4
+        line1.translatesAutoresizingMaskIntoConstraints = false
+        card.addSubview(line1)
+
+        // Line 2 (shorter)
+        let line2 = UIView()
+        line2.backgroundColor = UIColor.white.withAlphaComponent(0.04)
+        line2.layer.cornerRadius = 4
+        line2.translatesAutoresizingMaskIntoConstraints = false
+        card.addSubview(line2)
+
+        NSLayoutConstraint.activate([
+            line1.topAnchor.constraint(equalTo: card.topAnchor, constant: 12),
+            line1.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 14),
+            line1.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -50),
+            line1.heightAnchor.constraint(equalToConstant: 10),
+            line2.topAnchor.constraint(equalTo: line1.bottomAnchor, constant: 8),
+            line2.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 14),
+            line2.widthAnchor.constraint(equalTo: card.widthAnchor, multiplier: 0.45),
+            line2.heightAnchor.constraint(equalToConstant: 10),
+        ])
+
+        // Pulse animation
+        let pulse = CABasicAnimation(keyPath: "opacity")
+        pulse.fromValue = 1.0
+        pulse.toValue = 0.4
+        pulse.duration = 0.8
+        pulse.autoreverses = true
+        pulse.repeatCount = .infinity
+        pulse.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        line1.layer.add(pulse, forKey: "pulse")
+        line2.layer.add(pulse, forKey: "pulse")
+
+        return card
+    }
 }

@@ -44,24 +44,39 @@ extension KeyboardViewController {
     // MARK: - Instructions State
 
     private func renderInstructionsState(below headerView: UIView) {
+        // Instructions card with visible background
+        let cardView = UIView()
+        cardView.backgroundColor = Theme.cardBg
+        cardView.layer.cornerRadius = 14
+        cardView.layer.borderWidth = 1
+        cardView.layer.borderColor = Theme.border.cgColor
+        cardView.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(cardView)
+
         let contentStack = UIStackView()
         contentStack.axis = .vertical
-        contentStack.spacing = 6
+        contentStack.spacing = 8
         contentStack.alignment = .center
         contentStack.translatesAutoresizingMaskIntoConstraints = false
-        containerView.addSubview(contentStack)
+        cardView.addSubview(contentStack)
+
+        let iconLabel = UILabel()
+        iconLabel.text = "📸"
+        iconLabel.font = UIFont.systemFont(ofSize: 28)
+        iconLabel.textAlignment = .center
+        contentStack.addArrangedSubview(iconLabel)
 
         let mainLabel = UILabel()
         mainLabel.text = "Copie o print da conversa"
         mainLabel.textColor = .white
-        mainLabel.font = UIFont.systemFont(ofSize: 13, weight: .medium)
+        mainLabel.font = UIFont.systemFont(ofSize: 14, weight: .semibold)
         mainLabel.textAlignment = .center
         mainLabel.translatesAutoresizingMaskIntoConstraints = false
         contentStack.addArrangedSubview(mainLabel)
 
         let step1 = makeStepLabel("1. Tire print da conversa")
         let step2 = makeStepLabel("2. Abra Fotos e copie a imagem")
-        let step3 = makeStepLabel("3. Volte e toque o botão")
+        let step3 = makeStepLabel("3. Volte e toque o botão abaixo")
         contentStack.addArrangedSubview(step1)
         contentStack.addArrangedSubview(step2)
         contentStack.addArrangedSubview(step3)
@@ -99,9 +114,13 @@ extension KeyboardViewController {
         pasteContainer.addGestureRecognizer(pasteTap)
 
         NSLayoutConstraint.activate([
-            contentStack.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 16),
-            contentStack.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 20),
-            contentStack.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -20),
+            cardView.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 10),
+            cardView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+            cardView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+            contentStack.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 16),
+            contentStack.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 16),
+            contentStack.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -16),
+            contentStack.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -16),
             pasteContainer.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
             pasteContainer.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
             pasteContainer.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -16),

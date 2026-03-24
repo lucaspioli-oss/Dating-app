@@ -159,6 +159,8 @@ extension KeyboardViewController {
                 for (index, conv) in filteredConversations.enumerated() {
                     stackView.addArrangedSubview(makeProfileButton(conv, tag: index))
                 }
+                // [+] quick mode button at the end of the carousel
+                stackView.addArrangedSubview(makeNewMatchButton())
             }
 
             let quickButton = makeGradientButton("⚡ Modo Rápido — sem perfil", fontSize: 13)

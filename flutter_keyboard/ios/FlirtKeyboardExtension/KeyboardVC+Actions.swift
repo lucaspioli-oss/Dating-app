@@ -257,7 +257,8 @@ extension KeyboardViewController {
         suggestions = []
         consumedClipboard = UIPasteboard.general.string
         currentState = .hub
-        renderCurrentState()
+        // Auto-switch to system keyboard so user can tap Send
+        advanceToNextInputMode()
     }
 
     @objc func basicSuggestionTapped(_ sender: UIButton) {
@@ -266,6 +267,8 @@ extension KeyboardViewController {
         let text = suggestions[index]
         UIPasteboard.general.string = text
         textDocumentProxy.insertText(text)
+        // Auto-switch to system keyboard so user can tap Send
+        advanceToNextInputMode()
     }
 
     @objc func editSuggestionTapped(_ sender: UIButton) {
@@ -301,7 +304,8 @@ extension KeyboardViewController {
         suggestions = []
         consumedClipboard = UIPasteboard.general.string
         currentState = .hub
-        renderCurrentState()
+        // Auto-switch to system keyboard so user can tap Send
+        advanceToNextInputMode()
     }
 
     @objc func regenerateTapped() {
