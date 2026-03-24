@@ -144,8 +144,8 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
 
   Widget _buildStepPage(_SetupStep step, int index) {
     final l10n = AppLocalizations.of(context)!;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
