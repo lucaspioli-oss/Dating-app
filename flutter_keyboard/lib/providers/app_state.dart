@@ -33,6 +33,10 @@ class AppState extends ChangeNotifier {
     if (langCode != null) {
       _locale = Locale(langCode);
     }
+    // Sync backendUrl to shared UserDefaults for keyboard extension
+    try {
+      await _nativeChannel.invokeMethod('setBackendUrl', {'url': AppConfig.backendUrl});
+    } catch (_) {}
     notifyListeners();
   }
 
