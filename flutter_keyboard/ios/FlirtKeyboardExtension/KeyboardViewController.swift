@@ -165,6 +165,9 @@ class KeyboardViewController: UIInputViewController {
             return
         }
 
+        // Check if app left a pending text to insert (screenshot flow)
+        checkPendingInsert()
+
         if authToken != nil {
             // Try to restore last profile for instant hub
             if let saved = restoreSavedConversation() {
@@ -439,33 +442,31 @@ class KeyboardViewController: UIInputViewController {
             clipArea.addGestureRecognizer(pasteTap)
         }
 
-        // ── Row 3: Action buttons ──
+        // ── Row 3: Two input buttons ──
         let actionsStack = UIStackView()
         actionsStack.axis = .horizontal
-        actionsStack.spacing = 8
+        actionsStack.spacing = 10
         actionsStack.distribution = .fillEqually
         actionsStack.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(actionsStack)
 
-        let screenshotBtn = makeActionButton(emoji: "📸", label: "Screenshot", action: #selector(hubScreenshotTapped))
-        let startBtn = makeActionButton(emoji: "🚀", label: "Abrir Conversa", action: #selector(startConversationTapped))
-        let multiBtn = makeActionButton(emoji: "📋", label: "Várias Msgs", action: #selector(hubMultipleTapped))
+        let screenshotBtn = makeActionButton(emoji: "📸", label: "Analisar Print", action: #selector(openAppForScreenshot))
+        let pasteBtn = makeActionButton(emoji: "📋", label: "Colar Mensagem", action: #selector(pasteBoxTapped))
 
         actionsStack.addArrangedSubview(screenshotBtn)
-        actionsStack.addArrangedSubview(startBtn)
-        actionsStack.addArrangedSubview(multiBtn)
+        actionsStack.addArrangedSubview(pasteBtn)
 
-        // ── Row 4: Quick mode link ──
-        let quickLabel = UILabel()
-        quickLabel.text = "⚡ Modo Rápido (sem perfil)"
-        quickLabel.textColor = Theme.textTertiary
-        quickLabel.font = UIFont.systemFont(ofSize: 11, weight: .medium)
-        quickLabel.textAlignment = .center
-        quickLabel.translatesAutoresizingMaskIntoConstraints = false
-        quickLabel.isUserInteractionEnabled = true
-        let quickTap = UITapGestureRecognizer(target: self, action: #selector(quickModeTapped))
-        quickLabel.addGestureRecognizer(quickTap)
-        containerView.addSubview(quickLabel)
+        // ── Row 4: Secondary link ──
+        let startLabel = UILabel()
+        startLabel.text = "🚀 Gerar abertura criativa"
+        startLabel.textColor = Theme.textSecondary
+        startLabel.font = UIFont.systemFont(ofSize: 12, weight: .medium)
+        startLabel.textAlignment = .center
+        startLabel.translatesAutoresizingMaskIntoConstraints = false
+        startLabel.isUserInteractionEnabled = true
+        let startTap = UITapGestureRecognizer(target: self, action: #selector(startConversationTapped))
+        startLabel.addGestureRecognizer(startTap)
+        containerView.addSubview(startLabel)
 
         // ── Layout ──
         NSLayoutConstraint.activate([
@@ -484,8 +485,8 @@ class KeyboardViewController: UIInputViewController {
             actionsStack.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
             actionsStack.heightAnchor.constraint(equalToConstant: 64),
 
-            quickLabel.topAnchor.constraint(equalTo: actionsStack.bottomAnchor, constant: 8),
-            quickLabel.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
+            startLabel.topAnchor.constraint(equalTo: actionsStack.bottomAnchor, constant: 10),
+            startLabel.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
         ])
 
         startClipboardPolling()
@@ -535,6 +536,42 @@ class KeyboardViewController: UIInputViewController {
     @objc func avatarTapped() {
         currentState = .profilePicker
         renderCurrentState()
+    }
+
+    @objc func openAppForScreenshot() {
+        // Save current profile context for the app
+        if let conv = selectedConversation {
+            sharedDefaults?.set(conv.matchName, forKey: "kb_pendingProfileName")
+            sharedDefaults?.synchronize()
+        }
+        // Open main app via URL scheme using responder chain
+        if let url = URL(string: "desenrolaai://analyze-screenshot") {
+            var responder: UIResponder? = self
+            while let r = responder {
+                if let app = r as? UIApplication {
+                    app.open(url, options: [:], completionHandler: nil)
+                    break
+                }
+                responder = r.next
+            }
+        }
+    }
+
+    // Check for pending text from app (auto-insert after returning from screenshot analysis)
+    func checkPendingInsert() {
+        guard let text = sharedDefaults?.string(forKey: "kb_pendingInsertText"),
+              !text.isEmpty else { return }
+        // Clear the pending text
+        sharedDefaults?.removeObject(forKey: "kb_pendingInsertText")
+        sharedDefaults?.synchronize()
+        // Insert into text field
+        textDocumentProxy.insertText(text)
+        // Send to server if profile selected
+        if let conv = selectedConversation {
+            sendMessageToServer(conversationId: conv.conversationId, profileId: conv.profileId, content: text, wasAiSuggestion: true)
+        }
+        // Switch back to system keyboard
+        advanceToNextInputMode()
     }
 
     @objc func clipAreaTapped() {

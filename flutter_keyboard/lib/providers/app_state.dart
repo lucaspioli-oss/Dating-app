@@ -24,6 +24,7 @@ class AppState extends ChangeNotifier {
 
   AppState() {
     _loadPreferences();
+    _setupDeepLinkListener();
   }
 
   // Carregar preferencias salvas
@@ -41,6 +42,24 @@ class AppState extends ChangeNotifier {
   }
 
   static const _nativeChannel = MethodChannel('com.desenrolaai/native');
+
+  // Deep link pending navigation
+  String? _pendingDeepLink;
+  String? get pendingDeepLink => _pendingDeepLink;
+  void clearPendingDeepLink() => _pendingDeepLink = null;
+
+  void _setupDeepLinkListener() {
+    _nativeChannel.setMethodCallHandler((call) async {
+      if (call.method == 'handleDeepLink') {
+        final args = call.arguments as Map?;
+        final url = args?['url'] as String?;
+        if (url != null) {
+          _pendingDeepLink = url;
+          notifyListeners();
+        }
+      }
+    });
+  }
 
   Future<void> setLocale(Locale locale) async {
     _locale = locale;

@@ -24,6 +24,18 @@ import CoreImage
         return super.application(application, didFinishLaunchingWithOptions: launchOptions)
     }
 
+    // MARK: - Deep Link Handling
+
+    override func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+        if url.scheme == "desenrolaai" {
+            let controller = window?.rootViewController as? FlutterViewController
+            let channel = FlutterMethodChannel(name: "com.desenrolaai/native", binaryMessenger: controller!.binaryMessenger)
+            channel.invokeMethod("handleDeepLink", arguments: ["url": url.absoluteString])
+            return true
+        }
+        return super.application(app, open: url, options: options)
+    }
+
     // MARK: - Method Channel Handler
 
     private func handleMethodCall(call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -96,6 +108,36 @@ import CoreImage
                 sharedDefaults.synchronize()
             }
             result(nil)
+
+        case "getSharedDefault":
+            if let args = call.arguments as? [String: Any],
+               let key = args["key"] as? String,
+               let sharedDefaults = UserDefaults(suiteName: "group.com.desenrolaai.app.shared") {
+                result(sharedDefaults.string(forKey: key))
+            } else {
+                result(nil)
+            }
+
+        case "setSharedDefault":
+            if let args = call.arguments as? [String: Any],
+               let key = args["key"] as? String,
+               let value = args["value"] as? String {
+                saveToSharedDefaults(key: key, value: value)
+                result(nil)
+            } else {
+                result(FlutterError(code: "INVALID_ARGUMENT", message: "key and value required", details: nil))
+            }
+
+        case "clearSharedDefault":
+            if let args = call.arguments as? [String: Any],
+               let key = args["key"] as? String,
+               let sharedDefaults = UserDefaults(suiteName: "group.com.desenrolaai.app.shared") {
+                sharedDefaults.removeObject(forKey: key)
+                sharedDefaults.synchronize()
+                result(nil)
+            } else {
+                result(nil)
+            }
 
         case "detectFace":
             if let args = call.arguments as? [String: Any],
