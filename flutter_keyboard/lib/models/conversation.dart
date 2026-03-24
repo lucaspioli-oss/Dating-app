@@ -289,6 +289,7 @@ class ConversationListItem {
   final DateTime lastMessageAt;
   final int unreadCount;
   final String? faceImageUrl;     // URL da imagem do rosto
+  final String? faceImageBase64;  // Base64 da imagem (fallback from profile)
   final String? age;
   final Map<String, String> avatar;
 
@@ -301,6 +302,7 @@ class ConversationListItem {
     required this.lastMessageAt,
     required this.unreadCount,
     this.faceImageUrl,
+    this.faceImageBase64,
     this.age,
     required this.avatar,
   });
@@ -315,6 +317,7 @@ class ConversationListItem {
       lastMessageAt: _parseDate(json['lastMessageAt']),
       unreadCount: json['unreadCount'] ?? 0,
       faceImageUrl: json['faceImageUrl'],
+      faceImageBase64: json['faceImageBase64'],
       age: json['age'],
       avatar: json['avatar'] != null ? Map<String, String>.from(json['avatar']) : {},
     );

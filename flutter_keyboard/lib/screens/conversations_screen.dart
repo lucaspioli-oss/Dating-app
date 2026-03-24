@@ -175,7 +175,8 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
   }
 
   Widget _buildAvatar(ConversationListItem conv) {
-    return ProfileAvatar(
+    return ProfileAvatar.fromBase64(
+      base64Image: conv.faceImageBase64,
       imageUrl: conv.faceImageUrl,
       name: conv.matchName,
       size: 48,
