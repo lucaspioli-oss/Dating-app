@@ -8,7 +8,8 @@ final class PinnedURLSession: NSObject, URLSessionDelegate {
 
     /// SHA256 pins for the backend server certificate
     private let pinnedHashes: [String] = [
-        "u6dScLDuE2TrAks7ct4HDBekXo9byFES6oApqW/pAjQ=" // Railway production
+        "PYpGc3F2H1YZy9aU0qQvbzCXkn0xVrUESSdn6mYTYmA=", // api.desenrolaai.site (current leaf)
+        "C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=", // ISRG Root X1 (Let's Encrypt root, stable)
     ]
 
     lazy var session: URLSession = {
