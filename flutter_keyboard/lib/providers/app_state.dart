@@ -49,16 +49,20 @@ class AppState extends ChangeNotifier {
   void clearPendingDeepLink() => _pendingDeepLink = null;
 
   void _setupDeepLinkListener() {
-    _nativeChannel.setMethodCallHandler((call) async {
-      if (call.method == 'handleDeepLink') {
-        final args = call.arguments as Map?;
-        final url = args?['url'] as String?;
-        if (url != null) {
-          _pendingDeepLink = url;
-          notifyListeners();
+    try {
+      _nativeChannel.setMethodCallHandler((call) async {
+        if (call.method == 'handleDeepLink') {
+          final args = call.arguments as Map?;
+          final url = args?['url'] as String?;
+          if (url != null) {
+            _pendingDeepLink = url;
+            notifyListeners();
+          }
         }
-      }
-    });
+      });
+    } catch (_) {
+      // MethodChannel not available in tests
+    }
   }
 
   Future<void> setLocale(Locale locale) async {
