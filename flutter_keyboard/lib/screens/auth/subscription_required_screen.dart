@@ -46,6 +46,7 @@ class _SubscriptionRequiredScreenState
       if (!mounted) return;
       switch (status) {
         case PurchaseStatus.purchased:
+        case PurchaseStatus.restored:
           setState(() => _isPurchasing = false);
           AppSnackBar.success(context, 'Assinatura ativada com sucesso!');
           if (mounted) Navigator.of(context).pop(true);
