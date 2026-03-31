@@ -134,8 +134,10 @@ class AppleIAPService {
 
       case PurchaseStatus.purchased:
       case PurchaseStatus.restored:
-        await _verifyAndActivate(purchase);
-        _purchaseStatusController.add(PurchaseStatus.purchased);
+        final success = await _verifyAndActivate(purchase);
+        _purchaseStatusController.add(
+          success ? PurchaseStatus.purchased : PurchaseStatus.error,
+        );
         break;
 
       case PurchaseStatus.error:
@@ -153,13 +155,15 @@ class AppleIAPService {
     }
   }
 
-  Future<void> _verifyAndActivate(PurchaseDetails purchase) async {
+  Future<bool> _verifyAndActivate(PurchaseDetails purchase) async {
     try {
       final session = Supabase.instance.client.auth.currentSession;
-      if (session == null) return;
+      if (session == null) {
+        debugPrint('IAP: No active session, cannot activate');
+        return false;
+      }
 
       final token = session.accessToken;
-
       final plan = _productIdToPlan(purchase.productID);
 
       final response = await http.post(
@@ -178,11 +182,14 @@ class AppleIAPService {
 
       if (response.statusCode == 200) {
         debugPrint('IAP: Subscription activated successfully');
+        return true;
       } else {
         debugPrint('IAP: Failed to activate: ${response.body}');
+        return false;
       }
     } catch (e) {
       debugPrint('IAP: Error activating subscription: $e');
+      return false;
     }
   }
 
@@ -207,8 +214,33 @@ class AppleIAPService {
     }
   }
 
-  Future<void> restorePurchases() async {
+  /// Restore purchases and wait for the result.
+  /// Returns true if a purchase was successfully restored and activated.
+  Future<bool> restorePurchases() async {
+    final completer = Completer<bool>();
+    StreamSubscription<PurchaseStatus>? sub;
+    Timer? timeout;
+
+    sub = purchaseStatusStream.listen((status) {
+      if (status == PurchaseStatus.purchased) {
+        timeout?.cancel();
+        sub?.cancel();
+        if (!completer.isCompleted) completer.complete(true);
+      } else if (status == PurchaseStatus.error) {
+        timeout?.cancel();
+        sub?.cancel();
+        if (!completer.isCompleted) completer.complete(false);
+      }
+    });
+
+    // Timeout after 15 seconds if no response from Apple
+    timeout = Timer(const Duration(seconds: 15), () {
+      sub?.cancel();
+      if (!completer.isCompleted) completer.complete(false);
+    });
+
     await _iap.restorePurchases();
+    return completer.future;
   }
 
   void dispose() {

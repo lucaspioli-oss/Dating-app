@@ -46,9 +46,9 @@ class _SubscriptionRequiredScreenState
       if (!mounted) return;
       switch (status) {
         case PurchaseStatus.purchased:
-        case PurchaseStatus.restored:
           setState(() => _isPurchasing = false);
           AppSnackBar.success(context, 'Assinatura ativada com sucesso!');
+          if (mounted) Navigator.of(context).pop(true);
           break;
         case PurchaseStatus.error:
           setState(() => _isPurchasing = false);
@@ -177,9 +177,15 @@ class _SubscriptionRequiredScreenState
                     ? null
                     : () async {
                         setState(() => _isPurchasing = true);
-                        await _iapService.restorePurchases();
-                        await Future.delayed(const Duration(seconds: 3));
-                        if (mounted) setState(() => _isPurchasing = false);
+                        final restored = await _iapService.restorePurchases();
+                        if (!mounted) return;
+                        setState(() => _isPurchasing = false);
+                        if (restored) {
+                          AppSnackBar.success(context, 'Compra restaurada com sucesso!');
+                          Navigator.of(context).pop(true);
+                        } else {
+                          AppSnackBar.error(context, 'Nenhuma compra encontrada para restaurar.');
+                        }
                       },
                 child: Text(
                   'Restaurar compras',
