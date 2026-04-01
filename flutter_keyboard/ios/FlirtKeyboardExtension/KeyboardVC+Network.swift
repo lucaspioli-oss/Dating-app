@@ -144,7 +144,7 @@ extension KeyboardViewController {
         request.setValue(signed.timestamp, forHTTPHeaderField: "X-Timestamp")
         request.setValue(signed.nonce, forHTTPHeaderField: "X-Nonce")
 
-        PinnedURLSession.shared.session.dataTask(with: request) { [weak self] data, response, error in
+        PinnedURLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             if let error = error {
                 if !silent {
                     let nsError = error as NSError
@@ -156,6 +156,8 @@ extension KeyboardViewController {
                         errorMsg = "Servidor demorou para responder. Tente novamente."
                     case NSURLErrorSecureConnectionFailed, NSURLErrorServerCertificateUntrusted:
                         errorMsg = "Erro de segurança na conexão (SSL)."
+                    case NSURLErrorCannotFindHost:
+                        errorMsg = "Servidor não encontrado. Verifique sua conexão e tente novamente."
                     default:
                         errorMsg = "Erro de conexão: \(nsError.localizedDescription) (\(nsError.code))"
                     }
@@ -279,7 +281,7 @@ extension KeyboardViewController {
                     }
                 }
             }
-        }.resume()
+        }
     }
 
     func analyzeText(_ text: String, tone: String, conversationId: String?, objective: String?) {
@@ -315,7 +317,7 @@ extension KeyboardViewController {
         request.setValue(signedAnalyze.timestamp, forHTTPHeaderField: "X-Timestamp")
         request.setValue(signedAnalyze.nonce, forHTTPHeaderField: "X-Nonce")
 
-        PinnedURLSession.shared.session.dataTask(with: request) { [weak self] data, response, error in
+        PinnedURLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             guard let data = data, error == nil else {
                 DispatchQueue.main.async {
                     self?.isLoadingSuggestions = false
@@ -342,7 +344,7 @@ extension KeyboardViewController {
                     self?.renderCurrentState()
                 }
             }
-        }.resume()
+        }
     }
 
     func sendMessageToServer(conversationId: String?, profileId: String?, content: String, wasAiSuggestion: Bool) {
@@ -387,7 +389,7 @@ extension KeyboardViewController {
         request.setValue(signedSend.timestamp, forHTTPHeaderField: "X-Timestamp")
         request.setValue(signedSend.nonce, forHTTPHeaderField: "X-Nonce")
 
-        PinnedURLSession.shared.session.dataTask(with: request) { data, response, error in
+        PinnedURLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 #if DEBUG
                 NSLog("[KB] sendMessage FAILED: \(error.localizedDescription)")
@@ -403,7 +405,7 @@ extension KeyboardViewController {
                 NSLog("[KB] sendMessage ERROR: HTTP \(statusCode) — \(body)")
             }
             #endif
-        }.resume()
+        }
     }
 
     // MARK: - Generate First Message (Start Conversation)
@@ -448,7 +450,7 @@ extension KeyboardViewController {
         request.setValue(signedFirst.timestamp, forHTTPHeaderField: "X-Timestamp")
         request.setValue(signedFirst.nonce, forHTTPHeaderField: "X-Nonce")
 
-        PinnedURLSession.shared.session.dataTask(with: request) { [weak self] data, response, error in
+        PinnedURLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             guard let data = data, error == nil else {
                 #if DEBUG
                 NSLog("[KB] generateFirstMessage FAILED: \(error?.localizedDescription ?? "unknown")")
@@ -493,7 +495,7 @@ extension KeyboardViewController {
                     self?.renderCurrentState()
                 }
             }
-        }.resume()
+        }
     }
 
     // MARK: - Analyze Screenshot
@@ -539,7 +541,7 @@ extension KeyboardViewController {
         request.setValue(signedScreenshot.timestamp, forHTTPHeaderField: "X-Timestamp")
         request.setValue(signedScreenshot.nonce, forHTTPHeaderField: "X-Nonce")
 
-        PinnedURLSession.shared.session.dataTask(with: request) { [weak self] data, response, error in
+        PinnedURLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             // Release screenshot image to free memory
             DispatchQueue.main.async { self?.screenshotImage = nil }
 
@@ -597,7 +599,7 @@ extension KeyboardViewController {
                     self?.renderCurrentState()
                 }
             }
-        }.resume()
+        }
     }
 
     // MARK: - Clipboard Polling
