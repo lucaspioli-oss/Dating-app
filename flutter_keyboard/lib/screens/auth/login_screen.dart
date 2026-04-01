@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../config/app_theme.dart';
 import '../../config/app_page_transitions.dart';
 
@@ -265,6 +266,29 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Support link
+                    Center(
+                      child: TextButton.icon(
+                        onPressed: () => launchUrl(
+                          Uri.parse('mailto:suporte@desenrolaai.site'),
+                          mode: LaunchMode.externalApplication,
+                        ),
+                        icon: Icon(
+                          Icons.help_outline,
+                          color: AppColors.textSecondary,
+                          size: 16,
+                        ),
+                        label: Text(
+                          'Precisa de ajuda? Fale com o suporte',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),

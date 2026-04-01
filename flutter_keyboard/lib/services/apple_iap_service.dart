@@ -156,41 +156,56 @@ class AppleIAPService {
   }
 
   Future<bool> _verifyAndActivate(PurchaseDetails purchase) async {
-    try {
-      final session = Supabase.instance.client.auth.currentSession;
-      if (session == null) {
-        debugPrint('IAP: No active session, cannot activate');
-        return false;
+    const maxRetries = 3;
+
+    for (var attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Refresh session if needed
+        final session = Supabase.instance.client.auth.currentSession;
+        if (session == null) {
+          debugPrint('IAP: No active session, attempting refresh...');
+          await Supabase.instance.client.auth.refreshSession();
+          final refreshed = Supabase.instance.client.auth.currentSession;
+          if (refreshed == null) {
+            debugPrint('IAP: Session refresh failed');
+            return false;
+          }
+        }
+
+        final token = Supabase.instance.client.auth.currentSession!.accessToken;
+        final plan = _productIdToPlan(purchase.productID);
+
+        final response = await http.post(
+          Uri.parse('${AppConfig.backendUrl}/apple/activate-subscription'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: json.encode({
+            'productId': purchase.productID,
+            'transactionId': purchase.purchaseID,
+            'plan': plan,
+            'verificationData': purchase.verificationData.serverVerificationData,
+          }),
+        ).timeout(const Duration(seconds: 15));
+
+        if (response.statusCode == 200) {
+          debugPrint('IAP: Subscription activated successfully');
+          return true;
+        } else {
+          debugPrint('IAP: Failed to activate (attempt $attempt/$maxRetries): ${response.body}');
+        }
+      } catch (e) {
+        debugPrint('IAP: Error activating (attempt $attempt/$maxRetries): $e');
       }
 
-      final token = session.accessToken;
-      final plan = _productIdToPlan(purchase.productID);
-
-      final response = await http.post(
-        Uri.parse('${AppConfig.backendUrl}/apple/activate-subscription'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: json.encode({
-          'productId': purchase.productID,
-          'transactionId': purchase.purchaseID,
-          'plan': plan,
-          'verificationData': purchase.verificationData.serverVerificationData,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        debugPrint('IAP: Subscription activated successfully');
-        return true;
-      } else {
-        debugPrint('IAP: Failed to activate: ${response.body}');
-        return false;
+      if (attempt < maxRetries) {
+        await Future.delayed(Duration(seconds: attempt * 2));
       }
-    } catch (e) {
-      debugPrint('IAP: Error activating subscription: $e');
-      return false;
     }
+
+    debugPrint('IAP: All activation attempts failed');
+    return false;
   }
 
   String _productIdToPlan(String productId) {
