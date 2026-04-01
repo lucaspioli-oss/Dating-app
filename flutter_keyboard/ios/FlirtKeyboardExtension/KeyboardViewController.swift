@@ -157,6 +157,15 @@ class KeyboardViewController: UIInputViewController {
         super.viewDidLoad()
         view.backgroundColor = Theme.bg
 
+        // Read clipboard FIRST, before any views exist.
+        // The iOS paste dialog (if any) appears before the keyboard is visible,
+        // so the user never sees it. The value is cached in clipboardText
+        // and used later during rendering — never access UIPasteboard during render.
+        previousClipboard = UIPasteboard.general.string
+        if let clip = UIPasteboard.general.string, !clip.isEmpty {
+            clipboardText = clip
+        }
+
         if !SecurityHelper.isSecureEnvironment() {
             NSLog("[KB] Security check FAILED")
             currentState = .basicMode
@@ -182,9 +191,6 @@ class KeyboardViewController: UIInputViewController {
             currentState = .basicMode
         }
 
-        // Never auto-read clipboard — it triggers the iOS "Allow Paste" dialog
-        // which corrupts the keyboard view. The user pastes manually via the
-        // "Colar Mensagem" button in the hub instead.
         renderCurrentState()
     }
 
@@ -477,9 +483,7 @@ class KeyboardViewController: UIInputViewController {
             startLabel.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
         ])
 
-        // Clipboard polling disabled — auto-reading UIPasteboard triggers the
-        // iOS paste permission dialog which corrupts the keyboard view.
-        // User pastes manually via "Colar Mensagem" button.
+        startClipboardPolling()
     }
 
     // MARK: - Hub Helpers
