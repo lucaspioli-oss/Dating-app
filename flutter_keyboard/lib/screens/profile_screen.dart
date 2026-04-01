@@ -1,7 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
+import '../config/app_config.dart';
 import '../providers/user_profile_provider.dart';
 import '../models/user_profile.dart';
 import '../services/firebase_auth_service.dart';
@@ -473,10 +477,32 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   }
 
   Future<void> _openSubscriptionManagement() async {
-    // On iOS, open the App Store subscription management page
-    final url = Uri.parse('https://apps.apple.com/account/subscriptions');
     try {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
+      final session = Supabase.instance.client.auth.currentSession;
+      if (session == null) return;
+
+      final response = await http.post(
+        Uri.parse('${AppConfig.backendUrl}/subscription/manage'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${session.accessToken}',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final manageUrl = data['url'] as String?;
+        if (manageUrl != null) {
+          await launchUrl(Uri.parse(manageUrl), mode: LaunchMode.externalApplication);
+          return;
+        }
+      }
+
+      // Fallback: open Apple subscription management
+      await launchUrl(
+        Uri.parse('https://apps.apple.com/account/subscriptions'),
+        mode: LaunchMode.externalApplication,
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1581,9 +1607,31 @@ class SubscriptionContent extends StatelessWidget {
   }
 
   Future<void> _openSubscriptionManagement(BuildContext context) async {
-    final url = Uri.parse('https://apps.apple.com/account/subscriptions');
     try {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
+      final session = Supabase.instance.client.auth.currentSession;
+      if (session == null) return;
+
+      final response = await http.post(
+        Uri.parse('${AppConfig.backendUrl}/subscription/manage'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${session.accessToken}',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final manageUrl = data['url'] as String?;
+        if (manageUrl != null) {
+          await launchUrl(Uri.parse(manageUrl), mode: LaunchMode.externalApplication);
+          return;
+        }
+      }
+
+      await launchUrl(
+        Uri.parse('https://apps.apple.com/account/subscriptions'),
+        mode: LaunchMode.externalApplication,
+      );
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
