@@ -182,21 +182,10 @@ class KeyboardViewController: UIInputViewController {
             currentState = .basicMode
         }
 
-        // Render UI immediately — BEFORE touching the clipboard.
-        // UIPasteboard access triggers the iOS "Allow Paste" dialog which
-        // blocks the run loop and corrupts the view layout if the UI
-        // hasn't been rendered yet.
+        // Never auto-read clipboard — it triggers the iOS "Allow Paste" dialog
+        // which corrupts the keyboard view. The user pastes manually via the
+        // "Colar Mensagem" button in the hub instead.
         renderCurrentState()
-
-        // Defer clipboard detection so the paste dialog doesn't cause a black screen.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-            guard let self = self else { return }
-            self.previousClipboard = UIPasteboard.general.string
-            if let clip = UIPasteboard.general.string, !clip.isEmpty, clip != self.consumedClipboard {
-                self.clipboardText = clip
-                self.renderCurrentState()
-            }
-        }
     }
 
     // MARK: - Height
@@ -488,7 +477,9 @@ class KeyboardViewController: UIInputViewController {
             startLabel.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
         ])
 
-        startClipboardPolling()
+        // Clipboard polling disabled — auto-reading UIPasteboard triggers the
+        // iOS paste permission dialog which corrupts the keyboard view.
+        // User pastes manually via "Colar Mensagem" button.
     }
 
     // MARK: - Hub Helpers
