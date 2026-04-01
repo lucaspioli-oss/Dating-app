@@ -169,19 +169,8 @@ class KeyboardViewController: UIInputViewController {
         checkPendingInsert()
 
         if authToken != nil {
-            // Try to restore last profile for instant hub
-            if let saved = restoreSavedConversation() {
-                selectedConversation = saved
-                // Restore objective if recent
-                let objKey = objectiveKey(for: saved)
-                if let savedObj = sharedDefaults?.integer(forKey: objKey),
-                   let savedTime = sharedDefaults?.object(forKey: "\(objKey)_at") as? Date,
-                   Date().timeIntervalSince(savedTime) < 1800 {
-                    selectedObjectiveIndex = savedObj
-                }
-            }
-            // Always start at hub — profile selector is an overlay now
-            currentState = .hub
+            // Start at profile picker so user always chooses who to talk to
+            currentState = .profilePicker
 
             // Load cached profiles for instant display
             if let cached = loadCachedConversations(), !cached.isEmpty {
