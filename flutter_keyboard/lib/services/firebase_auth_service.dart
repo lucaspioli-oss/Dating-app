@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
+import 'error_reporter.dart';
 
 class FirebaseAuthService {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -34,8 +35,10 @@ class FirebaseAuthService {
 
       return response;
     } on AuthException catch (e) {
+      ErrorReporter.instance.report(message: e.message, context: 'signUp');
       throw _handleAuthException(e);
     } catch (e) {
+      ErrorReporter.instance.report(message: e.toString(), context: 'signUp');
       final message = e.toString().toLowerCase();
       if (message.contains('already') || message.contains('exists')) {
         throw 'Este email ja esta cadastrado.';
@@ -61,8 +64,10 @@ class FirebaseAuthService {
         password: password,
       );
     } on AuthException catch (e) {
+      ErrorReporter.instance.report(message: e.message, context: 'signIn');
       throw _handleAuthException(e);
     } catch (e) {
+      ErrorReporter.instance.report(message: e.toString(), context: 'signIn');
       final message = e.toString().toLowerCase();
       if (message.contains('credential') ||
           message.contains('password') ||

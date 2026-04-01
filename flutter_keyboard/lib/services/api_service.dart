@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'error_reporter.dart';
 
 class ApiService {
   final String baseUrl;
@@ -39,6 +40,7 @@ class ApiService {
         );
       }
     } catch (e) {
+      ErrorReporter.instance.report(message: e.toString(), context: 'analyzeMessage');
       return ApiResponse.error(
         message: 'Erro de conexão: ${e.toString()}',
       );

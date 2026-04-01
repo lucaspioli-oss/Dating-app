@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/conversation.dart';
+import 'error_reporter.dart';
 
 class ConversationService {
   final String? baseUrl;
@@ -99,6 +100,7 @@ class ConversationService {
     if (response.statusCode == 201 || response.statusCode == 200) {
       return Conversation.fromJson(jsonDecode(response.body));
     } else {
+      ErrorReporter.instance.report(message: 'HTTP ${response.statusCode}: ${response.body}', context: 'createConversation', errorCode: response.statusCode);
       throw Exception('Erro ao criar conversa: ${response.body}');
     }
   }
@@ -111,6 +113,7 @@ class ConversationService {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((item) => ConversationListItem.fromJson(item)).toList();
     } else {
+      ErrorReporter.instance.report(message: 'HTTP ${response.statusCode}', context: 'listConversations', errorCode: response.statusCode);
       throw Exception('Erro ao listar conversas: ${response.body}');
     }
   }
@@ -122,6 +125,7 @@ class ConversationService {
     if (response.statusCode == 200) {
       return Conversation.fromJson(jsonDecode(response.body));
     } else {
+      ErrorReporter.instance.report(message: 'HTTP ${response.statusCode}', context: 'getConversation', errorCode: response.statusCode);
       throw Exception('Erro ao obter conversa: ${response.body}');
     }
   }
@@ -145,6 +149,7 @@ class ConversationService {
     if (response.statusCode == 200) {
       return Conversation.fromJson(jsonDecode(response.body));
     } else {
+      ErrorReporter.instance.report(message: 'HTTP ${response.statusCode}', context: 'addMessage', errorCode: response.statusCode);
       throw Exception('Erro ao adicionar mensagem: ${response.body}');
     }
   }
@@ -177,6 +182,7 @@ class ConversationService {
       }
       return parsedSuggestions;
     } else {
+      ErrorReporter.instance.report(message: 'HTTP ${response.statusCode}', context: 'generateSuggestions', errorCode: response.statusCode);
       throw Exception('Erro ao gerar sugestoes: ${response.body}');
     }
   }
@@ -185,14 +191,20 @@ class ConversationService {
     final url = Uri.parse('$baseUrl/conversations/$conversationId/tone');
     final headers = await _getHeaders();
     final response = await http.patch(url, headers: headers, body: jsonEncode({'tone': tone}));
-    if (response.statusCode != 200) throw Exception('Erro ao atualizar tom: ${response.body}');
+    if (response.statusCode != 200) {
+      ErrorReporter.instance.report(message: 'HTTP ${response.statusCode}', context: 'updateTone', errorCode: response.statusCode);
+      throw Exception('Erro ao atualizar tom: ${response.body}');
+    }
   }
 
   Future<void> deleteConversation(String conversationId) async {
     final url = Uri.parse('$baseUrl/conversations/$conversationId');
     final headers = await _getHeaders();
     final response = await http.delete(url, headers: headers);
-    if (response.statusCode != 200) throw Exception('Erro ao deletar conversa: ${response.body}');
+    if (response.statusCode != 200) {
+      ErrorReporter.instance.report(message: 'HTTP ${response.statusCode}', context: 'deleteConversation', errorCode: response.statusCode);
+      throw Exception('Erro ao deletar conversa: ${response.body}');
+    }
   }
 
   Future<void> submitFeedback({
@@ -209,6 +221,9 @@ class ConversationService {
       if (responseQuality != null) 'responseQuality': responseQuality,
     };
     final response = await http.post(url, headers: headers, body: jsonEncode(body));
-    if (response.statusCode != 200) throw Exception('Erro ao submeter feedback: ${response.body}');
+    if (response.statusCode != 200) {
+      ErrorReporter.instance.report(message: 'HTTP ${response.statusCode}', context: 'submitFeedback', errorCode: response.statusCode);
+      throw Exception('Erro ao submeter feedback: ${response.body}');
+    }
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/app_config.dart';
+import '../services/error_reporter.dart';
 import '../config/app_theme.dart';
 
 class SupportDialog {
@@ -111,6 +112,7 @@ class SupportDialog {
                   AppSnackBar.success(context, 'Mensagem enviada! Responderemos em breve.');
                 }
               } catch (e) {
+                ErrorReporter.instance.report(message: e.toString(), context: 'support.sendMessage');
                 if (ctx.mounted) {
                   AppSnackBar.error(context, 'Erro ao enviar. Tente novamente.');
                 }

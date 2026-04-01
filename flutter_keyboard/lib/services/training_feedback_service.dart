@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
 import '../models/training_feedback_model.dart';
+import 'error_reporter.dart';
 
 class TrainingFeedbackService {
   static const String baseUrl = AppConfig.backendUrl;
@@ -34,7 +35,7 @@ class TrainingFeedbackService {
       }
       return null;
     } catch (e) {
-      print('Erro ao criar feedback: $e');
+      ErrorReporter.instance.report(message: e.toString(), context: 'training.create');
       return null;
     }
   }
@@ -53,7 +54,7 @@ class TrainingFeedbackService {
       }
       return [];
     } catch (e) {
-      print('Erro ao listar feedbacks: $e');
+      ErrorReporter.instance.report(message: e.toString(), context: 'training.list');
       return [];
     }
   }
@@ -72,7 +73,7 @@ class TrainingFeedbackService {
       }
       return [];
     } catch (e) {
-      print('Erro ao listar feedbacks por categoria: $e');
+      ErrorReporter.instance.report(message: e.toString(), context: 'training.listByCategory');
       return [];
     }
   }
@@ -104,7 +105,7 @@ class TrainingFeedbackService {
       }
       return null;
     } catch (e) {
-      print('Erro ao atualizar feedback: $e');
+      ErrorReporter.instance.report(message: e.toString(), context: 'training.update');
       return null;
     }
   }
@@ -119,7 +120,7 @@ class TrainingFeedbackService {
 
       return response.statusCode == 200;
     } catch (e) {
-      print('Erro ao deletar feedback: $e');
+      ErrorReporter.instance.report(message: e.toString(), context: 'training.delete');
       return false;
     }
   }
@@ -143,7 +144,7 @@ class TrainingFeedbackService {
       }
       return '';
     } catch (e) {
-      print('Erro ao obter contexto: $e');
+      ErrorReporter.instance.report(message: e.toString(), context: 'training.getContext');
       return '';
     }
   }

@@ -43,6 +43,45 @@ fastify.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, bo
     }
 });
 
+// ===================================================================
+// GLOBAL ERROR TRACKING — logs every server error to error_logs
+// ===================================================================
+
+async function logErrorToSupabase(error, request, statusCode) {
+    try {
+        const userId = request?.user?.uid || null;
+        const route = `${request?.method || '?'} ${request?.url || '?'}`;
+        await supabaseAdmin.from('error_logs').insert({
+            source: 'server',
+            error_code: statusCode || 500,
+            message: (error?.message || String(error)).substring(0, 2000),
+            context: route,
+            user_id: userId,
+        });
+    } catch (_) { /* error tracker must never crash the server */ }
+}
+
+fastify.setErrorHandler(async (error, request, reply) => {
+    const statusCode = error.statusCode || 500;
+    if (statusCode >= 500) {
+        fastify.log.error(error);
+        await logErrorToSupabase(error, request, statusCode);
+    }
+    reply.code(statusCode).send({
+        error: error.message || 'Internal Server Error',
+    });
+});
+
+fastify.addHook('onResponse', async (request, reply) => {
+    if (reply.statusCode >= 500) {
+        await logErrorToSupabase(
+            { message: `HTTP ${reply.statusCode} on ${request.method} ${request.url}` },
+            request,
+            reply.statusCode
+        );
+    }
+});
+
 const analyzeSchema = {
     body: {
         type: 'object',

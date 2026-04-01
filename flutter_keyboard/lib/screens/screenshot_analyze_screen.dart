@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import '../services/error_reporter.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image/image.dart' as img;
@@ -113,12 +114,14 @@ class _ScreenshotAnalyzeScreenState extends State<ScreenshotAnalyzeScreen> {
           _isAnalyzing = false;
         });
       } else {
+        ErrorReporter.instance.report(message: 'HTTP ${response.statusCode}', context: 'analyzeScreenshot', errorCode: response.statusCode);
         setState(() {
           _error = 'Erro do servidor (${response.statusCode})';
           _isAnalyzing = false;
         });
       }
     } catch (e) {
+      ErrorReporter.instance.report(message: e.toString(), context: 'analyzeScreenshot');
       setState(() {
         _error = 'Erro: $e';
         _isAnalyzing = false;

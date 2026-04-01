@@ -187,6 +187,7 @@ extension KeyboardViewController {
             }
 
             if http.statusCode == 401 {
+                ErrorReporter.shared.report(errorCode: 401, message: "Sessão expirada", context: "fetchConversations")
                 if !silent {
                     DispatchQueue.main.async {
                         self?.isLoadingProfiles = false
@@ -198,6 +199,7 @@ extension KeyboardViewController {
             }
 
             if http.statusCode == 403 {
+                ErrorReporter.shared.report(errorCode: 403, message: "Assinatura necessária", context: "fetchConversations")
                 if !silent {
                     DispatchQueue.main.async {
                         self?.isLoadingProfiles = false
@@ -209,6 +211,7 @@ extension KeyboardViewController {
             }
 
             guard let data = data else {
+                ErrorReporter.shared.report(errorCode: http.statusCode, message: "Sem dados", context: "fetchConversations")
                 if !silent {
                     DispatchQueue.main.async {
                         self?.isLoadingProfiles = false
@@ -221,12 +224,13 @@ extension KeyboardViewController {
 
             // Handle non-200 status codes
             if http.statusCode != 200 {
+                var errorMsg = "Erro do servidor (HTTP \(http.statusCode))"
+                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let msg = json["message"] as? String ?? json["error"] as? String {
+                    errorMsg = msg
+                }
+                ErrorReporter.shared.report(errorCode: http.statusCode, message: errorMsg, context: "fetchConversations")
                 if !silent {
-                    var errorMsg = "Erro do servidor (HTTP \(http.statusCode))"
-                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                       let msg = json["message"] as? String ?? json["error"] as? String {
-                        errorMsg = msg
-                    }
                     DispatchQueue.main.async {
                         self?.isLoadingProfiles = false
                         self?.profilesError = errorMsg

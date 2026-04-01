@@ -5,6 +5,7 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
+import 'error_reporter.dart';
 
 class AppleIAPService {
   static final AppleIAPService _instance = AppleIAPService._internal();
@@ -29,6 +30,7 @@ class AppleIAPService {
     try {
       _isAvailable = await _iap.isAvailable();
     } catch (e) {
+      ErrorReporter.instance.report(message: e.toString(), context: 'IAP.initialize');
       debugPrint('IAP: Error checking availability: $e');
       _isAvailable = false;
       return;
@@ -89,6 +91,7 @@ class AppleIAPService {
           await Future.delayed(Duration(seconds: attempt * 2));
         }
       } catch (e) {
+        ErrorReporter.instance.report(message: e.toString(), context: 'IAP.loadProducts');
         debugPrint('IAP: Exception loading products: $e');
         if (attempt < maxRetries) {
           await Future.delayed(Duration(seconds: attempt * 2));
@@ -196,6 +199,7 @@ class AppleIAPService {
           debugPrint('IAP: Failed to activate (attempt $attempt/$maxRetries): ${response.body}');
         }
       } catch (e) {
+        ErrorReporter.instance.report(message: e.toString(), context: 'IAP.activate');
         debugPrint('IAP: Error activating (attempt $attempt/$maxRetries): $e');
       }
 

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_profile.dart';
+import '../services/error_reporter.dart';
 
 class UserProfileProvider extends ChangeNotifier {
   UserProfile _profile = UserProfile.empty();
@@ -29,7 +30,7 @@ class UserProfileProvider extends ChangeNotifier {
         _profile = UserProfile.fromJson(data);
       }
     } catch (e) {
-      debugPrint('Erro ao carregar perfil: $e');
+      ErrorReporter.instance.report(message: e.toString(), context: 'profile.load');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -49,7 +50,7 @@ class UserProfileProvider extends ChangeNotifier {
 
       debugPrint('Perfil salvo com sucesso!');
     } catch (e) {
-      debugPrint('Erro ao salvar perfil: $e');
+      ErrorReporter.instance.report(message: e.toString(), context: 'profile.save');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -103,7 +104,7 @@ class UserProfileProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('user_profile');
     } catch (e) {
-      debugPrint('Erro ao limpar perfil: $e');
+      ErrorReporter.instance.report(message: e.toString(), context: 'profile.clear');
     } finally {
       _isLoading = false;
       notifyListeners();

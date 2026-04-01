@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_profile.dart';
+import 'error_reporter.dart';
 
 class AgentService {
   final String baseUrl;
@@ -69,6 +70,7 @@ class AgentService {
         );
       }
     } catch (e) {
+      ErrorReporter.instance.report(message: e.toString(), context: 'agent_service');
       return AgentResponse.error(
         message: 'Erro de conexão: ${e.toString()}',
       );
@@ -108,6 +110,7 @@ class AgentService {
         );
       }
     } catch (e) {
+      ErrorReporter.instance.report(message: e.toString(), context: 'agent_service');
       return AgentResponse.error(
         message: 'Erro de conexão: ${e.toString()}',
       );
@@ -162,6 +165,7 @@ class AgentService {
         );
       }
     } catch (e) {
+      ErrorReporter.instance.report(message: e.toString(), context: 'agent_service');
       return AgentResponse.error(
         message: 'Erro de conexão: ${e.toString()}',
       );
@@ -211,6 +215,7 @@ class AgentService {
         );
       }
     } catch (e) {
+      ErrorReporter.instance.report(message: e.toString(), context: 'agent_service');
       return AgentResponse.error(
         message: 'Erro de conexao: ${e.toString()}',
       );
@@ -265,6 +270,7 @@ class AgentService {
         );
       }
     } catch (e) {
+      ErrorReporter.instance.report(message: e.toString(), context: 'analyzeProfileImage');
       return ProfileImageResponse.error(
         message: 'Erro de conexão: ${e.toString()}',
       );
@@ -322,6 +328,7 @@ class AgentService {
         );
       }
     } catch (e) {
+      ErrorReporter.instance.report(message: e.toString(), context: 'generateReplyWithReasoning');
       return ReplyWithReasoningResponse.error(
         message: 'Erro de conexao: ${e.toString()}',
       );
@@ -359,7 +366,7 @@ class AgentService {
 
       return response.statusCode == 201;
     } catch (e) {
-      print('Erro ao submeter feedback: $e');
+      ErrorReporter.instance.report(message: e.toString(), context: 'submitDeveloperFeedback');
       return false;
     }
   }
@@ -399,6 +406,7 @@ class AgentService {
         );
       }
     } catch (e) {
+      ErrorReporter.instance.report(message: e.toString(), context: 'analyzeConversationImage');
       return ConversationImageResponse.error(
         message: 'Erro de conexão: ${e.toString()}',
       );
