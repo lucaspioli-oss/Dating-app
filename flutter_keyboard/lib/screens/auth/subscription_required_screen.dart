@@ -10,6 +10,7 @@ import '../../services/apple_iap_service.dart';
 import '../../services/firebase_auth_service.dart';
 import '../../services/subscription_service.dart';
 import '../../widgets/app_loading.dart';
+import '../../widgets/support_dialog.dart';
 
 class SubscriptionRequiredScreen extends StatefulWidget {
   final SubscriptionStatus status;
@@ -191,6 +192,18 @@ class _SubscriptionRequiredScreenState
                 child: Text(
                   'Restaurar compras',
                   style: TextStyle(color: AppColors.textTertiary, fontSize: 13),
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              // Support link
+              TextButton.icon(
+                onPressed: () => SupportDialog.show(context, page: 'pricing'),
+                icon: Icon(Icons.help_outline, color: AppColors.textTertiary, size: 14),
+                label: Text(
+                  'Precisa de ajuda? Fale com o suporte',
+                  style: TextStyle(color: AppColors.textTertiary, fontSize: 12),
                 ),
               ),
 

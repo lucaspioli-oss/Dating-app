@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../config/app_theme.dart';
 import '../../config/app_page_transitions.dart';
+import '../../widgets/support_dialog.dart';
 
 import '../../services/firebase_auth_service.dart';
 import 'signup_screen.dart';
@@ -272,10 +272,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Support link
                     Center(
                       child: TextButton.icon(
-                        onPressed: () => launchUrl(
-                          Uri.parse('mailto:suporte@desenrolaai.site'),
-                          mode: LaunchMode.externalApplication,
-                        ),
+                        onPressed: () => SupportDialog.show(context, page: 'login'),
                         icon: Icon(
                           Icons.help_outline,
                           color: AppColors.textSecondary,
