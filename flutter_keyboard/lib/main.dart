@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:desenrola_ai_keyboard/l10n/app_localizations.dart';
 
 import 'services/analytics_service.dart';
+import 'services/error_reporter.dart';
 import 'config/app_theme.dart';
 import 'config/http_overrides.dart';
 import 'providers/app_state.dart';
@@ -25,6 +26,8 @@ void main() async {
     url: AppConfig.supabaseUrl,
     anonKey: AppConfig.supabaseAnonKey,
   );
+
+  ErrorReporter.init();
 
   runApp(const DesenrolaAIApp());
 }

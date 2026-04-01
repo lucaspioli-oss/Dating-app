@@ -872,6 +872,35 @@ fastify.delete('/user/account', { preHandler: [auth_1.verifyAuthOnly] }, async (
 });
 
 // ===================================================================
+// ERROR TRACKING
+// ===================================================================
+
+fastify.post('/errors', async (request, reply) => {
+    try {
+        const { source, error_code, message, context, user_id, app_version, os_version, device } = request.body || {};
+        if (!source || !message) {
+            return reply.code(400).send({ error: 'source and message are required' });
+        }
+
+        await supabaseAdmin.from('error_logs').insert({
+            source,
+            error_code: error_code || null,
+            message: message.substring(0, 2000),
+            context: context || null,
+            user_id: user_id || null,
+            app_version: app_version || null,
+            os_version: os_version || null,
+            device: device || null,
+        });
+
+        return reply.code(200).send({ ok: true });
+    } catch (error) {
+        fastify.log.error('Error tracking failed:', error);
+        return reply.code(500).send({ error: 'Failed to log error' });
+    }
+});
+
+// ===================================================================
 // CRON: CHECK EXPIRED SUBSCRIPTIONS
 // ===================================================================
 

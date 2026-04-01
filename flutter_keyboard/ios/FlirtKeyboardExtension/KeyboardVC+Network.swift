@@ -146,8 +146,13 @@ extension KeyboardViewController {
 
         PinnedURLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             if let error = error {
+                let nsError = error as NSError
+                ErrorReporter.shared.report(
+                    errorCode: nsError.code,
+                    message: nsError.localizedDescription,
+                    context: "fetchConversations"
+                )
                 if !silent {
-                    let nsError = error as NSError
                     let errorMsg: String
                     switch nsError.code {
                     case NSURLErrorNotConnectedToInternet, NSURLErrorNetworkConnectionLost:
@@ -319,6 +324,9 @@ extension KeyboardViewController {
 
         PinnedURLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             guard let data = data, error == nil else {
+                if let nsError = error as NSError? {
+                    ErrorReporter.shared.report(errorCode: nsError.code, message: nsError.localizedDescription, context: "analyzeText")
+                }
                 DispatchQueue.main.async {
                     self?.isLoadingSuggestions = false
                     self?.suggestions = ["Erro de conexão. Tente novamente."]
@@ -391,6 +399,8 @@ extension KeyboardViewController {
 
         PinnedURLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
+                let nsError = error as NSError
+                ErrorReporter.shared.report(errorCode: nsError.code, message: nsError.localizedDescription, context: "sendMessage")
                 #if DEBUG
                 NSLog("[KB] sendMessage FAILED: \(error.localizedDescription)")
                 #endif
@@ -452,6 +462,9 @@ extension KeyboardViewController {
 
         PinnedURLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             guard let data = data, error == nil else {
+                if let nsError = error as NSError? {
+                    ErrorReporter.shared.report(errorCode: nsError.code, message: nsError.localizedDescription, context: "generateFirstMessage")
+                }
                 #if DEBUG
                 NSLog("[KB] generateFirstMessage FAILED: \(error?.localizedDescription ?? "unknown")")
                 #endif
@@ -546,6 +559,9 @@ extension KeyboardViewController {
             DispatchQueue.main.async { self?.screenshotImage = nil }
 
             guard let data = data, error == nil else {
+                if let nsError = error as NSError? {
+                    ErrorReporter.shared.report(errorCode: nsError.code, message: nsError.localizedDescription, context: "analyzeScreenshot")
+                }
                 #if DEBUG
                 NSLog("[KB] analyzeScreenshot FAILED: \(error?.localizedDescription ?? "unknown")")
                 #endif
