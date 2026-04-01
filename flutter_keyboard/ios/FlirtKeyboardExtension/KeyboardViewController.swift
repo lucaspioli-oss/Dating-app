@@ -343,7 +343,9 @@ class KeyboardViewController: UIInputViewController {
         clipArea.isUserInteractionEnabled = true
         containerView.addSubview(clipArea)
 
-        let currentClip = clipboardText ?? UIPasteboard.general.string
+        // Never access UIPasteboard during render — it triggers the iOS paste
+        // permission dialog which blocks the run loop and corrupts the view.
+        let currentClip = clipboardText
         let hasClip = currentClip != nil && !currentClip!.isEmpty && currentClip != consumedClipboard
 
         if hasClip {
@@ -572,7 +574,7 @@ class KeyboardViewController: UIInputViewController {
     }
 
     @objc func clipAreaTapped() {
-        let clip = clipboardText ?? UIPasteboard.general.string
+        let clip = clipboardText
         guard let text = clip, !text.isEmpty else { return }
         clipboardText = text
         consumedClipboard = text
