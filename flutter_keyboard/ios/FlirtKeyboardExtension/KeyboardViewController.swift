@@ -156,7 +156,6 @@ class KeyboardViewController: UIInputViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = Theme.bg
-        previousClipboard = UIPasteboard.general.string
 
         if !SecurityHelper.isSecureEnvironment() {
             NSLog("[KB] Security check FAILED")
@@ -179,16 +178,25 @@ class KeyboardViewController: UIInputViewController {
                 isLoadingProfiles = false
             }
             fetchConversations(silent: !conversations.isEmpty)
-
-            // Auto-detect clipboard on open
-            if let clip = UIPasteboard.general.string, !clip.isEmpty, clip != consumedClipboard {
-                clipboardText = clip
-            }
         } else {
             currentState = .basicMode
         }
 
+        // Render UI immediately — BEFORE touching the clipboard.
+        // UIPasteboard access triggers the iOS "Allow Paste" dialog which
+        // blocks the run loop and corrupts the view layout if the UI
+        // hasn't been rendered yet.
         renderCurrentState()
+
+        // Defer clipboard detection so the paste dialog doesn't cause a black screen.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            guard let self = self else { return }
+            self.previousClipboard = UIPasteboard.general.string
+            if let clip = UIPasteboard.general.string, !clip.isEmpty, clip != self.consumedClipboard {
+                self.clipboardText = clip
+                self.renderCurrentState()
+            }
+        }
     }
 
     // MARK: - Height
