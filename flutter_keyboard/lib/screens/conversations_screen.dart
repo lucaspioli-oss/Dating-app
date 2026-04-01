@@ -36,15 +36,15 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
       final appState = context.read<AppState>();
       final service = ConversationService(baseUrl: appState.backendUrl);
       final conversations = await service.listConversations();
+      if (!mounted) return;
       setState(() {
         _conversations = conversations;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoading = false);
-      if (mounted) {
-        AppSnackBar.error(context, 'Erro: ${e.toString()}');
-      }
+      AppSnackBar.error(context, 'Erro: ${e.toString()}');
     }
   }
 
