@@ -52,6 +52,8 @@ extension KeyboardViewController {
     @objc func profileTapped(_ sender: UIButton) {
         let index = sender.tag
         guard index < filteredConversations.count else { return }
+        stopMessagePolling()
+        lastPolledTimestamp = nil
         selectedConversation = filteredConversations[index]
         saveSelectedConversation(selectedConversation)
         clipboardText = nil
@@ -196,6 +198,8 @@ extension KeyboardViewController {
 
     @objc func backTapped() {
         stopClipboardPolling()
+        stopMessagePolling()
+        lastPolledTimestamp = nil
         suggestions = []
         searchText = ""
         isSearchActive = false
@@ -255,10 +259,10 @@ extension KeyboardViewController {
         }
 
         suggestions = []
+        clipboardText = nil
         consumedClipboard = UIPasteboard.general.string
         currentState = .hub
-        // Auto-switch to system keyboard so user can tap Send
-        advanceToNextInputMode()
+        renderCurrentState()
     }
 
     @objc func basicSuggestionTapped(_ sender: UIButton) {
@@ -302,10 +306,10 @@ extension KeyboardViewController {
 
         writeOwnText = ""
         suggestions = []
+        clipboardText = nil
         consumedClipboard = UIPasteboard.general.string
         currentState = .hub
-        // Auto-switch to system keyboard so user can tap Send
-        advanceToNextInputMode()
+        renderCurrentState()
     }
 
     @objc func regenerateTapped() {

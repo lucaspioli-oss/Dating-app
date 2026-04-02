@@ -28,7 +28,7 @@ fastify.register(cors_1.default, {
 });
 
 fastify.register(require('@fastify/rate-limit'), {
-    max: 15,
+    max: 25,
     timeWindow: '1 minute',
     keyGenerator: (request) => request.user?.uid || request.ip,
 });
@@ -545,10 +545,33 @@ fastify.get('/keyboard/context', { preHandler: [verifyRequestSignature, auth_1.v
     try {
         const userId = request.user.uid;
 
-        const [profilesResult, convsResult] = await Promise.all([
+        const [profilesResult, convsResult, selectedContactsResult] = await Promise.all([
             supabaseAdmin.from('profiles').select('*').eq('user_id', userId).order('updated_at', { ascending: false }).limit(20),
             supabaseAdmin.from('conversations').select('*').eq('user_id', userId).eq('status', 'active'),
+            supabaseAdmin.from('selected_contacts').select('external_id, display_name').eq('user_id', userId).eq('provider', 'whatsapp').eq('is_active', true),
         ]);
+
+        // Build threadId map: display_name → threadId (via selected_contacts → threads)
+        const threadIdMap = {};
+        const selectedContacts = selectedContactsResult.data || [];
+        if (selectedContacts.length > 0) {
+            const externalIds = selectedContacts.map(c => c.external_id);
+            const { data: threads } = await supabaseAdmin
+                .from('threads')
+                .select('id, external_thread_id')
+                .eq('user_id', userId)
+                .eq('provider', 'whatsapp')
+                .in('external_thread_id', externalIds);
+            if (threads) {
+                const threadByExtId = {};
+                threads.forEach(t => { threadByExtId[t.external_thread_id] = t.id; });
+                selectedContacts.forEach(c => {
+                    if (c.display_name && threadByExtId[c.external_id]) {
+                        threadIdMap[c.display_name.toLowerCase()] = threadByExtId[c.external_id];
+                    }
+                });
+            }
+        }
 
         const profiles = profilesResult.data || [];
         const convs = convsResult.data || [];
@@ -578,6 +601,7 @@ fastify.get('/keyboard/context', { preHandler: [verifyRequestSignature, auth_1.v
                 profileId: profileIdMap[nameKey] || null,
                 matchName, platform,
                 faceImageBase64: photoMap[nameKey] || null,
+                threadId: threadIdMap[nameKey] || null,
             });
         }
 
@@ -594,6 +618,7 @@ fastify.get('/keyboard/context', { preHandler: [verifyRequestSignature, auth_1.v
                     profileId: p.id,
                     matchName: name, platform,
                     faceImageBase64: p.face_image_base64 || null,
+                    threadId: threadIdMap[name.toLowerCase()] || null,
                 });
             }
         });
@@ -840,6 +865,91 @@ Gere APENAS 3 sugestoes de resposta numeradas (1. 2. 3.), cada uma curta (1-2 fr
     } catch (error) {
         fastify.log.error(error);
         return reply.code(500).send({ error: 'Erro ao analisar screenshot', message: error instanceof Error ? error.message : 'Erro desconhecido' });
+    }
+});
+
+// ===================================================================
+// KEYBOARD: POLL MESSAGES (Baileys real-time loop)
+// ===================================================================
+
+fastify.get('/keyboard/poll-messages', { preHandler: [verifyRequestSignature, auth_1.verifyAuth] }, async (request, reply) => {
+    try {
+        const userId = request.user.uid;
+        const { matchName, since, threadId } = request.query;
+
+        if (!matchName || !since) {
+            return reply.code(400).send({ error: 'matchName and since are required' });
+        }
+
+        let resolvedThreadId = threadId || null;
+
+        // If no threadId provided, resolve via selected_contacts → threads
+        if (!resolvedThreadId) {
+            // Find selected contact by display_name (case-insensitive)
+            const { data: contacts } = await supabaseAdmin
+                .from('selected_contacts')
+                .select('external_id, display_name')
+                .eq('user_id', userId)
+                .eq('provider', 'whatsapp')
+                .eq('is_active', true);
+
+            if (contacts && contacts.length > 0) {
+                const matchLower = matchName.toLowerCase();
+                const contact = contacts.find(c =>
+                    c.display_name && c.display_name.toLowerCase() === matchLower
+                ) || contacts.find(c =>
+                    c.display_name && c.display_name.toLowerCase().includes(matchLower)
+                ) || contacts.find(c =>
+                    matchLower.includes((c.display_name || '').toLowerCase())
+                );
+
+                if (contact) {
+                    const { data: thread } = await supabaseAdmin
+                        .from('threads')
+                        .select('id')
+                        .eq('user_id', userId)
+                        .eq('provider', 'whatsapp')
+                        .eq('external_thread_id', contact.external_id)
+                        .single();
+
+                    if (thread) {
+                        resolvedThreadId = thread.id;
+                    }
+                }
+            }
+        }
+
+        if (!resolvedThreadId) {
+            return reply.code(200).send({ messages: [], threadId: null, latestTs: null });
+        }
+
+        // Query new inbound messages since timestamp
+        const { data: messages, error: msgErr } = await supabaseAdmin
+            .from('messages')
+            .select('id, text, ts, direction')
+            .eq('thread_id', resolvedThreadId)
+            .eq('direction', 'inbound')
+            .gt('ts', since)
+            .order('ts', { ascending: true })
+            .limit(10);
+
+        if (msgErr) {
+            fastify.log.error('poll-messages query error:', msgErr);
+            return reply.code(500).send({ error: 'Database error' });
+        }
+
+        const latestTs = messages && messages.length > 0
+            ? messages[messages.length - 1].ts
+            : null;
+
+        return reply.code(200).send({
+            messages: (messages || []).map(m => ({ text: m.text, ts: m.ts })),
+            threadId: resolvedThreadId,
+            latestTs,
+        });
+    } catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send({ error: 'Erro ao buscar mensagens', message: error instanceof Error ? error.message : 'Erro desconhecido' });
     }
 });
 

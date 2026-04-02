@@ -27,12 +27,14 @@ extension KeyboardViewController {
             defaults.set(conv.matchName, forKey: "kb_selectedMatchName")
             defaults.set(conv.platform, forKey: "kb_selectedPlatform")
             defaults.set(conv.lastMessage, forKey: "kb_selectedLastMsg")
+            defaults.set(conv.threadId, forKey: "kb_selectedThreadId")
         } else {
             defaults.removeObject(forKey: "kb_selectedConvId")
             defaults.removeObject(forKey: "kb_selectedProfileId")
             defaults.removeObject(forKey: "kb_selectedMatchName")
             defaults.removeObject(forKey: "kb_selectedPlatform")
             defaults.removeObject(forKey: "kb_selectedLastMsg")
+            defaults.removeObject(forKey: "kb_selectedThreadId")
         }
         defaults.synchronize()
     }
@@ -48,6 +50,7 @@ extension KeyboardViewController {
                 "matchName": conv.matchName,
                 "platform": conv.platform,
                 "lastMessage": conv.lastMessage,
+                "threadId": conv.threadId,
             ]
         }
         if let data = try? JSONSerialization.data(withJSONObject: jsonArray) {
@@ -70,7 +73,8 @@ extension KeyboardViewController {
                 matchName: name,
                 platform: dict["platform"] as? String ?? "tinder",
                 lastMessage: dict["lastMessage"] as? String,
-                faceImageBase64: nil
+                faceImageBase64: nil,
+                threadId: dict["threadId"] as? String
             )
         }
     }
@@ -111,7 +115,8 @@ extension KeyboardViewController {
             matchName: name,
             platform: defaults.string(forKey: "kb_selectedPlatform") ?? "tinder",
             lastMessage: defaults.string(forKey: "kb_selectedLastMsg"),
-            faceImageBase64: nil
+            faceImageBase64: nil,
+            threadId: defaults.string(forKey: "kb_selectedThreadId")
         )
     }
 
@@ -255,7 +260,8 @@ extension KeyboardViewController {
                             matchName: name,
                             platform: dict["platform"] as? String ?? "tinder",
                             lastMessage: dict["lastMessage"] as? String,
-                            faceImageBase64: dict["faceImageBase64"] as? String
+                            faceImageBase64: dict["faceImageBase64"] as? String,
+                            threadId: dict["threadId"] as? String
                         )
                     }
                     #if DEBUG
@@ -618,6 +624,131 @@ extension KeyboardViewController {
                     self?.currentState = .suggestions
                     self?.renderCurrentState()
                 }
+            }
+        }
+    }
+
+    // MARK: - Baileys Message Polling
+
+    func startMessagePolling() {
+        stopMessagePolling()
+        guard let conv = selectedConversation,
+              conv.platform.lowercased().contains("whatsapp") || conv.threadId != nil else { return }
+
+        // Initialize lastPolledTimestamp if not set
+        if lastPolledTimestamp == nil {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            lastPolledTimestamp = formatter.string(from: Date().addingTimeInterval(-30))
+        }
+
+        messagePollingTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+            self?.pollNewMessages()
+        }
+        #if DEBUG
+        NSLog("[KB] Message polling started for \(conv.matchName)")
+        #endif
+    }
+
+    func stopMessagePolling() {
+        messagePollingTimer?.invalidate()
+        messagePollingTimer = nil
+    }
+
+    func pollNewMessages() {
+        guard !isPollingMessages,
+              !isLoadingSuggestions,
+              let conv = selectedConversation,
+              let token = authToken,
+              let since = lastPolledTimestamp else { return }
+
+        isPollingMessages = true
+
+        let encodedName = conv.matchName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? conv.matchName
+        let encodedSince = since.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? since
+        var urlStr = "\(backendUrl)/keyboard/poll-messages?matchName=\(encodedName)&since=\(encodedSince)"
+        if let threadId = conv.threadId {
+            urlStr += "&threadId=\(threadId)"
+        }
+
+        guard let url = URL(string: urlStr) else {
+            isPollingMessages = false
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 8
+
+        let signed = RequestSigner.shared.sign(body: "")
+        request.setValue(signed.signature, forHTTPHeaderField: "X-Signature")
+        request.setValue(signed.timestamp, forHTTPHeaderField: "X-Timestamp")
+        request.setValue(signed.nonce, forHTTPHeaderField: "X-Nonce")
+
+        PinnedURLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            defer { self?.isPollingMessages = false }
+
+            guard let data = data, error == nil,
+                  let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+                #if DEBUG
+                if let err = error { NSLog("[KB] poll error: \(err.localizedDescription)") }
+                #endif
+                return
+            }
+
+            do {
+                guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let messages = json["messages"] as? [[String: Any]],
+                      !messages.isEmpty else { return }
+
+                // Update threadId if resolved by server
+                if let threadId = json["threadId"] as? String, self?.selectedConversation?.threadId == nil {
+                    DispatchQueue.main.async {
+                        guard let self = self, let conv = self.selectedConversation else { return }
+                        self.selectedConversation = ConversationContext(
+                            conversationId: conv.conversationId,
+                            profileId: conv.profileId,
+                            matchName: conv.matchName,
+                            platform: conv.platform,
+                            lastMessage: conv.lastMessage,
+                            faceImageBase64: conv.faceImageBase64,
+                            threadId: threadId
+                        )
+                        self.saveSelectedConversation(self.selectedConversation)
+                    }
+                }
+
+                // Update lastPolledTimestamp
+                if let latestTs = json["latestTs"] as? String {
+                    self?.lastPolledTimestamp = latestTs
+                }
+
+                // Get the last inbound message text
+                guard let lastMsg = messages.last,
+                      let text = lastMsg["text"] as? String,
+                      !text.isEmpty else { return }
+
+                #if DEBUG
+                NSLog("[KB] New message detected: \(text.prefix(40))...")
+                #endif
+
+                // Auto-trigger suggestion generation
+                DispatchQueue.main.async {
+                    guard let self = self else { return }
+                    self.clipboardText = text
+                    self.consumedClipboard = text
+                    self.suggestions = []
+                    self.isLoadingSuggestions = true
+                    self.previousState = .hub
+                    self.currentState = .suggestions
+                    self.renderCurrentState()
+                    self.analyzeText(text, tone: self.currentTone(), conversationId: self.selectedConversation?.conversationId, objective: self.currentObjective())
+                }
+            } catch {
+                #if DEBUG
+                NSLog("[KB] poll parse error: \(error.localizedDescription)")
+                #endif
             }
         }
     }

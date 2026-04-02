@@ -96,6 +96,7 @@ class KeyboardViewController: UIInputViewController {
         let platform: String
         let lastMessage: String?
         let faceImageBase64: String?
+        let threadId: String?
     }
 
     var conversations: [ConversationContext] = []
@@ -119,6 +120,11 @@ class KeyboardViewController: UIInputViewController {
     var previousState: KeyboardState? = nil
     var screenshotImage: UIImage? = nil
     var isAnalyzingScreenshot = false
+
+    // Baileys message polling
+    var messagePollingTimer: Timer?
+    var lastPolledTimestamp: String?
+    var isPollingMessages: Bool = false
 
     // Shared config
     var sharedDefaults: UserDefaults? {
@@ -296,15 +302,37 @@ class KeyboardViewController: UIInputViewController {
         nameStack.translatesAutoresizingMaskIntoConstraints = false
 
         if let conv = selectedConversation {
+            let nameRow = UIStackView()
+            nameRow.axis = .horizontal
+            nameRow.spacing = 5
+            nameRow.alignment = .center
+
             let nameLabel = UILabel()
             nameLabel.text = conv.matchName
             nameLabel.textColor = Theme.textPrimary
             nameLabel.font = UIFont.systemFont(ofSize: 13, weight: .semibold)
-            nameStack.addArrangedSubview(nameLabel)
+            nameRow.addArrangedSubview(nameLabel)
+
+            // Green pulsing dot for WhatsApp-connected contacts
+            let isWhatsApp = conv.platform.lowercased().contains("whatsapp") || conv.threadId != nil
+            if isWhatsApp {
+                let dot = UIView()
+                dot.backgroundColor = Theme.successGreen
+                dot.layer.cornerRadius = 4
+                dot.translatesAutoresizingMaskIntoConstraints = false
+                dot.widthAnchor.constraint(equalToConstant: 8).isActive = true
+                dot.heightAnchor.constraint(equalToConstant: 8).isActive = true
+                nameRow.addArrangedSubview(dot)
+
+                UIView.animate(withDuration: 1.2, delay: 0, options: [.repeat, .autoreverse, .curveEaseInOut]) {
+                    dot.alpha = 0.3
+                }
+            }
+            nameStack.addArrangedSubview(nameRow)
 
             let platformLabel = UILabel()
-            platformLabel.text = conv.platform.capitalized
-            platformLabel.textColor = Theme.textTertiary
+            platformLabel.text = isWhatsApp ? "WhatsApp · Sincronizado" : conv.platform.capitalized
+            platformLabel.textColor = isWhatsApp ? Theme.successGreen.withAlphaComponent(0.7) : Theme.textTertiary
             platformLabel.font = UIFont.systemFont(ofSize: 10, weight: .medium)
             nameStack.addArrangedSubview(platformLabel)
         } else {
@@ -405,32 +433,66 @@ class KeyboardViewController: UIInputViewController {
             let areaTap = UITapGestureRecognizer(target: self, action: #selector(clipAreaTapped))
             clipArea.addGestureRecognizer(areaTap)
         } else {
-            // No clipboard — show paste instruction
+            // No clipboard — show context-aware message
+            let isWhatsAppSync = selectedConversation?.threadId != nil ||
+                (selectedConversation?.platform.lowercased().contains("whatsapp") ?? false)
+
             clipArea.backgroundColor = UIColor.white.withAlphaComponent(0.04)
             clipArea.layer.borderWidth = 1
-            clipArea.layer.borderColor = Theme.border.cgColor
+            clipArea.layer.borderColor = isWhatsAppSync ? Theme.successGreen.withAlphaComponent(0.15).cgColor : Theme.border.cgColor
 
-            let pasteIcon = UIImageView(image: UIImage(systemName: "doc.on.clipboard"))
-            pasteIcon.tintColor = Theme.accent
-            pasteIcon.translatesAutoresizingMaskIntoConstraints = false
-            pasteIcon.contentMode = .scaleAspectFit
-            clipArea.addSubview(pasteIcon)
+            if isWhatsAppSync {
+                // WhatsApp synced — waiting for message via Baileys
+                let pulseIcon = UIView()
+                pulseIcon.backgroundColor = Theme.successGreen
+                pulseIcon.layer.cornerRadius = 5
+                pulseIcon.translatesAutoresizingMaskIntoConstraints = false
+                clipArea.addSubview(pulseIcon)
 
-            let pasteLabel = UILabel()
-            pasteLabel.text = "Copie a mensagem dela e volte aqui"
-            pasteLabel.font = UIFont.systemFont(ofSize: 13, weight: .medium)
-            pasteLabel.textColor = Theme.textSecondary
-            pasteLabel.translatesAutoresizingMaskIntoConstraints = false
-            clipArea.addSubview(pasteLabel)
+                UIView.animate(withDuration: 1.0, delay: 0, options: [.repeat, .autoreverse, .curveEaseInOut]) {
+                    pulseIcon.alpha = 0.3
+                }
 
-            NSLayoutConstraint.activate([
-                pasteIcon.leadingAnchor.constraint(equalTo: clipArea.leadingAnchor, constant: 14),
-                pasteIcon.centerYAnchor.constraint(equalTo: clipArea.centerYAnchor),
-                pasteIcon.widthAnchor.constraint(equalToConstant: 20),
-                pasteIcon.heightAnchor.constraint(equalToConstant: 20),
-                pasteLabel.leadingAnchor.constraint(equalTo: pasteIcon.trailingAnchor, constant: 10),
-                pasteLabel.centerYAnchor.constraint(equalTo: clipArea.centerYAnchor),
-            ])
+                let waitLabel = UILabel()
+                let name = selectedConversation?.matchName ?? "contato"
+                waitLabel.text = "Aguardando mensagem de \(name)..."
+                waitLabel.font = UIFont.systemFont(ofSize: 13, weight: .medium)
+                waitLabel.textColor = Theme.successGreen.withAlphaComponent(0.8)
+                waitLabel.translatesAutoresizingMaskIntoConstraints = false
+                clipArea.addSubview(waitLabel)
+
+                NSLayoutConstraint.activate([
+                    pulseIcon.leadingAnchor.constraint(equalTo: clipArea.leadingAnchor, constant: 14),
+                    pulseIcon.centerYAnchor.constraint(equalTo: clipArea.centerYAnchor),
+                    pulseIcon.widthAnchor.constraint(equalToConstant: 10),
+                    pulseIcon.heightAnchor.constraint(equalToConstant: 10),
+                    waitLabel.leadingAnchor.constraint(equalTo: pulseIcon.trailingAnchor, constant: 10),
+                    waitLabel.centerYAnchor.constraint(equalTo: clipArea.centerYAnchor),
+                ])
+            } else {
+                // Non-WhatsApp — show paste instruction
+                let pasteIcon = UIImageView(image: UIImage(systemName: "doc.on.clipboard"))
+                pasteIcon.tintColor = Theme.accent
+                pasteIcon.translatesAutoresizingMaskIntoConstraints = false
+                pasteIcon.contentMode = .scaleAspectFit
+                clipArea.addSubview(pasteIcon)
+
+                let pasteLabel = UILabel()
+                pasteLabel.text = "Copie a mensagem dela e volte aqui"
+                pasteLabel.font = UIFont.systemFont(ofSize: 13, weight: .medium)
+                pasteLabel.textColor = Theme.textSecondary
+                pasteLabel.translatesAutoresizingMaskIntoConstraints = false
+                clipArea.addSubview(pasteLabel)
+
+                NSLayoutConstraint.activate([
+                    pasteIcon.leadingAnchor.constraint(equalTo: clipArea.leadingAnchor, constant: 14),
+                    pasteIcon.centerYAnchor.constraint(equalTo: clipArea.centerYAnchor),
+                    pasteIcon.widthAnchor.constraint(equalToConstant: 20),
+                    pasteIcon.heightAnchor.constraint(equalToConstant: 20),
+                    pasteLabel.leadingAnchor.constraint(equalTo: pasteIcon.trailingAnchor, constant: 10),
+                    pasteLabel.centerYAnchor.constraint(equalTo: clipArea.centerYAnchor),
+                ])
+            }
 
             let pasteTap = UITapGestureRecognizer(target: self, action: #selector(pasteBoxTapped))
             clipArea.addGestureRecognizer(pasteTap)
@@ -484,6 +546,7 @@ class KeyboardViewController: UIInputViewController {
         ])
 
         startClipboardPolling()
+        startMessagePolling()
     }
 
     // MARK: - Hub Helpers
