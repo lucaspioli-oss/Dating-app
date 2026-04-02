@@ -93,6 +93,8 @@ const analyzeSchema = {
                 enum: ['automatico', 'engracado', 'ousado', 'romantico', 'casual', 'confiante', 'expert'],
             },
             conversationId: { type: 'string' },
+            threadId: { type: 'string' },
+            matchName: { type: 'string' },
             objective: {
                 type: 'string',
                 enum: [
@@ -108,7 +110,93 @@ const analyzeSchema = {
 
 fastify.post('/analyze', { schema: analyzeSchema }, async (request, reply) => {
     try {
-        const { text, tone, conversationId, objective, language } = request.body;
+        const { text, tone, conversationId, threadId, matchName, objective, language } = request.body;
+
+        // ── Baileys thread history (real WhatsApp messages) ──
+        if (threadId) {
+            try {
+                let userId = null;
+                const authHeader = request.headers.authorization;
+                if (authHeader && authHeader.startsWith('Bearer ')) {
+                    try {
+                        const token = authHeader.split(' ')[1];
+                        const { data: { user: authUser } } = await supabaseAdmin.auth.getUser(token);
+                        if (authUser) userId = authUser.id;
+                    } catch (e) { }
+                }
+                if (userId) {
+                    // Get last 30 messages from Baileys thread (both directions)
+                    const { data: threadMsgs } = await supabaseAdmin
+                        .from('messages')
+                        .select('text, direction, ts')
+                        .eq('thread_id', threadId)
+                        .eq('user_id', userId)
+                        .order('ts', { ascending: true })
+                        .limit(30);
+
+                    if (threadMsgs && threadMsgs.length > 0) {
+                        const contactName = matchName || 'Match';
+                        let historyStr = '';
+                        for (const msg of threadMsgs) {
+                            const role = msg.direction === 'outbound' ? 'Voce' : contactName;
+                            historyStr += `${role}: ${msg.text}\n`;
+                        }
+
+                        // Also try to get avatar context from conversations table if available
+                        let avatarContext = '';
+                        let collectiveStr = '';
+                        let calibrationStr = '';
+                        if (conversationId) {
+                            const { data: convData } = await supabaseAdmin
+                                .from('conversations')
+                                .select('avatar, collective_avatar_id')
+                                .eq('id', conversationId)
+                                .single();
+                            if (convData) {
+                                const avatar = convData.avatar || {};
+                                if (avatar.bio) avatarContext = `Bio: ${avatar.bio}\n`;
+                                const patterns = avatar.detectedPatterns || {};
+                                if (patterns.responseLength) calibrationStr += `\nTamanho de resposta dela: ${patterns.responseLength}`;
+                                if (patterns.emotionalTone) calibrationStr += `\nTom emocional: ${patterns.emotionalTone}`;
+                                if (patterns.flirtLevel) calibrationStr += `\nNivel de flerte: ${patterns.flirtLevel}`;
+                                if (convData.collective_avatar_id) {
+                                    const { data: avatarDoc } = await supabaseAdmin
+                                        .from('collective_avatars')
+                                        .select('collective_insights')
+                                        .eq('id', convData.collective_avatar_id)
+                                        .single();
+                                    if (avatarDoc) {
+                                        const ci = avatarDoc.collective_insights || {};
+                                        if (ci.whatWorks?.length > 0) collectiveStr = `\nO que funciona: ${ci.whatWorks.map(w => w.strategy || w).join(', ')}`;
+                                        if (ci.whatDoesntWork?.length > 0) collectiveStr += `\nO que NAO funciona: ${ci.whatDoesntWork.map(w => w.strategy || w).join(', ')}`;
+                                    }
+                                }
+                            }
+                        }
+
+                        const objectiveInstruction = (0, prompts_1.getObjectivePrompt)(objective || 'automatico');
+                        const richPrompt = `Voce esta ajudando a responder mensagens de dating (WhatsApp).
+Perfil da match: ${contactName} (whatsapp)
+${avatarContext}${calibrationStr}${collectiveStr}
+
+${objectiveInstruction}
+
+Historico completo da conversa (mensagens reais):
+${historyStr}
+A(s) ultima(s) mensagem(ns) dela:
+"${text}"
+
+Gere APENAS 3 sugestoes de resposta numeradas (1. 2. 3.), cada uma curta (1-2 frases). Considere TODO o contexto da conversa acima para gerar respostas naturais e coerentes.`;
+
+                        const analysis = await (0, anthropic_1.analyzeMessage)({ text: richPrompt, tone, language });
+                        return reply.code(200).send({ analysis, mode: 'pro' });
+                    }
+                }
+            } catch (threadError) {
+                fastify.log.error('Thread history error, falling back:', threadError);
+            }
+        }
+
         if (conversationId) {
             try {
                 let userId = null;

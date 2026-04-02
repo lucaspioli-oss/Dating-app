@@ -642,6 +642,6 @@ class KeyboardViewController: UIInputViewController {
         previousState = .hub
         currentState = .suggestions
         renderCurrentState()
-        analyzeText(text, tone: currentTone(), conversationId: selectedConversation?.conversationId, objective: currentObjective())
+        analyzeText(text, tone: currentTone(), conversationId: selectedConversation?.conversationId, objective: currentObjective(), threadId: selectedConversation?.threadId, matchName: selectedConversation?.matchName)
     }
 }

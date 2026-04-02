@@ -253,6 +253,8 @@ extension KeyboardViewController {
         renderCurrentState()
         analyzeText(combinedText, tone: currentTone(),
                     conversationId: selectedConversation?.conversationId,
-                    objective: currentObjective())
+                    objective: currentObjective(),
+                    threadId: selectedConversation?.threadId,
+                    matchName: selectedConversation?.matchName)
     }
 }

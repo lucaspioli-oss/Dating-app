@@ -299,11 +299,11 @@ extension KeyboardViewController {
         }
     }
 
-    func analyzeText(_ text: String, tone: String, conversationId: String?, objective: String?) {
+    func analyzeText(_ text: String, tone: String, conversationId: String?, objective: String?, threadId: String? = nil, matchName: String? = nil) {
         guard let url = URL(string: "\(backendUrl)/analyze") else { return }
 
         #if DEBUG
-        NSLog("[KB] analyzeText: convId=\(conversationId ?? "nil") tone=\(tone) text=\(text.prefix(40))...")
+        NSLog("[KB] analyzeText: convId=\(conversationId ?? "nil") threadId=\(threadId ?? "nil") tone=\(tone) text=\(text.prefix(40))...")
         #endif
 
         var request = URLRequest(url: url)
@@ -321,6 +321,8 @@ extension KeyboardViewController {
 
         var body: [String: Any] = ["text": text, "tone": tone]
         if let convId = conversationId { body["conversationId"] = convId }
+        if let tid = threadId { body["threadId"] = tid }
+        if let name = matchName { body["matchName"] = name }
         if let obj = objective { body["objective"] = obj }
         if let lang = currentLanguage() { body["language"] = lang }
 
@@ -724,26 +726,33 @@ extension KeyboardViewController {
                     self?.lastPolledTimestamp = latestTs
                 }
 
-                // Get the last inbound message text
-                guard let lastMsg = messages.last,
-                      let text = lastMsg["text"] as? String,
-                      !text.isEmpty else { return }
+                // Concatenate all new inbound messages
+                let allTexts = messages.compactMap { $0["text"] as? String }.filter { !$0.isEmpty }
+                guard !allTexts.isEmpty else { return }
+                let combinedText = allTexts.joined(separator: "\n")
 
                 #if DEBUG
-                NSLog("[KB] New message detected: \(text.prefix(40))...")
+                NSLog("[KB] New messages detected (\(allTexts.count)): \(combinedText.prefix(60))...")
                 #endif
 
-                // Auto-trigger suggestion generation
+                // Auto-trigger suggestion generation with threadId for full context
                 DispatchQueue.main.async {
                     guard let self = self else { return }
-                    self.clipboardText = text
-                    self.consumedClipboard = text
+                    self.clipboardText = combinedText
+                    self.consumedClipboard = combinedText
                     self.suggestions = []
                     self.isLoadingSuggestions = true
                     self.previousState = .hub
                     self.currentState = .suggestions
                     self.renderCurrentState()
-                    self.analyzeText(text, tone: self.currentTone(), conversationId: self.selectedConversation?.conversationId, objective: self.currentObjective())
+                    self.analyzeText(
+                        combinedText,
+                        tone: self.currentTone(),
+                        conversationId: self.selectedConversation?.conversationId,
+                        objective: self.currentObjective(),
+                        threadId: self.selectedConversation?.threadId,
+                        matchName: self.selectedConversation?.matchName
+                    )
                 }
             } catch {
                 #if DEBUG
@@ -783,7 +792,7 @@ extension KeyboardViewController {
         currentState = .suggestions
         renderCurrentState()
 
-        analyzeText(current, tone: currentTone(), conversationId: selectedConversation?.conversationId, objective: currentObjective())
+        analyzeText(current, tone: currentTone(), conversationId: selectedConversation?.conversationId, objective: currentObjective(), threadId: selectedConversation?.threadId, matchName: selectedConversation?.matchName)
     }
 
     // MARK: - Parse & Clipboard Helpers

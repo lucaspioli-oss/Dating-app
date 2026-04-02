@@ -35,7 +35,7 @@ extension KeyboardViewController {
             suggestions = []
             renderCurrentState()
             if let clip = clipboardText {
-                analyzeText(clip, tone: currentTone(), conversationId: selectedConversation?.conversationId, objective: currentObjective())
+                analyzeText(clip, tone: currentTone(), conversationId: selectedConversation?.conversationId, objective: currentObjective(), threadId: selectedConversation?.threadId, matchName: selectedConversation?.matchName)
             }
         } else {
             renderCurrentState()
@@ -317,7 +317,7 @@ extension KeyboardViewController {
         suggestions = []
         isLoadingSuggestions = true
         renderCurrentState()
-        analyzeText(clip, tone: currentTone(), conversationId: selectedConversation?.conversationId, objective: currentObjective())
+        analyzeText(clip, tone: currentTone(), conversationId: selectedConversation?.conversationId, objective: currentObjective(), threadId: selectedConversation?.threadId, matchName: selectedConversation?.matchName)
     }
 
     @objc func basicGenerateTapped() {
