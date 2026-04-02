@@ -869,6 +869,134 @@ Gere APENAS 3 sugestoes de resposta numeradas (1. 2. 3.), cada uma curta (1-2 fr
 });
 
 // ===================================================================
+// SYNC: Proxy to Baileys server (WhatsApp sync for app)
+// ===================================================================
+
+const http = require('http');
+
+function proxyToBaileys(method, path, userId, body) {
+    return new Promise((resolve, reject) => {
+        const options = {
+            hostname: process.env.BAILEYS_HOST || 'baileys',
+            port: parseInt(process.env.BAILEYS_PORT || '3040'),
+            path,
+            method,
+            headers: {
+                'x-user-id': userId,
+                'Content-Type': 'application/json',
+            },
+        };
+
+        const req = http.request(options, (res) => {
+            let data = '';
+            res.on('data', (chunk) => { data += chunk; });
+            res.on('end', () => {
+                try {
+                    resolve({ status: res.statusCode, data: JSON.parse(data) });
+                } catch {
+                    resolve({ status: res.statusCode, data: data });
+                }
+            });
+        });
+
+        req.on('error', (err) => reject(err));
+        req.setTimeout(15000, () => { req.destroy(); reject(new Error('Baileys proxy timeout')); });
+
+        if (body) req.write(JSON.stringify(body));
+        req.end();
+    });
+}
+
+// POST /sync/instance/create — Create Baileys instance + get QR
+fastify.post('/sync/instance/create', { preHandler: [auth_1.verifyAuth] }, async (request, reply) => {
+    try {
+        const result = await proxyToBaileys('POST', '/api/evolution/instance/create', request.user.uid, {});
+        return reply.code(result.status).send(result.data);
+    } catch (error) {
+        fastify.log.error(error);
+        return reply.code(502).send({ error: 'Sync server unavailable' });
+    }
+});
+
+// GET /sync/instance/qr — Get QR code
+fastify.get('/sync/instance/qr', { preHandler: [auth_1.verifyAuth] }, async (request, reply) => {
+    try {
+        const result = await proxyToBaileys('GET', '/api/evolution/instance/qr', request.user.uid);
+        return reply.code(result.status).send(result.data);
+    } catch (error) {
+        fastify.log.error(error);
+        return reply.code(502).send({ error: 'Sync server unavailable' });
+    }
+});
+
+// GET /sync/instance/status — Get connection status
+fastify.get('/sync/instance/status', { preHandler: [auth_1.verifyAuth] }, async (request, reply) => {
+    try {
+        const result = await proxyToBaileys('GET', '/api/evolution/instance/status', request.user.uid);
+        return reply.code(result.status).send(result.data);
+    } catch (error) {
+        fastify.log.error(error);
+        return reply.code(502).send({ error: 'Sync server unavailable' });
+    }
+});
+
+// DELETE /sync/instance — Disconnect
+fastify.delete('/sync/instance', { preHandler: [auth_1.verifyAuth] }, async (request, reply) => {
+    try {
+        const result = await proxyToBaileys('DELETE', '/api/evolution/instance', request.user.uid);
+        return reply.code(result.status).send(result.data);
+    } catch (error) {
+        fastify.log.error(error);
+        return reply.code(502).send({ error: 'Sync server unavailable' });
+    }
+});
+
+// GET /sync/contacts — List selected contacts
+fastify.get('/sync/contacts', { preHandler: [auth_1.verifyAuth] }, async (request, reply) => {
+    try {
+        const result = await proxyToBaileys('GET', '/api/contacts', request.user.uid);
+        return reply.code(result.status).send(result.data);
+    } catch (error) {
+        fastify.log.error(error);
+        return reply.code(502).send({ error: 'Sync server unavailable' });
+    }
+});
+
+// POST /sync/contacts — Add contact
+fastify.post('/sync/contacts', { preHandler: [auth_1.verifyAuth] }, async (request, reply) => {
+    try {
+        const result = await proxyToBaileys('POST', '/api/contacts', request.user.uid, request.body);
+        return reply.code(result.status).send(result.data);
+    } catch (error) {
+        fastify.log.error(error);
+        return reply.code(502).send({ error: 'Sync server unavailable' });
+    }
+});
+
+// DELETE /sync/contacts/:id — Remove contact
+fastify.delete('/sync/contacts/:id', { preHandler: [auth_1.verifyAuth] }, async (request, reply) => {
+    try {
+        const result = await proxyToBaileys('DELETE', `/api/contacts/${request.params.id}`, request.user.uid);
+        return reply.code(result.status).send(result.data);
+    } catch (error) {
+        fastify.log.error(error);
+        return reply.code(502).send({ error: 'Sync server unavailable' });
+    }
+});
+
+// GET /sync/contacts/search — Search WhatsApp contacts
+fastify.get('/sync/contacts/search', { preHandler: [verifyRequestSignature, auth_1.verifyAuth] }, async (request, reply) => {
+    try {
+        const q = request.query.q || '';
+        const result = await proxyToBaileys('GET', `/api/evolution/contacts/search?q=${encodeURIComponent(q)}`, request.user.uid);
+        return reply.code(result.status).send(result.data);
+    } catch (error) {
+        fastify.log.error(error);
+        return reply.code(502).send({ error: 'Sync server unavailable' });
+    }
+});
+
+// ===================================================================
 // KEYBOARD: POLL MESSAGES (Baileys real-time loop)
 // ===================================================================
 

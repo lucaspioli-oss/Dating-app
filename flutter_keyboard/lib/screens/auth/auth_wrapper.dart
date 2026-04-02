@@ -10,8 +10,7 @@ import 'login_screen.dart';
 import 'subscription_required_screen.dart';
 import '../main_screen.dart';
 import '../keyboard_setup_screen.dart';
-import '../app_tutorial_screen.dart';
-import '../onboarding/onboarding_profile_screen.dart';
+import '../sync_screen.dart';
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
@@ -50,9 +49,8 @@ class _SubscriptionWrapperState extends State<SubscriptionWrapper> with WidgetsB
   Timer? _tokenRefreshTimer;
   bool _isLoading = true;
   SubscriptionStatus _status = SubscriptionStatus.inactive;
-  bool _hasCompletedOnboarding = true;
   bool _hasSeenKeyboardSetup = true;
-  bool _hasSeenAppTutorial = true;
+  bool _hasCompletedSync = true;
 
   @override
   void initState() {
@@ -93,18 +91,16 @@ class _SubscriptionWrapperState extends State<SubscriptionWrapper> with WidgetsB
       _shareAuthWithKeyboard();
 
       final prefs = await SharedPreferences.getInstance();
-      final hasCompletedOnboarding = prefs.getBool('hasCompletedOnboardingProfile') ?? false;
       final hasSeenSetup = prefs.getBool('hasSeenKeyboardSetup') ?? false;
-      final hasSeenTutorial = prefs.getBool('hasSeenAppTutorial') ?? false;
+      final hasCompletedSync = prefs.getBool('hasCompletedSync') ?? false;
 
       final status = await _subscriptionService.subscriptionStatusStream.first;
 
       if (mounted) {
         setState(() {
           _status = status;
-          _hasCompletedOnboarding = hasCompletedOnboarding;
           _hasSeenKeyboardSetup = hasSeenSetup;
-          _hasSeenAppTutorial = hasSeenTutorial;
+          _hasCompletedSync = hasCompletedSync;
           _isLoading = false;
         });
       }
@@ -139,13 +135,6 @@ class _SubscriptionWrapperState extends State<SubscriptionWrapper> with WidgetsB
       return const AppLoadingScreen();
     }
 
-    if (!_hasCompletedOnboarding) {
-      return OnboardingProfileScreen(
-        onComplete: () {
-          if (mounted) setState(() => _hasCompletedOnboarding = true);
-        },
-      );
-    }
     if (!_hasSeenKeyboardSetup) {
       return KeyboardSetupScreen(
         onComplete: () {
@@ -153,10 +142,10 @@ class _SubscriptionWrapperState extends State<SubscriptionWrapper> with WidgetsB
         },
       );
     }
-    if (!_hasSeenAppTutorial) {
-      return AppTutorialScreen(
+    if (!_hasCompletedSync) {
+      return SyncScreen(
         onComplete: () {
-          if (mounted) setState(() => _hasSeenAppTutorial = true);
+          if (mounted) setState(() => _hasCompletedSync = true);
         },
       );
     }
