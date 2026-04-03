@@ -168,75 +168,90 @@ class _SyncScreenState extends State<SyncScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: _isConnected ? _buildConnected() : _buildConnect(),
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        backgroundColor: AppColors.backgroundDark,
+        resizeToAvoidBottomInset: true,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: _isConnected ? _buildConnected() : _buildConnect(),
+          ),
         ),
       ),
     );
   }
 
   Widget _buildConnect() {
-    return Column(
-      children: [
-        const SizedBox(height: 48),
-        const Text(
-          'Sincronizar Conversas',
-          style: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 10),
-        const Text(
-          'Receba sugestoes automaticas\nem tempo real nas suas conversas.',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 15, height: 1.5),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 40),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
+              child: Column(
+                children: [
+                  const SizedBox(height: 48),
+                  const Text(
+                    'Sincronizar Conversas',
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Receba sugestoes automaticas\nem tempo real nas suas conversas.',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 15, height: 1.5),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 40),
 
-        if (_pairingCode != null) ...[
-          // Show pairing code
-          _buildPairingCodeView(),
-        ] else ...[
-          // Phone input
-          _buildPhoneInput(),
-        ],
+                  if (_pairingCode != null) ...[
+                    // Show pairing code
+                    _buildPairingCodeView(),
+                  ] else ...[
+                    // Phone input
+                    _buildPhoneInput(),
+                  ],
 
-        const Spacer(),
+                  const Spacer(),
 
-        // Error
-        if (_errorMessage != null) ...[
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.error.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                  // Error
+                  if (_errorMessage != null) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                      ),
+                      child: Text(
+                        _errorMessage!,
+                        style: const TextStyle(color: AppColors.error, fontSize: 13),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  TextButton(
+                    onPressed: _complete,
+                    child: const Text(
+                      'Configurar depois',
+                      style: TextStyle(color: AppColors.textTertiary, fontSize: 14),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
-            child: Text(
-              _errorMessage!,
-              style: const TextStyle(color: AppColors.error, fontSize: 13),
-              textAlign: TextAlign.center,
-            ),
           ),
-          const SizedBox(height: 12),
-        ],
-
-        TextButton(
-          onPressed: _complete,
-          child: const Text(
-            'Configurar depois',
-            style: TextStyle(color: AppColors.textTertiary, fontSize: 14),
-          ),
-        ),
-        const SizedBox(height: 16),
-      ],
+        );
+      },
     );
   }
 

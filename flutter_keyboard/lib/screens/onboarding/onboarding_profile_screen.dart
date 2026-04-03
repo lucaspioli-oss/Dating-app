@@ -236,8 +236,11 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
       backgroundColor: AppColors.backgroundDark,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Column(
           children: [
@@ -247,6 +250,8 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
                 physics: const NeverScrollableScrollPhysics(),
                 onPageChanged: (page) {
                   setState(() => _currentPage = page);
+                  // Dismiss keyboard when changing pages
+                  FocusScope.of(context).unfocus();
                 },
                 children: [
                   _buildLanguagePage(),
@@ -260,6 +265,7 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 
