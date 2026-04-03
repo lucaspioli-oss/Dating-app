@@ -14,6 +14,7 @@ import '../services/firebase_auth_service.dart';
 import 'training_feedback_screen.dart';
 import 'keyboard_setup_screen.dart';
 import 'app_tutorial_screen.dart';
+import 'sync_screen.dart';
 import 'templates_screen.dart';
 import 'profile_screen.dart' show SubscriptionContent;
 
@@ -264,6 +265,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               );
             }
+          },
+        ),
+        _buildSettingsRow(
+          icon: Icons.sync,
+          title: 'Sincronizar Conversas',
+          subtitle: 'Conectar ou reconectar mensagens em tempo real',
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => SyncScreen(
+                  onComplete: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ),
+            );
           },
         ),
         _buildSettingsRow(

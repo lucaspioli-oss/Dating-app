@@ -1073,10 +1073,21 @@ fastify.delete('/sync/contacts/:id', { preHandler: [auth_1.verifyAuth] }, async 
 });
 
 // GET /sync/contacts/search — Search WhatsApp contacts
-fastify.get('/sync/contacts/search', { preHandler: [verifyRequestSignature, auth_1.verifyAuth] }, async (request, reply) => {
+fastify.get('/sync/contacts/search', { preHandler: [auth_1.verifyAuth] }, async (request, reply) => {
     try {
         const q = request.query.q || '';
         const result = await proxyToBaileys('GET', `/api/evolution/contacts/search?q=${encodeURIComponent(q)}`, request.user.uid);
+        return reply.code(result.status).send(result.data);
+    } catch (error) {
+        fastify.log.error(error);
+        return reply.code(502).send({ error: 'Sync server unavailable' });
+    }
+});
+
+// POST /sync/instance/pair — Pairing code (for mobile-only users)
+fastify.post('/sync/instance/pair', { preHandler: [auth_1.verifyAuth] }, async (request, reply) => {
+    try {
+        const result = await proxyToBaileys('POST', '/api/evolution/instance/pair', request.user.uid, request.body);
         return reply.code(result.status).send(result.data);
     } catch (error) {
         fastify.log.error(error);
