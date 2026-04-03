@@ -3,10 +3,12 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:provider/provider.dart';
 import 'package:image/image.dart' as img;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/app_theme.dart';
 import '../config/app_page_transitions.dart';
 import '../config/app_haptics.dart';
@@ -1808,6 +1810,31 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
     }
   }
 
+  /// Register a WhatsApp contact for Baileys real-time sync (fire-and-forget)
+  void _registerWhatsAppContact({required String name, required String phone}) {
+    try {
+      final appState = context.read<AppState>();
+      var cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+      if (!cleanPhone.startsWith('55')) cleanPhone = '55$cleanPhone';
+
+      http.post(
+        Uri.parse('${appState.backendUrl}/sync/contacts'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${Supabase.instance.client.auth.currentSession?.accessToken}',
+        },
+        body: jsonEncode({
+          'external_id': '$cleanPhone@s.whatsapp.net',
+          'provider': 'whatsapp',
+          'display_name': name.isNotEmpty ? name : cleanPhone,
+          'phone_number': cleanPhone,
+        }),
+      );
+    } catch (_) {
+      // Non-critical — sync works, user just won't get real-time suggestions for this contact
+    }
+  }
+
   Future<void> _analyzeAndCreateProfile() async {
     if (_platformEntries.isEmpty) return;
 
@@ -2017,6 +2044,16 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
       }
 
       if (!mounted) return;
+
+      // Auto-register WhatsApp contacts for Baileys sync
+      for (final entry in _platformEntries) {
+        if (entry.type == PlatformType.whatsapp && entry.contactPhoneNumber != null) {
+          _registerWhatsAppContact(
+            name: entry.nameController.text.trim(),
+            phone: entry.contactPhoneNumber!,
+          );
+        }
+      }
 
       // Navegar para o detalhe do perfil
       AppHaptics.mediumImpact();
