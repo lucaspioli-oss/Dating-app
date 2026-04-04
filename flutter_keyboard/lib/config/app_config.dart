@@ -10,7 +10,7 @@ class AppConfig {
 
   // App Info
   static const String appName = 'Desenrola IA';
-  static const String appVersion = '1.6.1';
+  static const String appVersion = '1.7.0';
 
   // Apple In-App Purchase Product IDs
   static const String appleMonthlyProductId = 'desenrola_ai_monthly_v2';

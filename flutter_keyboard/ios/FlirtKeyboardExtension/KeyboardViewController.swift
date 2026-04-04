@@ -120,6 +120,7 @@ class KeyboardViewController: UIInputViewController {
     var previousState: KeyboardState? = nil
     var screenshotImage: UIImage? = nil
     var isAnalyzingScreenshot = false
+    var conversationHint: String? = nil
 
     // Baileys message polling
     var messagePollingTimer: Timer?
@@ -442,9 +443,9 @@ class KeyboardViewController: UIInputViewController {
             clipArea.layer.borderColor = isWhatsAppSync ? Theme.successGreen.withAlphaComponent(0.15).cgColor : Theme.border.cgColor
 
             if isWhatsAppSync {
-                // WhatsApp synced — waiting for message via Baileys
+                // WhatsApp synced — show hint or waiting message
                 let pulseIcon = UIView()
-                pulseIcon.backgroundColor = Theme.successGreen
+                pulseIcon.backgroundColor = conversationHint != nil ? Theme.accentWarm : Theme.successGreen
                 pulseIcon.layer.cornerRadius = 5
                 pulseIcon.translatesAutoresizingMaskIntoConstraints = false
                 clipArea.addSubview(pulseIcon)
@@ -454,10 +455,16 @@ class KeyboardViewController: UIInputViewController {
                 }
 
                 let waitLabel = UILabel()
-                let name = selectedConversation?.matchName ?? "contato"
-                waitLabel.text = "Aguardando mensagem de \(name)..."
-                waitLabel.font = UIFont.systemFont(ofSize: 13, weight: .medium)
-                waitLabel.textColor = Theme.successGreen.withAlphaComponent(0.8)
+                if let hint = conversationHint {
+                    waitLabel.text = hint
+                    waitLabel.textColor = Theme.accentWarm.withAlphaComponent(0.9)
+                } else {
+                    let name = selectedConversation?.matchName ?? "contato"
+                    waitLabel.text = "Aguardando mensagem de \(name)..."
+                    waitLabel.textColor = Theme.successGreen.withAlphaComponent(0.8)
+                }
+                waitLabel.font = UIFont.systemFont(ofSize: 12, weight: .medium)
+                waitLabel.numberOfLines = 2
                 waitLabel.translatesAutoresizingMaskIntoConstraints = false
                 clipArea.addSubview(waitLabel)
 
@@ -467,6 +474,7 @@ class KeyboardViewController: UIInputViewController {
                     pulseIcon.widthAnchor.constraint(equalToConstant: 10),
                     pulseIcon.heightAnchor.constraint(equalToConstant: 10),
                     waitLabel.leadingAnchor.constraint(equalTo: pulseIcon.trailingAnchor, constant: 10),
+                    waitLabel.trailingAnchor.constraint(equalTo: clipArea.trailingAnchor, constant: -12),
                     waitLabel.centerYAnchor.constraint(equalTo: clipArea.centerYAnchor),
                 ])
             } else {

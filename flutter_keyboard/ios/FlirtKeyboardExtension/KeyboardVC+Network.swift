@@ -630,6 +630,112 @@ extension KeyboardViewController {
         }
     }
 
+    // MARK: - Conversation State Detection (auto-trigger on profile select)
+
+    func fetchConversationState() {
+        guard let conv = selectedConversation,
+              let threadId = conv.threadId,
+              let token = authToken else { return }
+
+        let encodedName = conv.matchName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? conv.matchName
+        let urlStr = "\(backendUrl)/keyboard/conversation-state?threadId=\(threadId)&matchName=\(encodedName)"
+        guard let url = URL(string: urlStr) else { return }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 8
+
+        let signed = RequestSigner.shared.sign(body: "")
+        request.setValue(signed.signature, forHTTPHeaderField: "X-Signature")
+        request.setValue(signed.timestamp, forHTTPHeaderField: "X-Timestamp")
+        request.setValue(signed.nonce, forHTTPHeaderField: "X-Nonce")
+
+        #if DEBUG
+        NSLog("[KB] fetchConversationState: threadId=\(threadId) matchName=\(conv.matchName)")
+        #endif
+
+        PinnedURLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            guard let self = self,
+                  let data = data, error == nil,
+                  let http = response as? HTTPURLResponse, http.statusCode == 200,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let state = json["state"] as? String else {
+                #if DEBUG
+                NSLog("[KB] fetchConversationState: failed or no data")
+                #endif
+                return
+            }
+
+            let suggestedObjective = json["suggestedObjective"] as? String
+            let contextHint = json["contextHint"] as? String
+            let lastMsg = json["lastMessage"] as? [String: Any]
+            let lastText = lastMsg?["text"] as? String
+            let lastDirection = lastMsg?["direction"] as? String
+
+            #if DEBUG
+            NSLog("[KB] conversationState: \(state) suggested=\(suggestedObjective ?? "nil") hint=\(contextHint ?? "nil")")
+            #endif
+
+            DispatchQueue.main.async {
+                guard self.selectedConversation?.threadId == threadId else { return }
+
+                switch state {
+                case "needs_response":
+                    // She sent a message and user hasn't replied — auto-generate reply
+                    if let text = lastText {
+                        self.clipboardText = text
+                        self.consumedClipboard = text
+                        self.suggestions = []
+                        self.isLoadingSuggestions = true
+                        self.previousState = .hub
+                        self.currentState = .suggestions
+                        self.renderCurrentState()
+                        self.analyzeText(
+                            text,
+                            tone: self.currentTone(),
+                            conversationId: self.selectedConversation?.conversationId,
+                            objective: self.currentObjective(),
+                            threadId: threadId,
+                            matchName: self.selectedConversation?.matchName
+                        )
+                    }
+
+                case "cold_inbound", "cold_outbound":
+                    // Conversation went cold — auto-set objective to "reacender" and generate
+                    if let objIndex = self.availableObjectives.firstIndex(where: { $0.id == "reacender" }) {
+                        self.selectedObjectiveIndex = objIndex
+                    }
+                    self.isLoadingSuggestions = true
+                    self.previousState = .hub
+                    self.currentState = .startConversation
+                    self.renderCurrentState()
+                    self.generateFirstMessage()
+
+                case "no_history":
+                    // No messages yet — auto-trigger first message
+                    self.isLoadingSuggestions = true
+                    self.previousState = .hub
+                    self.currentState = .startConversation
+                    self.renderCurrentState()
+                    self.generateFirstMessage()
+
+                case "waiting":
+                    // User sent last msg, she hasn't replied yet — stay on hub but show hint
+                    if let hint = contextHint {
+                        self.clipboardText = nil
+                        self.conversationHint = hint
+                        self.renderCurrentState()
+                    }
+
+                default:
+                    // recent_outbound, no_thread — just stay on hub, normal behavior
+                    break
+                }
+            }
+        }
+    }
+
     // MARK: - Baileys Message Polling
 
     func startMessagePolling() {

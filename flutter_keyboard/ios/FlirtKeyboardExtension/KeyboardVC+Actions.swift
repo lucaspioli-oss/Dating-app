@@ -57,6 +57,7 @@ extension KeyboardViewController {
         selectedConversation = filteredConversations[index]
         saveSelectedConversation(selectedConversation)
         clipboardText = nil
+        conversationHint = nil
         suggestions = []
         searchText = ""
         isSearchActive = false
@@ -70,6 +71,10 @@ extension KeyboardViewController {
         }
         currentState = .hub
         renderCurrentState()
+        // Auto-detect conversation state for WhatsApp-synced contacts
+        if conv.threadId != nil {
+            fetchConversationState()
+        }
     }
 
     // MARK: - Hub Actions
@@ -204,6 +209,7 @@ extension KeyboardViewController {
         searchText = ""
         isSearchActive = false
         multiMessages = ["", ""]
+        conversationHint = nil
         clearMultiMessageState()
         selectedConversation = nil
         saveSelectedConversation(nil)

@@ -1096,6 +1096,86 @@ fastify.post('/sync/instance/pair', { preHandler: [auth_1.verifyAuth] }, async (
 });
 
 // ===================================================================
+// KEYBOARD: CONVERSATION STATE (auto-detect context for smart suggestions)
+// ===================================================================
+
+fastify.get('/keyboard/conversation-state', { preHandler: [verifyRequestSignature, auth_1.verifyAuth] }, async (request, reply) => {
+    try {
+        const userId = request.user.uid;
+        const { threadId, matchName } = request.query;
+
+        if (!threadId) {
+            return reply.code(200).send({ state: 'no_thread', suggestedObjective: null, lastMessage: null });
+        }
+
+        // Get last 5 messages from thread (both directions) to determine state
+        const { data: messages, error: msgErr } = await supabaseAdmin
+            .from('messages')
+            .select('text, direction, ts')
+            .eq('thread_id', threadId)
+            .eq('user_id', userId)
+            .order('ts', { ascending: false })
+            .limit(5);
+
+        if (msgErr || !messages || messages.length === 0) {
+            return reply.code(200).send({ state: 'no_history', suggestedObjective: 'automatico', lastMessage: null });
+        }
+
+        const lastMsg = messages[0];
+        const lastMsgDate = new Date(lastMsg.ts);
+        const now = new Date();
+        const hoursSinceLast = (now - lastMsgDate) / (1000 * 60 * 60);
+        const daysSinceLast = hoursSinceLast / 24;
+
+        // Determine conversation state
+        let state, suggestedObjective, contextHint;
+
+        if (lastMsg.direction === 'inbound') {
+            // She sent the last message — user needs to reply
+            if (hoursSinceLast > 48) {
+                state = 'cold_inbound';
+                suggestedObjective = 'reacender';
+                contextHint = `Ela mandou ha ${Math.floor(daysSinceLast)} dias e voce nao respondeu. Reacenda a conversa.`;
+            } else {
+                state = 'needs_response';
+                suggestedObjective = 'automatico';
+                contextHint = null; // Normal flow — just generate reply
+            }
+        } else {
+            // User sent the last message — she hasn't replied
+            if (hoursSinceLast > 72) {
+                state = 'cold_outbound';
+                suggestedObjective = 'reacender';
+                contextHint = `Voce mandou ha ${Math.floor(daysSinceLast)} dias e ela nao respondeu. Mande algo criativo para reacender.`;
+            } else if (hoursSinceLast > 24) {
+                state = 'waiting';
+                suggestedObjective = null; // Don't auto-trigger — she might still reply
+                contextHint = `Voce mandou a ultima mensagem ha ${Math.floor(hoursSinceLast)}h. Ela ainda pode responder.`;
+            } else {
+                state = 'recent_outbound';
+                suggestedObjective = null;
+                contextHint = null;
+            }
+        }
+
+        return reply.code(200).send({
+            state,
+            suggestedObjective,
+            contextHint,
+            lastMessage: {
+                text: lastMsg.text?.substring(0, 100),
+                direction: lastMsg.direction,
+                ts: lastMsg.ts,
+                hoursSince: Math.round(hoursSinceLast),
+            },
+        });
+    } catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send({ error: 'Erro ao analisar estado da conversa' });
+    }
+});
+
+// ===================================================================
 // KEYBOARD: POLL MESSAGES (Baileys real-time loop)
 // ===================================================================
 
