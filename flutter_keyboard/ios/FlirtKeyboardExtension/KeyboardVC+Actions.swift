@@ -71,8 +71,16 @@ extension KeyboardViewController {
         }
         currentState = .hub
         renderCurrentState()
-        // Auto-detect conversation state for WhatsApp-synced contacts
-        if conv.threadId != nil {
+        // Auto-detect conversation state — works with or without threadId
+        let isWhatsApp = conv.threadId != nil || conv.platform.lowercased().contains("whatsapp")
+        kbLog("profile:selected", [
+            "matchName": conv.matchName,
+            "threadId": conv.threadId ?? "nil",
+            "convId": conv.conversationId ?? "nil",
+            "platform": conv.platform,
+            "isWhatsApp": isWhatsApp,
+        ])
+        if isWhatsApp {
             fetchConversationState()
         }
     }

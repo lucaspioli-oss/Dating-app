@@ -184,6 +184,7 @@ class KeyboardViewController: UIInputViewController {
         checkPendingInsert()
 
         if authToken != nil {
+            kbLog("keyboard:open", ["hasToken": true, "cachedProfiles": loadCachedConversations()?.count ?? 0])
             // Start at profile picker so user always chooses who to talk to
             currentState = .profilePicker
 

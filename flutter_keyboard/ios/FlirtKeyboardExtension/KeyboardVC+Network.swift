@@ -2,6 +2,27 @@ import UIKit
 
 extension KeyboardViewController {
 
+    // MARK: - Live Logger (sends events to /keyboard/log for real-time monitoring)
+
+    func kbLog(_ event: String, _ data: [String: Any]? = nil) {
+        guard let url = URL(string: "\(backendUrl)/keyboard/log") else { return }
+        var body: [String: Any] = [
+            "event": event,
+            "timestamp": ISO8601DateFormatter().string(from: Date()),
+        ]
+        if let uid = userId { body["userId"] = uid }
+        if let data = data { body["data"] = data }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 5
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        URLSession.shared.dataTask(with: request) { _, _, _ in }.resume()
+        #if DEBUG
+        NSLog("[KB-LOG] \(event) \(data ?? [:])")
+        #endif
+    }
+
     // MARK: - Helpers
 
     func currentTone() -> String { return availableTones[selectedToneIndex] }
@@ -264,9 +285,10 @@ extension KeyboardViewController {
                             threadId: dict["threadId"] as? String
                         )
                     }
-                    #if DEBUG
-                    NSLog("[KB] fetchConversations: loaded \(contexts.count) conversations")
-                    #endif
+                    self?.kbLog("profiles:loaded", [
+                        "count": contexts.count,
+                        "profiles": contexts.map { ["name": $0.matchName, "threadId": $0.threadId ?? "nil", "convId": $0.conversationId ?? "nil", "platform": $0.platform] }
+                    ])
                     DispatchQueue.main.async {
                         let oldNames = self?.conversations.map { $0.matchName } ?? []
                         self?.conversations = contexts
@@ -302,9 +324,14 @@ extension KeyboardViewController {
     func analyzeText(_ text: String, tone: String, conversationId: String?, objective: String?, threadId: String? = nil, matchName: String? = nil) {
         guard let url = URL(string: "\(backendUrl)/analyze") else { return }
 
-        #if DEBUG
-        NSLog("[KB] analyzeText: convId=\(conversationId ?? "nil") threadId=\(threadId ?? "nil") tone=\(tone) text=\(text.prefix(40))...")
-        #endif
+        kbLog("analyze:start", [
+            "convId": conversationId ?? "nil",
+            "threadId": threadId ?? "nil",
+            "tone": tone,
+            "objective": objective ?? "nil",
+            "matchName": matchName ?? "nil",
+            "textLen": text.count,
+        ])
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -351,6 +378,7 @@ extension KeyboardViewController {
                 if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let analysis = json["analysis"] as? String {
                     let parsed = self?.parseSuggestions(analysis) ?? [analysis]
+                    self?.kbLog("analyze:success", ["count": parsed.count, "first": parsed.first?.prefix(50).description ?? ""])
                     DispatchQueue.main.async {
                         self?.isLoadingSuggestions = false
                         self?.suggestions = parsed
@@ -358,6 +386,7 @@ extension KeyboardViewController {
                     }
                 }
             } catch {
+                self?.kbLog("analyze:parse-error", ["error": error.localizedDescription])
                 DispatchQueue.main.async {
                     self?.isLoadingSuggestions = false
                     self?.suggestions = ["Erro ao processar resposta."]
@@ -434,11 +463,11 @@ extension KeyboardViewController {
 
     func generateFirstMessage() {
         guard let conv = selectedConversation else {
-            #if DEBUG
-            NSLog("[KB] generateFirstMessage: no selected conversation")
-            #endif
+            kbLog("firstMsg:skip", ["reason": "no selected conversation"])
             return
         }
+
+        kbLog("firstMsg:start", ["matchName": conv.matchName, "convId": conv.conversationId ?? "nil", "profileId": conv.profileId ?? "nil"])
 
         let endpoint = "\(backendUrl)/keyboard/start-conversation"
         guard let url = URL(string: endpoint) else { return }
@@ -634,8 +663,25 @@ extension KeyboardViewController {
 
     func fetchConversationState() {
         guard let conv = selectedConversation,
-              let threadId = conv.threadId,
-              let token = authToken else { return }
+              let token = authToken else {
+            kbLog("conv-state:skip", ["reason": "no conv or token"])
+            return
+        }
+
+        // If no threadId, treat as no_history and auto-trigger first message
+        guard let threadId = conv.threadId else {
+            kbLog("conv-state:no-thread", ["matchName": conv.matchName, "platform": conv.platform])
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.kbLog("conv-state:auto-first-msg", ["matchName": conv.matchName])
+                self.isLoadingSuggestions = true
+                self.previousState = .hub
+                self.currentState = .startConversation
+                self.renderCurrentState()
+                self.generateFirstMessage()
+            }
+            return
+        }
 
         let encodedName = conv.matchName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? conv.matchName
         let urlStr = "\(backendUrl)/keyboard/conversation-state?threadId=\(threadId)&matchName=\(encodedName)"
@@ -651,9 +697,7 @@ extension KeyboardViewController {
         request.setValue(signed.timestamp, forHTTPHeaderField: "X-Timestamp")
         request.setValue(signed.nonce, forHTTPHeaderField: "X-Nonce")
 
-        #if DEBUG
-        NSLog("[KB] fetchConversationState: threadId=\(threadId) matchName=\(conv.matchName)")
-        #endif
+        kbLog("conv-state:fetch", ["threadId": threadId, "matchName": conv.matchName])
 
         PinnedURLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             guard let self = self,
@@ -661,9 +705,10 @@ extension KeyboardViewController {
                   let http = response as? HTTPURLResponse, http.statusCode == 200,
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                   let state = json["state"] as? String else {
-                #if DEBUG
-                NSLog("[KB] fetchConversationState: failed or no data")
-                #endif
+                let errMsg = error?.localizedDescription ?? "unknown"
+                let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+                let body = data.flatMap { String(data: $0, encoding: .utf8) } ?? "nil"
+                self?.kbLog("conv-state:error", ["error": errMsg, "status": status, "body": body.prefix(200).description])
                 return
             }
 
@@ -673,9 +718,12 @@ extension KeyboardViewController {
             let lastText = lastMsg?["text"] as? String
             let lastDirection = lastMsg?["direction"] as? String
 
-            #if DEBUG
-            NSLog("[KB] conversationState: \(state) suggested=\(suggestedObjective ?? "nil") hint=\(contextHint ?? "nil")")
-            #endif
+            self.kbLog("conv-state:result", [
+                "state": state,
+                "suggestedObjective": suggestedObjective ?? "nil",
+                "contextHint": contextHint ?? "nil",
+                "lastDirection": lastDirection ?? "nil",
+            ])
 
             DispatchQueue.main.async {
                 guard self.selectedConversation?.threadId == threadId else { return }
