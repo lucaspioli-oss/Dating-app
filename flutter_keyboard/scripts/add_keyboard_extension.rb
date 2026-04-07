@@ -52,8 +52,13 @@ extension_target.build_configurations.each do |config|
   config.build_settings['TARGETED_DEVICE_FAMILY'] = '1'
   config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
   config.build_settings['GENERATE_INFOPLIST_FILE'] = 'NO'
-  config.build_settings['CURRENT_PROJECT_VERSION'] = '13'
-  config.build_settings['MARKETING_VERSION'] = '1.0.0'
+  # Sync version with main app from pubspec.yaml
+  pubspec = File.read('pubspec.yaml')
+  version_match = pubspec.match(/version:\s*(\d+\.\d+\.\d+)\+(\d+)/)
+  marketing_ver = version_match ? version_match[1] : '1.0.0'
+  build_num = ENV['CM_BUILD_NUMBER'] || (version_match ? version_match[2] : '57')
+  config.build_settings['CURRENT_PROJECT_VERSION'] = build_num
+  config.build_settings['MARKETING_VERSION'] = marketing_ver
   config.build_settings['SKIP_INSTALL'] = 'YES'
   config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'FlirtKeyboardExtension/FlirtKeyboardExtension.entitlements'
   config.build_settings['LD_RUNPATH_SEARCH_PATHS'] = '$(inherited) @executable_path/../../Frameworks'

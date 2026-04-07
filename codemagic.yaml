@@ -100,6 +100,8 @@ workflows:
       - name: Add keyboard extension to Xcode project
         script: |
           gem install xcodeproj
+          export CM_BUILD_NUMBER=$(grep '^version:' pubspec.yaml | sed 's/.*+//')
+          echo "Extension build number: $CM_BUILD_NUMBER"
           ruby scripts/add_keyboard_extension.rb
           echo "--- Xcode project targets ---"
           xcodebuild -project ios/Runner.xcodeproj -list 2>/dev/null || true
@@ -122,6 +124,15 @@ workflows:
       - name: Set up code signing on Xcode project
         script: |
           xcode-project use-profiles
+
+      - name: Force build number in Xcode project
+        script: |
+          BUILD_NUM=$(grep '^version:' pubspec.yaml | sed 's/.*+//')
+          MARKETING=$(grep '^version:' pubspec.yaml | sed 's/version: //' | sed 's/+.*//')
+          echo "Forcing build number $BUILD_NUM and version $MARKETING in ALL targets"
+          sed -i '' "s/CURRENT_PROJECT_VERSION = .*/CURRENT_PROJECT_VERSION = $BUILD_NUM;/g" ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' "s/MARKETING_VERSION = .*/MARKETING_VERSION = $MARKETING;/g" ios/Runner.xcodeproj/project.pbxproj
+          grep "CURRENT_PROJECT_VERSION" ios/Runner.xcodeproj/project.pbxproj | head -5
 
       - name: Flutter build ipa
         script: |

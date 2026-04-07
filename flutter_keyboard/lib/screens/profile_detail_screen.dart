@@ -993,9 +993,10 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
 
   void _confirmDeleteProfile() {
     final l10n = AppLocalizations.of(context)!;
+    final navigator = Navigator.of(context);
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.elevatedDark,
         title: Text(
           l10n.deleteProfileQuestion,
@@ -1007,15 +1008,15 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text(l10n.cancelButton),
           ),
           TextButton(
             onPressed: () async {
               AppHaptics.heavyImpact();
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               await _profileService.deleteProfile(widget.profileId);
-              Navigator.pop(context);
+              navigator.pop();
             },
             child: Text(
               l10n.deleteButton,

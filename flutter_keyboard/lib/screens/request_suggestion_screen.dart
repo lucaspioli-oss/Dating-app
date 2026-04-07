@@ -1424,7 +1424,10 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
       // Obter dados da plataforma selecionada
       final platformData = widget.profile.platforms[_selectedPlatform];
 
-      // Criar a conversa com a primeira mensagem
+      // Se veio do fallback (match escreveu primeiro), salvar na ordem certa
+      final isFromFallback = _lastMessage != null && _lastMessage!.trim().isNotEmpty;
+
+      // Criar conversa — se fallback, sem firstMessage (adicionamos na ordem depois)
       final conversation = await conversationService.createConversation(
         matchName: widget.profile.name,
         username: platformData?.username,
@@ -1434,11 +1437,28 @@ class _RequestSuggestionScreenState extends State<RequestSuggestionScreen> {
         photoDescriptions: platformData?.photoDescriptions,
         age: platformData?.age?.toString(),
         interests: platformData?.interests,
-        firstMessage: suggestion,
+        firstMessage: isFromFallback ? null : suggestion,
         tone: 'expert',
         faceImageBase64: widget.profile.faceImageBase64,
         faceDescription: widget.profile.faceDescription,
       );
+
+      if (isFromFallback) {
+        // 1. Mensagem da match primeiro
+        await conversationService.addMessage(
+          conversationId: conversation.id,
+          role: 'match',
+          content: _lastMessage!.trim(),
+        );
+        // 2. Resposta do usuário depois
+        await conversationService.addMessage(
+          conversationId: conversation.id,
+          role: 'user',
+          content: suggestion,
+          wasAiSuggestion: true,
+          tone: 'expert',
+        );
+      }
 
       setState(() {
         _isGenerating = false;
